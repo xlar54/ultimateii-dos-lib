@@ -12,7 +12,11 @@ Patches and pull requests are welcome
 simple build instructions:
 
 cl65 -O -t c64 ultimate_ii.c main.c -o u2sample.prg
+
 cl65 -O -t c64 ultimate_ii.c shell.c -o u2sample.prg
 
+Example programs:
+
 u2sample.prg is a simple demo of making some calls
+
 u2shell.prg is a simple command shell
