@@ -182,7 +182,7 @@ void uii_swap_disk(unsigned char id)
 
 void uii_open_file(unsigned char attrib, char *filename)
 {
-	unsigned char cmd[] = {0x01,0x23, 0x00};	
+	unsigned char cmd[] = {0x01,0x02, 0x00};	
 	int len = 0;
 	int x = 0;
 	unsigned char* fullcmd;
@@ -238,7 +238,7 @@ void uii_read_file(unsigned char length)
 
 void uii_write_file(unsigned char* data, int length)
 {
-	unsigned char cmd[] = {0x01,0x04, 0x00, 0x00};
+	unsigned char cmd[] = {0x01,0x05, 0x00, 0x00};
 	unsigned char *fullcmd;
 	int x = 0;
 	

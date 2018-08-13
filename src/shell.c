@@ -74,6 +74,7 @@ void docmd()
 		printf("\ndir              - read directory");
 		printf("\nmount <d64 file> - to drive 8");
 		printf("\nunmount          - what it says");
+		printf("\nmore <file>      - read a file");
 	}
 	else if(strcmp(params[0],"exit") == 0)
 	{
@@ -124,6 +125,28 @@ void docmd()
 		if(paramcount == 1)
 		{
 			uii_unmount_disk(8);
+			printf("\n%s", uii_status);	
+		}
+	}
+	else if(strcmp(params[0],"more") == 0)
+	{
+		if(paramcount == 2)
+		{
+			uii_open_file(0x01, params[1]);
+			printf("\nstatus = %s", uii_status);	
+			
+			uii_read_file(255);
+			printf("\n%s", uii_status);	
+
+			while(uii_isdataavailable())
+			{
+				uii_readdata();
+				uii_accept();
+				printf("\n%s", uii_data);
+			}
+			
+			uii_close_file();
+			
 			printf("\n%s", uii_status);	
 		}
 	}
