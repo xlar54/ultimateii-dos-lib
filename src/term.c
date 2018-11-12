@@ -15,7 +15,14 @@ Demo program does not alter any data
 
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef __C128__
+#include <c128.h>
+#endif
+
+#ifdef __C64__
 #include <c64.h>
+#endif
+
 #include <conio.h>
 #include <peekpoke.h>
 #include "ultimate_ii.h"
