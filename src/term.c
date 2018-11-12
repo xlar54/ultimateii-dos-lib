@@ -86,7 +86,7 @@ void main(void)
 	
 	port = atoi(portbuff);
 	
-	printf("\n\nConnecting to: %s:%d\n", host, port);
+	printf("\n\nConnecting to: %s:%u\n", host, port);
 	uii_tcpconnect(host, port);
 	socketnr = uii_data[0];
 	
