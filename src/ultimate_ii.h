@@ -28,6 +28,10 @@ Patches and pull requests are welcome
 #define DATA_QUEUE_SZ		896
 #define STATUS_QUEUE_SZ		256
 
+#define TARGET_DOS1		0x01
+#define TARGET_DOS2		0x02
+#define TARGET_NETWORK	0x03
+#define TARGET_CONTROL	0x04
 
 //#define DEBUG
 #define DISPLAY_READ
@@ -42,6 +46,8 @@ struct DirectoryEntry {
 
 
 // prototypes
+void uii_settarget(unsigned char id);
+void uii_freeze(void);
 void uii_identify(void);
 void uii_get_path(void);
 void uii_open_dir(void);
@@ -60,6 +66,13 @@ void uii_delete_file(char* filename);
 void uii_rename_file(char* filename, char* newname);
 void uii_copy_file(char* sourcefile, char* destfile);
 void uii_echo(void);
+
+void uii_getinterfacecount(void);
+void uii_getipaddress(void);
+void uii_tcpconnect(char* host, unsigned short port);
+void uii_tcpclose(unsigned char socketid);
+void uii_tcpsocketread(unsigned char socketid, unsigned short length);
+void uii_tcpsocketwrite(unsigned char socketid, char *data);
 
 void uii_logtext(char *text);
 void uii_logstatusreg(void);
