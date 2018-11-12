@@ -20,6 +20,10 @@ Demo program does not alter any data
 #include <peekpoke.h>
 #include "ultimate_ii.h"
 
+char host[255];
+char portbuff[20];
+char inbuf[255];
+
 int getstring(char *buf)
 {
 	unsigned char c = 0;
@@ -46,16 +50,19 @@ int getstring(char *buf)
 	}
 }
 
+
+
 void main(void) 
 {
 	int count = 0;
-	char host[255];
-	char portbuff[20];
-	unsigned short port = 6400;
+	
+	int port = 0;
 	unsigned char socketnr = 0;
 	int datacount = 0;
 	unsigned char c = 0;
 	char buff[2] = {0,0};
+	int x = 0;
+	
 	
 	POKEW(0xD020,0);
 	POKEW(0xD021,0);
@@ -87,13 +94,15 @@ void main(void)
 	{
 		while(1)
 		{
-			uii_tcpsocketread(socketnr, 1);
-			
-			while(uii_status[0] == '0' && uii_status[1] == '0')  // "00, OK" is the string
+			uii_tcpsocketread(socketnr, 1024);
+			datacount = uii_data[0] | (uii_data[1]<<8);
+
+			if(datacount > -1)
 			{
-				datacount = uii_data[0] | (uii_data[1]<<8);
-				printf("%c", uii_data[2]);	// data byte
-				uii_tcpsocketread(socketnr, 1);
+				for(x=2;x<datacount+2;x++)
+				{
+					printf("%c", uii_data[x]);	// data byte
+				}
 			}
 
 			c = kbhit();
