@@ -31,10 +31,18 @@ char host[255];
 char portbuff[20];
 char inbuf[255];
 
+#define RVS_ON	0x12
+#define RVS_OFF	0x92
+#define CURSOR 	0xe4
+#define LEFT	0x9d
+#define DELETE	0x14
+
 int getstring(char *buf)
 {
 	unsigned char c = 0;
 	unsigned char x = 0;
+	
+	printf("%c", CURSOR);
 	
 	while(1)
 	{
@@ -46,12 +54,21 @@ int getstring(char *buf)
 			if (c == 13)
 			{
 				buf[x] = 0;
+				printf("%c ", LEFT);
 				return x;
+			}
+			else if (c == DELETE)
+			{
+				if(x > 0)
+				{
+					x--;
+					printf("%c%c  %c%c%c",LEFT,LEFT,LEFT,LEFT,CURSOR);
+				}
 			}
 			else
 			{
 				buf[x++] = c;
-				printf("%c",c);
+				printf("%c %c%c%c",LEFT,LEFT,c,CURSOR);
 			}
 		}
 	}
@@ -69,12 +86,12 @@ void main(void)
 	unsigned char c = 0;
 	char buff[2] = {0,0};
 	int x = 0;
-	
-	
+	unsigned char curs = 0;
+
 	POKEW(0xD020,0);
 	POKEW(0xD021,0);
-	printf("%cUltimateTerm 64 v1.2", 147);
-	
+	printf("%c%cUltimateTerm 64 v1.22%c", 0x05, 147, 0x9f);
+		
 	uii_settarget(TARGET_NETWORK);
 	
 	uii_identify();
@@ -92,7 +109,12 @@ void main(void)
 	
 	if(uii_data[0] == 0)
 	{
-		printf("\n\nUnable to access network interface.  Please ensure the Command Interface is enabled and your network link is connected and in 'Link Up' state.");
+		printf("\n\nUnable to access network interface.");
+		printf("\nPlease ensure the following:");
+		printf("\n - Command Interface is enabled");
+		printf("\n - Network link is in 'Link Up' state");
+		printf("\n - Disable any cartridges like");
+		printf("\n	 the Action Replay or FC III");
 		return;
 	}
 	
@@ -110,9 +132,13 @@ void main(void)
 		uii_tcpconnect(host, port);
 		socketnr = uii_data[0];
 		
-		printf("\n\n[F1] to disconnect----------------------");
+		printf("\n\n[F1] to disconnect----------------------\n");
+		printf("%c",CURSOR);
+		curs = 1;
+		
 		if (uii_status[0] == '0' && uii_status[1] == '0')
 		{
+			
 			while(1)
 			{
 				uii_tcpsocketread(socketnr, 1024);
@@ -120,10 +146,22 @@ void main(void)
 
 				if(datacount > -1)
 				{
+					printf("%c",LEFT);
+					
 					for(x=2;x<datacount+2;x++)
 					{
-						printf("%c", uii_data[x]);	// data byte
+						if(curs == 1 && 
+							(uii_data[x] == 13 || uii_data[x] == 29 || uii_data[x] == 157 
+								|| uii_data[x] == 17 || uii_data[x] == 145))
+						{
+							printf(" %c", LEFT);
+							curs = 0;
+						}
+
+						printf("%c", uii_data[x]);	// data byte						
 					}
+					printf("%c",CURSOR);
+					curs = 1;
 				}
 
 				c = kbhit();
