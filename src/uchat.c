@@ -119,7 +119,10 @@ unsigned char convertchar(unsigned char c)
 	{
 		c -= 32;
 	}
-	
+	else if (c >192 && c < 219)
+	{
+		c -= 128;
+	}
 	return c;
 }
 
@@ -138,6 +141,7 @@ void irc_print(unsigned char *msgptr, unsigned char leadingNewLineFlag)
 		chlinexy(0,22,40);
 		gotoxy(0,23);
 		printf("%s",outbuf);
+		cputcxy(wherex(), wherey(), CURSOR);
 		gotoxy(0,21);
 	}
 	
@@ -150,6 +154,7 @@ void irc_print(unsigned char *msgptr, unsigned char leadingNewLineFlag)
 			chlinexy(0,22,40);
 			gotoxy(0,23);
 			printf("%s",outbuf);
+			cputcxy(wherex(), wherey(), CURSOR);
 			gotoxy(0,21);
 		}
 		printf("%c", convertchar(msgptr[y]));
@@ -214,6 +219,7 @@ void main(void)
 	
 	clrscr();
 	chlinexy(0,22,40);
+	cputcxy(0,23, CURSOR);
 	gotoxy(0,0);
 	
 	printf("%cUltimateChat v1.0%c", 0x05, 0x9f);
@@ -244,6 +250,10 @@ void main(void)
 
 	printf("\n\nNickname: ");
 	getstring(nick);
+
+	for(x=0;x<strlen(nick);x++)
+		nick[x] = convertchar(nick[x]);
+	
 	inbufptr = 0;
 	port = atoi(portbuff);
 	
@@ -403,7 +413,27 @@ void main(void)
 				}
 				else
 				{
-					if(c == 13)
+					if(c == DELETE && outx > 0)
+					{
+						tempx = wherex();
+						tempy = wherey();
+						
+						cputcxy(outx, outy, ' ');
+						
+						if (outx < 0 && outy == 24)
+						{
+							outx = 80;
+							outy--;
+						}
+						
+						outx--;
+						cputcxy(outx, outy, CURSOR);
+						
+						outbufptr--;
+						outbuf[outbufptr] = 0;
+						gotoxy(tempx, tempy);
+					}
+					else if(c == 13)
 					{
 						irc_message(outbuf);
 						
@@ -415,28 +445,33 @@ void main(void)
 
 						outx = 0;
 						outy = 23;
-						
+						cputcxy(outx, outy, CURSOR);
 						gotoxy(tempx, tempy);
 						outbufptr = 0;
 						outbuf[outbufptr]=0;
 					}
 					else
 					{
-						tempx = wherex();
-						tempy = wherey();
-						
-						cputcxy(outx++, outy, c);
-						
-						if(outx > 39)
+						if(outbufptr < 79)
 						{
-							outx = 0;
-							outy++;
-						}
+							tempx = wherex();
+							tempy = wherey();
+							
+							cputcxy(outx++, outy, c);
 
-						outbuf[outbufptr] = c;
-						outbufptr++;
-						outbuf[outbufptr] = 0;
-						gotoxy(tempx, tempy);
+							if(outx > 39)
+							{
+								outx = 0;
+								outy++;
+							}
+							
+							cputcxy(outx, outy, CURSOR);
+							
+							outbuf[outbufptr] = c;
+							outbufptr++;
+							outbuf[outbufptr] = 0;
+							gotoxy(tempx, tempy);
+						}
 					}
 					
 				}
