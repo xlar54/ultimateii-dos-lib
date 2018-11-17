@@ -15,6 +15,8 @@ Demo program does not alter any data
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+
 #ifdef __C128__
 #include <c128.h>
 #endif
@@ -27,9 +29,30 @@ Demo program does not alter any data
 #include <peekpoke.h>
 #include "ultimate_ii.h"
 
-char host[255];
+struct bbslist {
+	char host[255];
+	char port[20];
+};
+
+char host[255] = "";
 char portbuff[20];
 char inbuf[255];
+
+#define LISTMAX 12
+struct bbslist myList[LISTMAX] = {
+	{"the-hidden.hopto.org", "64128"},
+	{"rapidfire.hopto.org", "64128"},
+	{"reflections.servebbs.com", "64128"},
+	{"bbs.retrohack.se", "64128"},
+	{"fastline.nu", "1541"},
+	{"dzbbs.hopto.org", "64128"},
+	{"antidote.triad.se", "64128"},
+	{"raveolution.hopto.org", "64128"},
+	{"ssbbs.hopto.org", "64128"},
+	{"afterlife.dynu.com", "6400"},
+	{"centronian.com", "6400"},
+	{"hhbbs.servebeer.com", "6400"}
+};
 
 #define RVS_ON	0x12
 #define RVS_OFF	0x92
@@ -85,6 +108,10 @@ void main(void)
 	int datacount = 0;
 	unsigned char c = 0;
 	char buff[2] = {0,0};
+
+	char *ptr;
+	long ret;
+
 	int x = 0;
 	unsigned char curs = 0;
 
@@ -120,14 +147,34 @@ void main(void)
 	
 	while (1)
 	{
-		printf("\n\nHost Address: ");
-		getstring(host);
+		x = strlen(host);
+		while ( x == 0 ) {
+			for (x = 0; x < LISTMAX; ++x) {
+				printf("\n%2d %s:%s",x,myList[x].host,myList[x].port);
+			}
+			printf("\n c custom address\n");
+			x = 0;
+
+			getstring(inbuf);
+
+			ret = strtol(inbuf, &ptr, 10);
+
+			if ( ret == 0 ) {
+				printf("\n\nHost Address: ");
+				getstring(host);
 		
-		printf("\n        Port: ");
-		getstring(portbuff);
+				printf("\n        Port: ");
+				getstring(portbuff);
 		
-		port = atoi(portbuff);
-		
+				port = atoi(portbuff);
+
+			} else if ( ret < LISTMAX ) {
+				strcpy(host,myList[ret].host);
+				port = atoi(myList[ret].port);
+			}
+			x = strlen(host);
+		}
+		x = 0;
 		printf("\n\nConnecting to: %s:%u\n", host, port);
 		uii_tcpconnect(host, port);
 		socketnr = uii_data[0];
@@ -173,6 +220,7 @@ void main(void)
 					{
 						printf("\n\nClosing connection");
 						uii_tcpclose(socketnr);
+						strcpy(host,"");
 						break;
 					}
 					else
@@ -187,6 +235,7 @@ void main(void)
 		else
 		{
 			printf("\nConnect failed: %s", uii_status);
+			strcpy(host,"");
 		}
 	}
 }
