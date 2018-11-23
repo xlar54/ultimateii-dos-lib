@@ -30,26 +30,6 @@ Demo program does not alter any data
 #include <unistd.h>
 #include "ultimate_ii.h"
 
-int irc_handleinput(char *buf);
-
-char *version = "1.2";
-char host[25];
-char portbuff[10];
-char *realname = "Bob Anonymous";
-char *nochan = "No Channel";
-char channel[50];
-char nick[255];
-char inbuf[400];
-char outbuf[160];
-unsigned char outbufptr = 0;
-unsigned char inbufptr = 0;
-unsigned char socketnr = 0;
-unsigned char outx = 0;
-unsigned char outy = 23;
-unsigned char tempx = 0;
-unsigned char tempy = 0;
-
-
 #define RVS_ON			0x12
 #define RVS_OFF			0x92
 #define CURSOR 			0xe4
@@ -63,7 +43,36 @@ unsigned char tempy = 0;
 #define CG_COLOR_L_RED  0x96
 #define CG_COLOR_L_GRAY  0x9B
 
+#ifdef __C128__
+#define SCREEN_WIDTH	80
+#define MAX_OUTBUFFER	160
+#else
 #define SCREEN_WIDTH	40
+#define MAX_OUTBUFFER	80
+#endif
+
+#define VDC_REG	0xd600
+
+
+int irc_handleinput(char *buf);
+
+char *version = "1.3";
+char host[25];
+char portbuff[10];
+char *realname = "Bob Anonymous";
+char *nochan = "No Channel";
+char channel[50];
+char nick[255];
+char inbuf[400];
+char outbuf[MAX_OUTBUFFER];
+unsigned char outbufptr = 0;
+unsigned char inbufptr = 0;
+unsigned char socketnr = 0;
+unsigned char outx = 0;
+unsigned char outy = 23;
+unsigned char tempx = 0;
+unsigned char tempy = 0;
+
 
 unsigned char convertchar(unsigned char c)
 {
@@ -81,6 +90,60 @@ unsigned char convertchar(unsigned char c)
 	}
 	return c;
 }
+
+#ifdef __C128__
+
+#pragma optimize (push,off)
+void vdc_write_reg(void)
+{
+	asm("stx $d600");
+vdc_write_wait:
+	asm("ldx $d600");
+	asm("bpl %g", vdc_write_wait);
+	asm("sta $d601");
+
+}
+#pragma optimize (pop)
+
+	
+#pragma optimize (push,off)
+void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo)
+{
+	// Set src line
+	asm("ldx #$20");
+	asm("ldy #%o", srchi);
+	asm("lda (sp),y");
+	asm("jsr %v", vdc_write_reg);
+	
+	asm("ldx #$21");
+	asm("ldy #%o", srclo);
+	asm("lda (sp),y");
+	asm("jsr %v", vdc_write_reg);
+	
+	// Set dest line
+	asm("ldx #$12");
+	asm("ldy #%o", desthi);
+	asm("lda (sp),y");
+	asm("jsr %v", vdc_write_reg);
+	
+	asm("ldx #$13");
+	asm("ldy #%o", destlo);
+	asm("lda (sp),y");
+	asm("jsr %v", vdc_write_reg);
+	
+	// set copy mode
+	asm("ldx #$18");
+	asm("lda #$80");				// set bit 7 = copy
+	asm("jsr %v", vdc_write_reg);
+	
+	// Set byte count (initates copy operation)
+	asm("ldx #$1E");
+	asm("lda #$50");				// 80 chars - 1
+	asm("jsr %v", vdc_write_reg);
+}
+#pragma optimize (pop)
+
+#endif
 
 int getstring(char* def, char *buf)
 {
@@ -126,6 +189,8 @@ int getstring(char* def, char *buf)
 	}
 }
 
+
+
 void irc_updateheader(char *chan)
 {
 	unsigned char x = 0;
@@ -138,11 +203,16 @@ void irc_updateheader(char *chan)
 	t = 0;
 	
 	gotoxy(0,0);
-	printf("%cUltimateChat v%s                       %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
-	
+#ifdef __C64__
+	printf("%cUltimateChat 64 v%s                    %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#endif
+
+#ifdef __C128__
+	printf("%cUltimateChat 128 v%s                   %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#endif
 	for(i=strlen(chan); i>0; i--)
 	{
-		cputcxy(39-t,0, chan[i-1]);
+		cputcxy((SCREEN_WIDTH-1)-t,0, chan[i-1]);
 		t++;
 	}
 	gotoxy(x,y);
@@ -180,7 +250,15 @@ void irc_refreshscreen()
 	
 	// header
 	gotoxy(0,0);
-	printf("%cUltimateChat v%s                       %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+	
+#ifdef __C64__
+	printf("%cUltimateChat 64 v%s                    %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#endif
+
+#ifdef __C128__
+	printf("%cUltimateChat 128 v%s                   %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#endif
+
 	chlinexy(0,1,SCREEN_WIDTH);
 	
 	// footer
@@ -199,7 +277,8 @@ void irc_print(char *buf, int newlineflg)
 	unsigned char t = 0;
 	unsigned char curx = 0;
 	unsigned char cury = 0;
-	
+	unsigned short srcmem = 0;
+	unsigned short destmem = 0;
 	
 	curx = wherex();
 	cury = wherey();
@@ -210,15 +289,39 @@ void irc_print(char *buf, int newlineflg)
 	{	
 		if(curx == SCREEN_WIDTH || newlineflg == 1 || buf[x] == '\r' || buf[x] == '\n')
 		{
+#ifdef __C64__
 			//Scroll up		
 			for(t=0;t<19;t++)
 			{				
 				memcpy(1104+SCREEN_WIDTH*t, 1104+SCREEN_WIDTH*(t+1),SCREEN_WIDTH); // screen
 				memcpy(55376+SCREEN_WIDTH*t, 55376+SCREEN_WIDTH*(t+1),SCREEN_WIDTH); // color
 			}
+#endif
+
+#ifdef __C128__
+			//Scroll up
+			for(t=3;t<22;t++)
+			{
+				srcmem = 80 * t;
+				destmem = 80 * (t-1);
+				vdc_copyline(srcmem>>8, srcmem & 0xff, destmem>>8, destmem & 0xff);
+				
+				srcmem = (80 * t) + 0x800;
+				destmem = (80 * (t-1)) + 0x800;
+				vdc_copyline(srcmem>>8, srcmem & 0xff, destmem>>8, destmem & 0xff);
+			}
+#endif
 			
 			curx = 0; cury = 21;
+			
+#ifdef __C64__
 			cputsxy(curx, cury, "                                        ");
+#endif
+
+#ifdef __C128__
+			cputsxy(curx, cury, "                                                                                ");
+#endif
+
 			gotoxy(curx,cury);
 			
 			newlineflg = 0;
@@ -253,6 +356,8 @@ void irc_help()
 	
 	irc_print("/JOIN #CHANNEL - JOIN CHANNEL",1);
 	irc_print("/PART          - LEAVE CURRENT CHANNEL",1);
+	irc_print("/NICK          - CHANGE YOUR NICKNAME",1);
+	irc_print("/ME ACTION     - PERFORM AN ACTION",1);
 	irc_print("/QUIT          - QUIT PROGRAM",1);
 	irc_print("/HELP          - THIS LIST",1);
 	irc_print("",1);
@@ -300,11 +405,27 @@ int irc_handleinput(char *buf)
 	else if(strstr(buf,"/quit") == buf)
 	{
 		uii_tcpclose(socketnr);
+#ifdef __C64__
 		asm("jmp $FCE2");
+#endif
+
+#ifdef __C128__
+	asm("jmp $FF3D");
+#endif
 	}
 	else if(strstr(buf,"/help") == buf)
 	{
 		irc_help();
+	}
+	else if(strstr(buf,"/nick ") == buf)
+	{
+		for(x=0;x<strlen(buf);x++)
+			buf[x] = convertchar(buf[x]);
+		
+		strcpy(nick, &buf[6]);
+		
+		sprintf(full_message, "nick %s\n", nick);
+		uii_tcpsocketwrite(socketnr, full_message);
 	}
 	else
 	{
@@ -314,20 +435,40 @@ int irc_handleinput(char *buf)
 			return 0;
 		}
 		
-		for(x=0;x<strlen(buf);x++)
-			buf[x] = convertchar(buf[x]);
-		
-		sprintf(full_message, "privmsg %s :%s\n", channel, buf); // PRIVMSG <channel> :Message text
-		uii_tcpsocketwrite(socketnr, full_message);
-		
-		printf("%c", CG_COLOR_CYAN);
-		irc_print("<",1);
-		printf("%c", CG_COLOR_L_RED);
-		irc_print(nick,0);
-		printf("%c", CG_COLOR_CYAN);
-		irc_print("> ",0);
-		printf("%c", CG_COLOR_L_RED);
-		irc_print(buf,0);
+		if(strstr(buf,"/me ") == buf)
+		{
+			buf = &buf[4];
+			
+			for(x=0;x<strlen(buf);x++)
+				buf[x] = convertchar(buf[x]);
+
+			sprintf(full_message, "privmsg %s :%caction %s%c\n", channel, 0x01, buf, 0x01);
+			uii_tcpsocketwrite(socketnr, full_message);
+			
+			printf("%c", CG_COLOR_YELLOW);
+			irc_print(" * ",1);
+			irc_print(nick,0);
+			irc_print(" ",0);
+			irc_print(buf,0);
+			printf("%c", CG_COLOR_L_GRAY);
+		}
+		else
+		{
+			for(x=0;x<strlen(buf);x++)
+				buf[x] = convertchar(buf[x]);
+
+			sprintf(full_message, "privmsg %s :%s\n", channel, buf); // PRIVMSG <channel> :Message text
+			uii_tcpsocketwrite(socketnr, full_message);
+			
+			printf("%c", CG_COLOR_CYAN);
+			irc_print("<",1);
+			printf("%c", CG_COLOR_L_RED);
+			irc_print(nick,0);
+			printf("%c", CG_COLOR_CYAN);
+			irc_print("> ",0);
+			printf("%c", CG_COLOR_L_RED);
+			irc_print(buf,0);
+		}
 	}
 	
     return 0;
@@ -393,6 +534,8 @@ void main(void)
 	unsigned char connected = 0;
 	char *msgptr;
 	unsigned char* sender;
+	unsigned char* tmpPtr;
+	//unsigned char* tmpPtr2;
 
 	POKEW(0xD020,0);
 	POKEW(0xD021,0);
@@ -447,7 +590,7 @@ void main(void)
 						{
 							if (strstr(inbuf, " privmsg ") != 0)
 							{
-								sender = (unsigned char*) malloc(41 * sizeof(unsigned char));
+								sender = (unsigned char*) malloc(40 * sizeof(unsigned char));
 							
 								i = 1;
 								while(inbuf[i] != '!')
@@ -457,16 +600,48 @@ void main(void)
 								}
 								sender[i-1] = 0;
 								
-								printf("%c", CG_COLOR_CYAN);
-								irc_print("<",1);
-								printf("%c", CG_COLOR_L_GREEN);
-								irc_print(sender,0);
-								printf("%c", CG_COLOR_CYAN);
-								irc_print("> ",0);
-								printf("%c", CG_COLOR_L_GREEN);
 								
-								newline = 0;
-								free(sender); 
+								if (strstr(inbuf, "action ") != 0)
+								{
+									tmpPtr = (unsigned char*) malloc(80 * sizeof(unsigned char));
+									strcpy(tmpPtr," * ");
+									strcat(tmpPtr,sender);
+									strcat(tmpPtr," ");
+									strcat(tmpPtr, (strstr(inbuf, "action ")+7));
+									
+									i = 0;
+									// strip the 0x01 
+									while (tmpPtr[i] != 0)
+									{
+										if(tmpPtr[i] == '\x01')
+										{
+											tmpPtr[i] = ' ';
+										}
+										i++;
+									}
+									
+									printf("%c", CG_COLOR_YELLOW);
+									irc_print(tmpPtr,1);
+									printf("%c", CG_COLOR_L_GRAY);									
+									inbufptr = 0;
+									newline = 0;
+									free(tmpPtr);
+									free(sender);
+									continue;
+								}
+								else
+								{							
+									printf("%c", CG_COLOR_CYAN);
+									irc_print("<",1);
+									printf("%c", CG_COLOR_L_GREEN);
+									irc_print(sender,0);
+									printf("%c", CG_COLOR_CYAN);
+									irc_print("> ",0);
+									printf("%c", CG_COLOR_L_GREEN);
+
+									newline = 0;
+									free(sender);
+								}
 							}
 							else if (strstr(inbuf, " join ") != 0)
 							{
@@ -510,7 +685,77 @@ void main(void)
 								free(sender); 
 								continue;
 							}
-							
+							else if (strstr(inbuf, " quit ") != 0)
+							{
+								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
+								i = 1;
+								while(inbuf[i] != '!')
+								{
+									sender[i-1] = inbuf[i];
+									i++;
+								}
+								sender[i-1] = 0;
+								
+								printf("%c", CG_COLOR_YELLOW);
+								irc_print(" * ",1);
+								irc_print(sender,0);
+								irc_print(" HAS QUIT IRC.",0);
+								printf("%c", CG_COLOR_L_GRAY);
+								
+								inbufptr = 0;
+								free(sender); 
+								continue;
+							}
+							else if (strstr(inbuf, " nick ") != 0)
+							{
+								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
+								i = 1;
+								while(inbuf[i] != '!')
+								{
+									sender[i-1] = inbuf[i];
+									i++;
+								}
+								sender[i-1] = 0;
+								
+								printf("%c", CG_COLOR_YELLOW);
+								irc_print(" * ",1);
+								irc_print(sender,0);
+								free(sender);
+								
+								irc_print(" IS NOW KNOWN AS ",0);
+								
+								sender = strstr(inbuf, " nick ") + 7;
+								
+								irc_print(sender,0);
+								printf("%c", CG_COLOR_L_GRAY);
+								
+								inbufptr = 0;								
+								continue;
+							}
+							else if (strstr(inbuf, " quit ") != 0)
+							{
+								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
+								i = 1;
+								while(inbuf[i] != '!')
+								{
+									sender[i-1] = inbuf[i];
+									i++;
+								}
+								sender[i-1] = 0;
+								
+								printf("%c", CG_COLOR_YELLOW);
+								irc_print(" * ",1);
+								irc_print(sender,0);
+								irc_print(" HAS QUIT IRC. ",0);
+								
+								irc_print(tmpPtr,0);
+								
+								printf("%c", CG_COLOR_L_GRAY);
+								
+								inbufptr = 0;
+								free(sender);						
+								continue;
+							}
 							for(y=1;y<inbufptr;y++)
 							{
 								if(inbuf[y] == ':')
@@ -558,7 +803,7 @@ void main(void)
 					
 					if (outx == 0 && outy == 24)
 					{
-						outx = 39;
+						outx = SCREEN_WIDTH-1;
 						outy--;
 					}
 					else
@@ -566,6 +811,7 @@ void main(void)
 						outx--;
 					}
 					
+					printf("%c", CG_COLOR_WHITE);
 					cputcxy(outx, outy, CURSOR);
 					outbufptr--;
 					outbuf[outbufptr] = 0;
@@ -579,9 +825,16 @@ void main(void)
 					tempx = wherex();
 					tempy = wherey();
 					
+					#ifdef __C64__
 					cputsxy(0,23,"                                        ");
 					cputsxy(0,24,"                                        ");
-
+					#endif
+					
+					#ifdef __C128__
+					cputsxy(0,23,"                                                                                ");
+					cputsxy(0,24,"                                                                                ");
+					#endif
+					
 					outx = 0;
 					outy = 23;
 					cputcxy(outx, outy, CURSOR);
@@ -591,19 +844,20 @@ void main(void)
 				}
 				else
 				{
-					if(outbufptr < 79)
+					if(outbufptr < MAX_OUTBUFFER)
 					{
 						tempx = wherex();
 						tempy = wherey();
 						
+						printf("%c", CG_COLOR_WHITE);
 						cputcxy(outx++, outy, c);
 
-						if(outx > 39)
+						if(outx > SCREEN_WIDTH-1)
 						{
 							outx = 0;
 							outy++;
 						}
-						
+
 						cputcxy(outx, outy, CURSOR);
 						
 						outbuf[outbufptr] = c;

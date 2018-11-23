@@ -30,6 +30,7 @@ Demo program does not alter any data
 char host[255];
 char portbuff[20];
 char inbuf[255];
+char *version = "1.22b";
 
 #define RVS_ON	0x12
 #define RVS_OFF	0x92
@@ -90,8 +91,13 @@ void main(void)
 
 	POKEW(0xD020,0);
 	POKEW(0xD021,0);
-	printf("%c%cUltimateTerm 64 v1.22%c", 0x05, 147, 0x9f);
+#ifdef __C128__
+	printf("%c%cUltimateTerm 64 v%s%c", 0x05, 147, version, 0x9f);
+#endif
 		
+#ifdef __64__
+	printf("%c%cUltimateTerm 128 v%s%c", 0x05, 147, version, 0x9f);
+#endif
 	uii_settarget(TARGET_NETWORK);
 	
 	uii_identify();
