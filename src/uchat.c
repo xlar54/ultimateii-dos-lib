@@ -19,10 +19,12 @@ Demo program does not alter any data
 
 #ifdef __C128__
 #include <c128.h>
+#define RESET_MACHINE	asm("jmp $FF3D");
 #endif
 
 #ifdef __C64__
 #include <c64.h>
+#define RESET_MACHINE 	asm("jmp $FCE2");
 #endif
 
 #include <conio.h>
@@ -53,8 +55,21 @@ Demo program does not alter any data
 
 #define VDC_REG	0xd600
 
+unsigned char convertchar(unsigned char c);
+int getstring(char* def, char *buf);
+void irc_updateheader(char *chan);
+void irc_login(void);
+void irc_refreshscreen(void);
+void irc_print(char *buf, int newlineflg);
+void irc_pong(unsigned char *buf);
+void irc_help(void);
+void irc_handleinput(char *buf);
+void getconfig(void);
 
-int irc_handleinput(char *buf);
+#ifdef __C128__
+void vdc_write_reg(void);
+void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo);
+#endif
 
 char *version = "1.3";
 char host[25];
@@ -91,60 +106,6 @@ unsigned char convertchar(unsigned char c)
 	return c;
 }
 
-#ifdef __C128__
-
-#pragma optimize (push,off)
-void vdc_write_reg(void)
-{
-	asm("stx $d600");
-vdc_write_wait:
-	asm("ldx $d600");
-	asm("bpl %g", vdc_write_wait);
-	asm("sta $d601");
-
-}
-#pragma optimize (pop)
-
-	
-#pragma optimize (push,off)
-void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo)
-{
-	// Set src line
-	asm("ldx #$20");
-	asm("ldy #%o", srchi);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	asm("ldx #$21");
-	asm("ldy #%o", srclo);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	// Set dest line
-	asm("ldx #$12");
-	asm("ldy #%o", desthi);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	asm("ldx #$13");
-	asm("ldy #%o", destlo);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	// set copy mode
-	asm("ldx #$18");
-	asm("lda #$80");				// set bit 7 = copy
-	asm("jsr %v", vdc_write_reg);
-	
-	// Set byte count (initates copy operation)
-	asm("ldx #$1E");
-	asm("lda #$50");				// 80 chars - 1
-	asm("jsr %v", vdc_write_reg);
-}
-#pragma optimize (pop)
-
-#endif
-
 int getstring(char* def, char *buf)
 {
 	unsigned char c = 0;
@@ -162,28 +123,35 @@ int getstring(char* def, char *buf)
 		if(c != 0)
 		{
 			c = cgetc();
-			if (c == 13)
+			
+			switch(c) 
 			{
-				buf[x] = 0;
-				printf("%c ", LEFT);
-				
-				for(x=0;x<strlen(buf);x++)
-					buf[x] = convertchar(buf[x]);
-								
-				return x;
-			}
-			else if (c == DELETE)
-			{
-				if(x > 0)
+				case 0x0D:
 				{
-					x--;
-					printf("%c%c  %c%c%c",LEFT,LEFT,LEFT,LEFT,CURSOR);
+					buf[x] = 0;
+					printf("%c ", LEFT);
+				
+					for(x=0;x<strlen(buf);x++)
+						buf[x] = convertchar(buf[x]);
+									
+					return x;
 				}
-			}
-			else
-			{
-				buf[x++] = c;
-				printf("%c %c%c%c",LEFT,LEFT,c,CURSOR);
+				case DELETE:
+				{
+					if(x > 0)
+					{
+						x--;
+						printf("%c%c  %c%c%c",LEFT,LEFT,LEFT,LEFT,CURSOR);
+						
+					}
+					break;
+				}
+				default:
+				{
+					buf[x++] = c;
+					printf("%c %c%c%c",LEFT,LEFT,c,CURSOR);
+					break;
+				}
 			}
 		}
 	}
@@ -208,7 +176,7 @@ void irc_updateheader(char *chan)
 #endif
 
 #ifdef __C128__
-	printf("%cUltimateChat 128 v%s                   %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+	printf("%cUltimateChat 128 v%s                                                         %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 	for(i=strlen(chan); i>0; i--)
 	{
@@ -218,7 +186,7 @@ void irc_updateheader(char *chan)
 	gotoxy(x,y);
 }
 
-void irc_login() // Handle IRC login procedures
+void irc_login(void) // Handle IRC login procedures
 {
     char NICK_STRING[64]; 
     char USER_STRING[128];
@@ -239,7 +207,7 @@ void irc_login() // Handle IRC login procedures
 }
 
 
-void irc_refreshscreen()
+void irc_refreshscreen(void)
 {
 	unsigned char curx = 0;
 	unsigned char cury = 0;
@@ -364,14 +332,14 @@ void irc_help()
 	printf("%c", CG_COLOR_CYAN);
 }
 
-int irc_handleinput(char *buf)
+void irc_handleinput(char *buf)
 {	
-    char full_message[100]; 
+    char full_message[MAX_OUTBUFFER+80]; 
 	unsigned char x = 0;
 	unsigned char s = 0;
 
 	if (strlen(buf) == 0)
-		return 0;
+		return;
 	
 	if(strstr(buf,"/join") == buf)
 	{
@@ -379,7 +347,7 @@ int irc_handleinput(char *buf)
 		{
 			irc_print("** yOU ARE ALREADY IN A CHANNEL.",1);
 			irc_print("** uSE /part TO LEAVE FIRST.",1);
-			return 0;
+			return;
 		}
 		
 		strcpy(channel, &buf[5]);
@@ -393,7 +361,7 @@ int irc_handleinput(char *buf)
 		if(channel[0] == 0)
 		{
 			irc_print("** yOU ARE NOT IN A CHANNEL.",1);
-			return 0;
+			return;
 		}
 		
 		irc_updateheader(nochan);
@@ -405,13 +373,7 @@ int irc_handleinput(char *buf)
 	else if(strstr(buf,"/quit") == buf)
 	{
 		uii_tcpclose(socketnr);
-#ifdef __C64__
-		asm("jmp $FCE2");
-#endif
-
-#ifdef __C128__
-	asm("jmp $FF3D");
-#endif
+		RESET_MACHINE
 	}
 	else if(strstr(buf,"/help") == buf)
 	{
@@ -432,7 +394,7 @@ int irc_handleinput(char *buf)
 		if(channel[0] == 0)
 		{
 			irc_print("** yOU ARE NOT IN A CHANNEL.",1);
-			return 0;
+			return;
 		}
 		
 		if(strstr(buf,"/me ") == buf)
@@ -471,10 +433,10 @@ int irc_handleinput(char *buf)
 		}
 	}
 	
-    return 0;
+    return;
 }
 
-void getconfig()
+void getconfig(void)
 {
 	uii_identify();
 	printf("\n\nNetwork Interface Status : %s", uii_status);
@@ -877,3 +839,56 @@ void main(void)
 	}
 
 }
+
+#ifdef __C128__
+
+#pragma optimize (push,off)
+void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo)
+{
+	// Set src line
+	asm("ldx #$20");
+	asm("ldy #%o", srchi);
+	asm("lda (sp),y");
+	asm("jsr %v", vdc_write_reg);
+	
+	asm("ldx #$21");
+	asm("ldy #%o", srclo);
+	asm("lda (sp),y");
+	asm("jsr %v", vdc_write_reg);
+	
+	// Set dest line
+	asm("ldx #$12");
+	asm("ldy #%o", desthi);
+	asm("lda (sp),y");
+	asm("jsr %v", vdc_write_reg);
+	
+	asm("ldx #$13");
+	asm("ldy #%o", destlo);
+	asm("lda (sp),y");
+	asm("jsr %v", vdc_write_reg);
+	
+	// set copy mode
+	asm("ldx #$18");
+	asm("lda #$80");				// set bit 7 = copy
+	asm("jsr %v", vdc_write_reg);
+	
+	// Set byte count (initates copy operation)
+	asm("ldx #$1E");
+	asm("lda #$50");				// 80 chars - 1
+	asm("jsr %v", vdc_write_reg);
+}
+#pragma optimize (pop)
+
+#pragma optimize (push,off)
+void vdc_write_reg(void)
+{
+	asm("stx $d600");
+vdc_write_wait:
+	asm("ldx $d600");
+	asm("bpl %g", vdc_write_wait);
+	asm("sta $d601");
+
+}
+#pragma optimize (pop)
+
+#endif

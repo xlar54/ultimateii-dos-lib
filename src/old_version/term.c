@@ -79,8 +79,6 @@ int getstring(char *buf)
 
 void main(void) 
 {
-	int count = 0;
-	
 	int port = 0;
 	unsigned char socketnr = 0;
 	int datacount = 0;
@@ -104,8 +102,6 @@ void main(void)
 	
 	printf("\n\nNetwork interface : %s", uii_data);
 	printf("\n           Status : %s", uii_status);
-	
-	//uii_getinterfacecount();  //needed?
 	
 	uii_getipaddress();
 	printf("\n\nIP Address: %d.%d.%d.%d", uii_data[0], uii_data[1], uii_data[2], uii_data[3]);
