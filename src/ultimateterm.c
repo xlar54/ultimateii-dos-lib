@@ -50,6 +50,7 @@ Demo program does not alter any data
 #define HOME			0x13
 #define BELL			0x07
 #define	CR				0x0D
+#define SHIFT_CR		0x8D
 #define LF				0x0A
 
 #define CG_COLOR_YELLOW 	0x9e
@@ -68,6 +69,7 @@ Demo program does not alter any data
 #define DISPLAY_HEADER	printf("%cUltimateTerm v%s                      %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
+#define SCREEN_HEIGHT	24
 #define VDC_REG	0xd600
 
 int term_getstring(char* def, char *buf);
@@ -632,6 +634,7 @@ void main(void)
 	fast();
 #endif
 
+	// set up bell sound
 	POKE(0XD400 + 5, 68);
 	POKE(0XD400 + 6, 70);
 	POKE(0XD400 + 4, 17);
@@ -732,8 +735,8 @@ void main(void)
 		}
 		else
 		{
-			printf("\n%c * Connect failed: %s", CG_COLOR_L_RED, uii_status);
-			printf("\n * Press any key");
+			printf("\n%c * Connect failed:\n   %s", CG_COLOR_L_RED, uii_status);
+			printf("\n\n * Press any key");
 			
 			c = 0;
 			while(c==0)
