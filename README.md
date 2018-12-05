@@ -8,28 +8,21 @@ https://github.com/markusC64/1541ultimate2/tree/master/doc
 
 Patches and pull requests are welcome
 
+I have created a simple (dos) batch file to create the
+demo programs.  Please have c1541.exe in your execution
+path (c1541.exe comes with the VICE emulator).
 
-simple build instructions:
-
-cl65 -O -t c64 ultimate_ii.c main.c -o u2sample.prg
-
-cl65 -O -t c64 ultimate_ii.c shell.c -o u2sample.prg
-
-cl65 -O -t c64 ultimate_ii.c term.c -o u2term.prg
-
-cl65 -O -t c64 ultimate_ii.c uchat.c -o u2chat.prg
-
-for C128:
-cl65 -O -t c128 ultimate_ii.c term.c -o u2term128.prg
-
-cl65 -O -t c128 ultimate_ii.c uchat.c -o u2chat128.prg
+The build will automatically create the prg files as well
+as a D64 disk image consisting of the examples.
 
 Example programs:
 
-u2sample.prg is a simple demo of making some calls
+ * u-sample.prg is a simple demo of making some dos calls
+ * u-shell.prg is a simple command shell
+ * u-term64.prg is a simple terminal program using the built in ethernet connection
+ * u-chat64.prg is an irc client for the 64
 
-u2shell.prg is a simple command shell
+Some programs also have an 80 column c128 version.
 
-u2term.prg is a simple terminal program using the built in ethernet connection
-
-u2chat.prg is an irc client for the 64
+Note: these are really just demo applications. You are encouraged to utilize,
+improve on, and and build even better apps than I have.  Enjoy!
