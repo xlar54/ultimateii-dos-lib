@@ -1,0 +1,53 @@
+; Note that MENU can define both menues and submenues.
+; If you want to use any C operators (such as "|", "&", etc.), do it WITHOUT
+; any spaces between the arguments (the parser is simple and weak).
+
+MENU subMenu1 0,12 VERTICAL
+; This is a vertical menu, placed at (15,0).
+{
+; There are three items, all of them will call functions.
+; The first and third ones are normal functions, see GEOSLib documentation for
+; information about what the second function should return (it's a dynamic one).
+    "quit" MENU_ACTION EnterDeskTop
+}
+
+MENU subMenu2 25,16 VERTICAL
+; This is a vertical menu, placed at (15,0).
+{
+; There are three items, all of them will call functions.
+; The first and third ones are normal functions, see GEOSLib documentation for
+; information about what the second function should return (it's a dynamic one).
+    "40 col" MENU_ACTION change40col
+    "80 col" MENU_ACTION change80col
+}
+
+;; Format:  MENU "name" left,top ALIGN { "itemname" TYPE pointer ... }
+
+MENU mainMenu 0,0 HORIZONTAL
+; Here, we have our main menu, placed at (0,0), and it is a horizontal menu.
+; Because it is a top-level menu, you would register it in your C source by
+; using:  DoMenu(&mainMenu);
+{
+; There are two items -- a submenu and an action.
+; This calls a submenu named subMenu1 (see previous definition).
+;    "first sub-menu" SUB_MENU subMenu1
+; This will work the same as an EnterDeskTop() call in C source code.
+    "geos" SUB_MENU subMenu1
+	"width" SUB_MENU subMenu2
+}
+
+;; Format:  HEADER <GEOS_TYPE> "dosname" "classname" "version"
+
+HEADER APPLICATION "GeoUTerm" "Ultimate" "V1.0"
+; This is a header for an APPLICATION which will be seen in the directory as a
+; file named MyFirstApp with the Class-string "Class Name V1.0"
+{
+; Not all fields are required, default and current values will be used.
+    author "Scott Hutter"   ; always in quotes!
+    info "GEOS Terminal program for the U64 and Ultimate carts"     ; always in quotes!
+;    date yy mm dd hh ss        ; always 5 fields!
+;    dostype seq                ; can be:  PRG, SEQ, USR (only all UPPER- or lower-case)
+;    structure seq              ; can be:  SEQ, VLIR (only UPPER- or lower-case)
+    mode c64only                ; can be:  any, 40only, 80only, c64only
+	icon "geouterm.icon"
+}
