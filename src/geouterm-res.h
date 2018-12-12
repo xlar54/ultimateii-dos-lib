@@ -15,15 +15,15 @@ const void subMenu1 = {
 	"quit", (char)MENU_ACTION, (int)EnterDeskTop,
 };
 
-void change40col (void);
-void change80col (void);
+void set40col (void);
+void set80col (void);
 
 const void subMenu2 = {
 	(char)16, (char)44,
 	(int)25, (int)60,
 	(char)(2 | VERTICAL),
-	"40 col", (char)MENU_ACTION, (int)change40col,
-	"80 col", (char)MENU_ACTION, (int)change80col,
+	"40 col", (char)MENU_ACTION, (int)set40col,
+	"80 col", (char)MENU_ACTION, (int)set80col,
 };
 
 

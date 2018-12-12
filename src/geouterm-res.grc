@@ -17,8 +17,8 @@ MENU subMenu2 25,16 VERTICAL
 ; There are three items, all of them will call functions.
 ; The first and third ones are normal functions, see GEOSLib documentation for
 ; information about what the second function should return (it's a dynamic one).
-    "40 col" MENU_ACTION change40col
-    "80 col" MENU_ACTION change80col
+    "40 col" MENU_ACTION set40col
+    "80 col" MENU_ACTION set80col
 }
 
 ;; Format:  MENU "name" left,top ALIGN { "itemname" TYPE pointer ... }
@@ -36,6 +36,8 @@ MENU mainMenu 0,0 HORIZONTAL
 	"width" SUB_MENU subMenu2
 }
 
+
+
 ;; Format:  HEADER <GEOS_TYPE> "dosname" "classname" "version"
 
 HEADER APPLICATION "GeoUTerm" "Ultimate" "V1.0"
@@ -48,6 +50,6 @@ HEADER APPLICATION "GeoUTerm" "Ultimate" "V1.0"
 ;    date yy mm dd hh ss        ; always 5 fields!
 ;    dostype seq                ; can be:  PRG, SEQ, USR (only all UPPER- or lower-case)
 ;    structure seq              ; can be:  SEQ, VLIR (only UPPER- or lower-case)
-    mode c64only                ; can be:  any, 40only, 80only, c64only
+    mode any                ; can be:  any, 40only, 80only, c64only
 	icon "geouterm.icon"
 }
