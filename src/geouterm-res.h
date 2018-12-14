@@ -6,12 +6,14 @@
 //	Edit proper resource file instead.
 //
 
+void switch4080 (void);
 void EnterDeskTop (void);
 
 const void subMenu1 = {
-	(char)12, (char)26,
-	(int)0, (int)22,
-	(char)(1 | VERTICAL),
+	(char)12, (char)40,
+	(int)0, (int)66,
+	(char)(2 | VERTICAL),
+	"switch 40/80", (char)MENU_ACTION, (int)switch4080,
 	"quit", (char)MENU_ACTION, (int)EnterDeskTop,
 };
 

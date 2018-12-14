@@ -8,6 +8,7 @@ MENU subMenu1 0,12 VERTICAL
 ; There are three items, all of them will call functions.
 ; The first and third ones are normal functions, see GEOSLib documentation for
 ; information about what the second function should return (it's a dynamic one).
+	"switch 40/80" MENU_ACTION switch4080
     "quit" MENU_ACTION EnterDeskTop
 }
 

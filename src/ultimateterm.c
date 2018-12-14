@@ -83,7 +83,7 @@ void vdc_write_reg(void);
 void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo);
 #endif
 
-char *version = "1.31";
+char *version = "1.32";
 char host[80];
 char portbuff[10];
 int port = 0;
@@ -412,13 +412,16 @@ startover:
 			}
 			else
 			{
-				hst[ctr] = b[0];
-				ctr++;
-				hst[ctr] = 0;
-				
-				// hostname too big
-				if(ctr == 78)
-					break;
+				if(b[0] != 0x0A)
+				{
+					hst[ctr] = b[0];
+					ctr++;
+					hst[ctr] = 0;
+					
+					// hostname too big
+					if(ctr == 78)
+						break;
+				}
 			}
 			
 			bytesRead = cbm_read(2, b, 1);

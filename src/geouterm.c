@@ -393,7 +393,8 @@ void remove_hooks(void)
 void switch4080(void)
 {	
 	asm("lda $3f");
-	asm("eor #80");
+	asm("eor #$80");
+	asm("sta $3f");
 	asm("jsr $c2dd"); // SetNewMode
 
 	set40col();
