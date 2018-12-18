@@ -87,6 +87,7 @@ unsigned char outx = 0;
 unsigned char outy = 23;
 unsigned char tempx = 0;
 unsigned char tempy = 0;
+unsigned char rvs_vid = 0;
 
 
 unsigned char convertchar(unsigned char c)
@@ -261,8 +262,8 @@ void irc_print(char *buf, int newlineflg)
 			//Scroll up		
 			for(t=0;t<19;t++)
 			{				
-				memcpy(1104+SCREEN_WIDTH*t, 1104+SCREEN_WIDTH*(t+1),SCREEN_WIDTH); // screen
-				memcpy(55376+SCREEN_WIDTH*t, 55376+SCREEN_WIDTH*(t+1),SCREEN_WIDTH); // color
+				memcpy((unsigned short*)(0x0450+SCREEN_WIDTH*t), (unsigned short*)(0x0450+SCREEN_WIDTH*(t+1)),SCREEN_WIDTH); // screen
+				memcpy((unsigned short*)(0xD850+SCREEN_WIDTH*t), (unsigned short*)(0xD850+SCREEN_WIDTH*(t+1)),SCREEN_WIDTH); // color
 			}
 #endif
 
@@ -297,8 +298,49 @@ void irc_print(char *buf, int newlineflg)
 		
 		if(buf[x] != '\r' && buf[x] != '\n')
 		{
-			cputcxy(curx,cury, convertchar(buf[x]));
-			curx++;
+			if(buf[x] == 0x02 || buf[x] == 0x1D || buf[x] == 0x1F)
+			{
+				// eat bold, italic and underline text
+				continue;
+			}
+			else if(buf[x] == 0x16)
+			{
+				if(rvs_vid == 0)
+				{
+					printf("%c", 0x12);
+					rvs_vid = 1;
+				}
+				else
+				{
+					printf("%c", 0x92);
+					rvs_vid = 0;
+				}
+			}
+			else if(buf[x] == 0x03)
+			{
+				printf("%c", CG_COLOR_L_GREEN);
+				if(buf[x+1] == '0') { printf("%c", 0x05); x++; }
+				if(buf[x+1] == '1') { printf("%c", 0x90); x++; }
+				if(buf[x+1] == '2') { printf("%c", 0x1F); x++; }
+				if(buf[x+1] == '3') { printf("%c", 0x1E); x++; }
+				if(buf[x+1] == '4') { printf("%c", 0x1C); x++; }
+				if(buf[x+1] == '5') { printf("%c", 0x95); x++; }
+				if(buf[x+1] == '6') { printf("%c", 0x9C); x++; }
+				if(buf[x+1] == '7') { printf("%c", 0x81); x++; }
+				if(buf[x+1] == '8') { printf("%c", 0x9E); x++; }
+				if(buf[x+1] == '9') { printf("%c", 0x99); x++; }
+				if(buf[x+1] == '1' && buf[x+2] == '0') { printf("%c", 0x9F); x+=2; }
+				if(buf[x+1] == '1' && buf[x+2] == '1') { printf("%c", 0x9F); x+=2; }
+				if(buf[x+1] == '1' && buf[x+2] == '2') { printf("%c", 0x9A); x+=2; }
+				if(buf[x+1] == '1' && buf[x+2] == '3') { printf("%c", 0x96); x+=2; }
+				if(buf[x+1] == '1' && buf[x+2] == '4') { printf("%c", 0x98); x+=2; }
+				if(buf[x+1] == '1' && buf[x+2] == '5') { printf("%c", 0x9B); x+=2; }
+			}
+			else
+			{
+				cputcxy(curx,cury, convertchar(buf[x]));
+				curx++;
+			}
 
 		}
 	}

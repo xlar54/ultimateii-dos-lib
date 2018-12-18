@@ -16,7 +16,7 @@ Patches and pull requests are welcome
 static unsigned char *cmddatareg = (unsigned char *)CMD_DATA_REG;
 static unsigned char *controlreg = (unsigned char *)CONTROL_REG;
 static unsigned char *statusreg = (unsigned char *)STATUS_REG;
-static unsigned char *idreg = (unsigned char *)ID_REG;
+//static unsigned char *idreg = (unsigned char *)ID_REG;
 static unsigned char *respdatareg = (unsigned char *)RESP_DATA_REG;
 static unsigned char *statusdatareg = (unsigned char *)STATUS_DATA_REG;
 
@@ -29,6 +29,8 @@ void uii_logtext(char *text)
 {
 #ifdef DEBUG
 	printf("%s", text);
+#else
+	text = 0;  // to eliminate the warning in cc65
 #endif
 }
 
