@@ -21,6 +21,7 @@ Example programs:
  * u-shell.prg is a simple command shell
  * u-term64.prg is a simple terminal program using the built in ethernet connection
  * u-chat64.prg is an irc client for the 64
+ * geouterm is a basic ASCII terminal for GEOS (for both GEOS 64 and 128)
 
 Some programs also have an 80 column c128 version.
 
