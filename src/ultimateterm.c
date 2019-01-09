@@ -83,7 +83,7 @@ void vdc_write_reg(void);
 void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo);
 #endif
 
-char *version = "1.32";
+char *version = "1.33";
 char host[80];
 char portbuff[10];
 int port = 0;
@@ -682,7 +682,7 @@ void main(void)
 			
 			while(1)
 			{
-				uii_tcpsocketread(socketnr, 1024);
+				uii_tcpsocketread(socketnr, 255);
 				datacount = uii_data[0] | (uii_data[1]<<8);
 
 				if(datacount > -1)
