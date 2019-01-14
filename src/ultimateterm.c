@@ -632,27 +632,36 @@ void main(void)
 
 }
 
+#pragma optimize (push, off)
 void cursorOn(void) {
 #ifdef __C64__
-	POKE(204,0);
+	asm("ldy #$00");
+	asm("sty $cc");
 #endif
 }
+#pragma optimize (pop)
 
+#pragma optimize (push, off)
 void cursorOff(void) {
 #ifdef __C64__
-	POKE(204,255);
+	asm("ldy #$ff");
+	asm("sty $cc");
 #endif
 }
+#pragma optimize (pop)
 
 #pragma optimize (push, off)
 void waitCursorOff(void) {
 #ifdef __C64__
-	if (PEEK(204)>0) return;
+	asm("ldy $cc");
+	asm("cpy #$00");
+	asm("bne %g", exitloop);
 	asm("ldy #$01");
 	asm("sty $cd");
 loop:	
 	asm("ldy $cf");
 	asm("bne %g", loop);
+exitloop:
 	asm("ldy $ff");
 	asm("sty $cc");
 #endif
