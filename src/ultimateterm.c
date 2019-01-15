@@ -209,14 +209,12 @@ void term_updateheader(char *bbs)
 int putchar_ascii(int c)
 {
 	c = ascToPet[(unsigned char) c];
-	if(c == BELL)
-	{
+
+	if (c == BELL)
 		term_bell();
-	}
 	else
-	{
 		putchar(c);
-	}
+
 	return c;
 }
 
