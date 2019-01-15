@@ -1,4 +1,5 @@
 del /S/Q target
+md target
 
 cd src
 
