@@ -1,1 +1,5 @@
 .vscode/c_cpp_properties.json
+.DS_Store
+**/.DS_Store
+Thumbs.db
+**/Thumbs.db

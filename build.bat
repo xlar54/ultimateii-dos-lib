@@ -13,6 +13,8 @@ cl65 -O -t c128 ultimate_ii.c ultimateterm.c -o ..\target\u-term128.prg
 cl65 -O -t c128 ultimate_ii.c u-chat.c -o ..\target\u-chat128.prg
 cl65 -t geos-cbm -O -o ..\target\geouterm.cvt geouterm-res.grc ultimate_ii.c geouterm.c
 
+copy u-term.seq ..\target\u-term.seq
+
 del *.o
 del *.inf
 del *.cvt
