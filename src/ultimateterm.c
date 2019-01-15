@@ -72,15 +72,15 @@ Demo program does not alter any data
 
 int term_getstring(char* def, char *buf);
 void term_updateheader(char *chan);
-int term_print(int c);
-int (*write_char)(int c) = putchar;
+int putchar_ascii(int c);
+int (*term_print)(int c) = putchar;
 void term_getconfig(void);
 void term_bell(void);
 
 void cursorOn(void);
 void cursorOff(void);
 
-char *version = "1.35";
+char *version = "1.41";
 char host[80];
 char portbuff[10];
 int port = 0;
@@ -121,7 +121,7 @@ int term_getstring(char* def, char *buf)
 	for(x=0;x<strlen(def);x++)
 	{
 		buf[x] = def[x];
-		write_char(def[x]);
+		term_print(def[x]);
 	}
 	
 #ifdef __C64__
@@ -150,9 +150,9 @@ int term_getstring(char* def, char *buf)
 					{
 						x--;
 						cursorOff();
-						write_char(LEFT);
-						write_char(' ');
-						write_char(LEFT);
+						term_print(LEFT);
+						term_print(' ');
+						term_print(LEFT);
 						cursorOn();
 					}
 					break;
@@ -163,7 +163,7 @@ int term_getstring(char* def, char *buf)
 					{
 						buf[x++] = c;
 						cursorOff();
-						write_char(c);
+						term_print(c);
 						cursorOn();
 					}
 					break;
@@ -206,7 +206,7 @@ void term_updateheader(char *bbs)
 	gotoxy(x,y);
 }
 
-int term_print(int c)
+int putchar_ascii(int c)
 {
 	c = ascToPet[(unsigned char) c];
 	if(c == BELL)
@@ -520,7 +520,7 @@ void main(void)
 	unsigned char c = 0;
 	char buff[2] = {0,0};
 	int x = 0;
-	write_char = putchar;
+	term_print = putchar;
 
 	dev = getcurrentdevice();
 	
@@ -582,7 +582,7 @@ void main(void)
 					cursorOff();
 					for(x=2;x<datacount+2;x++)
 						if(uii_data[x] != LF)
-							write_char(uii_data[x]);
+							term_print(uii_data[x]);
 					cursorOn();
 				}
 
@@ -600,7 +600,7 @@ void main(void)
 					else if (c == 134)
 					{
 						asciimode = (asciimode == 1 ? 0 : 1);
-						write_char = (asciimode ? term_print : putchar);
+						term_print = (asciimode ? putchar_ascii : putchar);
 					}
 					else
 					{
