@@ -16,7 +16,6 @@ cat u-term.seq | tr "\n" "\r" >../target/u-term.seq
 
 rm -f *.o
 rm -f *.inf
-rm -f *.cvt
 
 cd ../target
 
@@ -28,6 +27,8 @@ c1541 -attach ultimatedemos.d64 -write u-term128.prg u-term128
 c1541 -attach ultimatedemos.d64 -write u-term.seq u-term,s
 c1541 -attach ultimatedemos.d64 -write u-chat64.prg u-chat64
 c1541 -attach ultimatedemos.d64 -write u-chat128.prg u-chat128
+c1541 -attach ultimatedemos.d64 -geoswrite ../src/cbm40.cvt
+c1541 -attach ultimatedemos.d64 -geoswrite ../src/cbm80.cvt
 c1541 -attach ultimatedemos.d64 -geoswrite geouterm.cvt
 
 rm -f u-term.seq
