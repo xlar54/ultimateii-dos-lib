@@ -1,10 +1,8 @@
 #!/bin/bash
-cd target
+rm -rf target/
+mkdir target
 
-rm -f *.prg
-rm -f *.d64
-
-cd ../src
+cd src
 
 cl65 -O -t c64 ultimate_ii.c u-sample.c -o ../target/u-sample.prg
 cl65 -O -t c64 ultimate_ii.c u-shell.c -o ../target/u-shell.prg
@@ -31,6 +29,7 @@ c1541 -attach ultimatedemos.d64 -write u-term.seq u-term,s
 c1541 -attach ultimatedemos.d64 -write u-chat64.prg u-chat64
 c1541 -attach ultimatedemos.d64 -write u-chat128.prg u-chat128
 c1541 -attach ultimatedemos.d64 -geoswrite geouterm.cvt
-c1541 -attach ultimatedemos.d64 -geoswrite cbm40.cvt
-c1541 -attach ultimatedemos.d64 -geoswrite cbm80.cvt
+
+rm -f u-term.seq
+
 cd ..
