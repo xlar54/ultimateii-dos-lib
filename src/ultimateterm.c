@@ -76,7 +76,6 @@ void term_print(unsigned char c);
 void term_getconfig(void);
 void term_bell(void);
 
-void waitCursorOff(void);
 void cursorOn(void);
 void cursorOff(void);
 
@@ -140,7 +139,7 @@ int term_getstring(char* def, char *buf)
 			{
 				case 0x0D:
 				{
-					waitCursorOff();
+					cursorOff();
 					buf[x] = 0;
 					return x;
 				}
@@ -149,7 +148,7 @@ int term_getstring(char* def, char *buf)
 					if(x > 0)
 					{
 						x--;
-						waitCursorOff();
+						cursorOff();
 						term_print(LEFT);
 						term_print(' ');
 						term_print(LEFT);
@@ -162,7 +161,7 @@ int term_getstring(char* def, char *buf)
 					if(c > 32 && c < 91)
 					{
 						buf[x++] = c;
-						waitCursorOff();
+						cursorOff();
 						term_print(c);
 						cursorOn();
 					}
@@ -580,7 +579,7 @@ void main(void)
 
 				if(datacount > -1)
 				{
-					waitCursorOff();
+					cursorOff();
 					for(x=2;x<datacount+2;x++)
 						if(uii_data[x] != LF)
 							term_print(uii_data[x]);
@@ -638,15 +637,6 @@ void cursorOn(void) {
 
 #pragma optimize (push, off)
 void cursorOff(void) {
-#ifdef __C64__
-	asm("ldy #$ff");
-	asm("sty $cc");
-#endif
-}
-#pragma optimize (pop)
-
-#pragma optimize (push, off)
-void waitCursorOff(void) {
 #ifdef __C64__
 	asm("ldy $cc");
 	asm("bne %g", exitloop);
