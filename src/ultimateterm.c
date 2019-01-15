@@ -76,11 +76,6 @@ void term_print(unsigned char c);
 void term_getconfig(void);
 void term_bell(void);
 
-#ifdef __C128__
-void vdc_write_reg(void);
-void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo);
-#endif
-
 void waitCursorOff(void);
 void cursorOn(void);
 void cursorOff(void);
@@ -654,7 +649,6 @@ void cursorOff(void) {
 void waitCursorOff(void) {
 #ifdef __C64__
 	asm("ldy $cc");
-	asm("cpy #$00");
 	asm("bne %g", exitloop);
 	asm("ldy #$01");
 	asm("sty $cd");
@@ -667,56 +661,3 @@ exitloop:
 #endif
 }
 #pragma optimize (pop)
-
-#ifdef __C128__
-
-#pragma optimize (push,off)
-void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo)
-{
-	// Set src line
-	asm("ldx #$20");
-	asm("ldy #%o", srchi);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	asm("ldx #$21");
-	asm("ldy #%o", srclo);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	// Set dest line
-	asm("ldx #$12");
-	asm("ldy #%o", desthi);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	asm("ldx #$13");
-	asm("ldy #%o", destlo);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	// set copy mode
-	asm("ldx #$18");
-	asm("lda #$80");				// set bit 7 = copy
-	asm("jsr %v", vdc_write_reg);
-	
-	// Set byte count (initates copy operation)
-	asm("ldx #$1E");
-	asm("lda #$4F");				// 80 chars - 1
-	asm("jsr %v", vdc_write_reg);
-}
-#pragma optimize (pop)
-
-#pragma optimize (push,off)
-void vdc_write_reg(void)
-{
-	asm("stx $d600");
-vdc_write_wait:
-	asm("ldx $d600");
-	asm("bpl %g", vdc_write_wait);
-	asm("sta $d601");
-
-}
-#pragma optimize (pop)
-
-#endif
