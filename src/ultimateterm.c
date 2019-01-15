@@ -85,7 +85,7 @@ void waitCursorOff(void);
 void cursorOn(void);
 void cursorOff(void);
 
-char *version = "1.35";
+char *version = "1.40";
 char host[80];
 char portbuff[10];
 int port = 0;
