@@ -38,8 +38,6 @@ Demo program does not alter any data
 #define RVS_ON			0x12
 #define RVS_OFF			0x92
 
-#define CURSOR 			0xe4
-
 #define LEFT			0x9d
 #define RIGHT			0x1d
 #define UP				0x91
@@ -83,14 +81,17 @@ void vdc_write_reg(void);
 void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo);
 #endif
 
-char *version = "1.33";
+void waitCursorOff(void);
+void cursorOn(void);
+void cursorOff(void);
+
+char *version = "1.35";
 char host[80];
 char portbuff[10];
 int port = 0;
 char *nochan = "No Connection";
 unsigned char socketnr = 0;
 unsigned char asciimode = 0;
-unsigned char showcursor = 0;
 unsigned char phonebookctr = 0;
 unsigned char phonebook[20][80];
 unsigned char dev = 0;
@@ -121,13 +122,12 @@ int term_getstring(char* def, char *buf)
 	unsigned char c = 0;
 	unsigned char x = 0;
 	
+	cursorOn();
 	for(x=0;x<strlen(def);x++)
 	{
 		buf[x] = def[x];
 		term_print(def[x]);
 	}
-
-	term_print(CURSOR);
 	
 #ifdef __C64__
 	POKE(198,0);
@@ -138,18 +138,15 @@ int term_getstring(char* def, char *buf)
 	while(1)
 	{
 		c = kbhit();
-		
 		if(c != 0)
 		{
 			c = cgetc();
-			
 			switch(c) 
 			{
 				case 0x0D:
 				{
+					waitCursorOff();
 					buf[x] = 0;
-					term_print(LEFT);
-					term_print(' ');				
 					return x;
 				}
 				case DELETE:
@@ -157,11 +154,11 @@ int term_getstring(char* def, char *buf)
 					if(x > 0)
 					{
 						x--;
+						waitCursorOff();
 						term_print(LEFT);
 						term_print(' ');
 						term_print(LEFT);
-						term_print(LEFT);
-						term_print(CURSOR);
+						cursorOn();
 					}
 					break;
 				}
@@ -170,11 +167,9 @@ int term_getstring(char* def, char *buf)
 					if(c > 32 && c < 91)
 					{
 						buf[x++] = c;
-						term_print(LEFT);
-						term_print(' ');
-						term_print(LEFT);
+						waitCursorOff();
 						term_print(c);
-						term_print(CURSOR);
+						cursorOn();
 					}
 					break;
 				}
@@ -203,7 +198,6 @@ void term_updateheader(char *bbs)
 	if(e > 20)
 		e = 20;
 #endif 
-
 	for(i=e; i>0; i--)
 	{
 		cputcxy((SCREEN_WIDTH-1)-t,0, bbs[i-1]);
@@ -217,114 +211,20 @@ void term_updateheader(char *bbs)
 	gotoxy(x,y);
 }
 
-void term_scroll(unsigned char t)
-{
-	unsigned short srcmem = 0;
-	unsigned short destmem = 0;
-	
-#ifdef __C64__
-		//Scroll up		
-		for(;t<24;t++)
-		{				
-			memcpy((unsigned short*)(0x0400+SCREEN_WIDTH*t), (unsigned short*)(0x0400+SCREEN_WIDTH*(t+1)),SCREEN_WIDTH); // screen
-			memcpy((unsigned short*)(0xD800+SCREEN_WIDTH*t), (unsigned short*)(0xD800+SCREEN_WIDTH*(t+1)),SCREEN_WIDTH); // color
-		}
-		
-		printf("%c", RVS_OFF);
-		gotoxy(0,24);
-		cputs("                                        ");
-#endif
-
-#ifdef __C128__
-		//Scroll up
-		for(;t<24;t++)
-		{
-			destmem = SCREEN_WIDTH * t;
-			srcmem = SCREEN_WIDTH * (t+1);
-			vdc_copyline(srcmem>>8, srcmem & 0xff, destmem>>8, destmem & 0xff);
-			
-			destmem = (SCREEN_WIDTH * t) + 0x800;
-			srcmem = (SCREEN_WIDTH * (t+1)) + 0x800;
-			vdc_copyline(srcmem>>8, srcmem & 0xff, destmem>>8, destmem & 0xff);
-		}
-		printf("%c",RVS_OFF);
-		gotoxy(0,24);
-		cputs("                                                                                ");
-		
-#endif
-
-}
 
 void term_print(unsigned char c)
 {
-	unsigned char x = 0;
-	unsigned char y = 0;
-	unsigned char d = 0;
-	
 	if(asciimode == 1)
 		c = ascToPet[c];
-	
-	x = wherex();
-	y = wherey();
-		
-	if(y == 0)
-	{
-		y=2;
-		gotoxy(x,y);
-	}
-	
-	if(y == 24 && x == SCREEN_WIDTH-1)
-	{	
-		cprintf("%c",c);
-		term_scroll(2);
-		gotoxy(0,24);
-	}
-	else if(y == 24 && c == DOWN)
-	{
-		d = x;
-		term_scroll(2);
-		gotoxy(d,24);
-	}
-	else if(y == 24 && c == CR)
-	{
-		term_scroll(2);
-		gotoxy(0,24);
-		printf("%c",RVS_OFF);
-	}
-	else if(c == CLRSCR || c == HOME)
-	{
-		printf("%c%c", c, RVS_OFF);
-		gotoxy(0,2);
-		term_updateheader(host);
-	}
-	else if(c == UP)
-	{
-		if(y != 2)
-			printf("%c",c);
-	}
-	else if(c == LEFT)
-	{
-		if(y > 2 || (y == 2 && x > 0))
-			printf("%c",c);
-	}
-	else if(c == BELL)
+
+	if(c == BELL)
 	{
 		term_bell();
 	}
 	else
-	{	
+	{
 		printf("%c",c);
-		
-#ifdef __C64__
-		// bandaid
-		if(PEEK(1024) != 85)
-		{
-			printf("%c",RVS_OFF);
-			term_updateheader(host);
-		}
-#endif
 	}
-	
 }
 
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height)
@@ -361,7 +261,7 @@ startover:
 	strcpy(phonebook[5], "eagleman.bounceme.net 6464");
 	strcpy(phonebook[6], "hurricanebbs.dynu.net 6401");
 	strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
-	strcpy(phonebook[8], "rapidfire.hopto.org 64128");
+	strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 	phonebookctr = 8;
 	
 	term_window(0, 14, 40, 10);
@@ -648,13 +548,14 @@ void main(void)
 	printf("Accessing network target...(if no response, perhaps connection was not closed?");
 	
 	uii_settarget(TARGET_NETWORK);
-	
+	cursorOff();
 	while(1)
 	{
 		clrscr();
 		term_updateheader(nochan);
 		term_getconfig();
 		term_hostselect();
+		cursorOff();
 
 		clrscr();
 		term_updateheader(nochan);
@@ -673,43 +574,22 @@ void main(void)
 		uii_tcpconnect(host, port);
 		socketnr = uii_data[0];
 		
-		term_print(CURSOR);
-		showcursor = 1;
-		
 		if (uii_status[0] == '0' && uii_status[1] == '0')
 		{
 			term_updateheader(host);
-			
+			cursorOn();
 			while(1)
 			{
-				uii_tcpsocketread(socketnr, 255);
+				uii_tcpsocketread(socketnr, 767);
 				datacount = uii_data[0] | (uii_data[1]<<8);
 
 				if(datacount > -1)
 				{
-					term_print(LEFT);
-					
+					waitCursorOff();
 					for(x=2;x<datacount+2;x++)
-					{
 						if(uii_data[x] != LF)
-						{
-							if(showcursor == 1)
-							{
-								if(uii_data[x] == CR || uii_data[x] == RIGHT || 
-									uii_data[x] == LEFT || uii_data[x] == DOWN || 
-									uii_data[x] == UP || uii_data[x] == CLRSCR || uii_data[x] == HOME)
-								{
-									term_print(' ');
-									term_print(LEFT);
-									showcursor = 0;
-								}
-							}
 							term_print(uii_data[x]);
-						}
-					}
-					
-					term_print(CURSOR);
-					showcursor = 1;
+					cursorOn();
 				}
 
 				c = kbhit();
@@ -719,7 +599,7 @@ void main(void)
 					c = cgetc();
 					if (c == 133)
 					{
-						printf("\n\nClosing connection");
+						printf("%c\n\nClosing connection", 14);
 						uii_tcpclose(socketnr);
 						break;
 					}
@@ -735,6 +615,7 @@ void main(void)
 					}
 				}
 			}
+			cursorOff();
 		}
 		else
 		{
@@ -750,6 +631,42 @@ void main(void)
 	}
 
 }
+
+#pragma optimize (push, off)
+void cursorOn(void) {
+#ifdef __C64__
+	asm("ldy #$00");
+	asm("sty $cc");
+#endif
+}
+#pragma optimize (pop)
+
+#pragma optimize (push, off)
+void cursorOff(void) {
+#ifdef __C64__
+	asm("ldy #$ff");
+	asm("sty $cc");
+#endif
+}
+#pragma optimize (pop)
+
+#pragma optimize (push, off)
+void waitCursorOff(void) {
+#ifdef __C64__
+	asm("ldy $cc");
+	asm("cpy #$00");
+	asm("bne %g", exitloop);
+	asm("ldy #$01");
+	asm("sty $cd");
+loop:	
+	asm("ldy $cf");
+	asm("bne %g", loop);
+exitloop:
+	asm("ldy $ff");
+	asm("sty $cc");
+#endif
+}
+#pragma optimize (pop)
 
 #ifdef __C128__
 
