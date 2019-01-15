@@ -21,10 +21,10 @@ cd ../target
 
 c1541 -format "ultimatedemos,sh" d64 ultimatedemos.d64
 
-c1541 -attach ultimatedemos.d64 -write u-shell.prg u-shell
 c1541 -attach ultimatedemos.d64 -write u-term64.prg u-term64
 c1541 -attach ultimatedemos.d64 -write u-term128.prg u-term128
 c1541 -attach ultimatedemos.d64 -write u-term.seq u-term,s
+c1541 -attach ultimatedemos.d64 -write u-shell.prg u-shell
 c1541 -attach ultimatedemos.d64 -write u-chat64.prg u-chat64
 c1541 -attach ultimatedemos.d64 -write u-chat128.prg u-chat128
 c1541 -attach ultimatedemos.d64 -geoswrite ../src/cbm40.cvt
