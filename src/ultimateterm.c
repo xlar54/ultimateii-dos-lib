@@ -118,7 +118,7 @@ int term_getstring(char* def, char *buf)
 	for(x=0;x<strlen(def);x++)
 	{
 		buf[x] = def[x];
-		term_print(def[x]);
+		putchar(def[x]);
 	}
 	
 #ifdef __C64__
@@ -147,9 +147,9 @@ int term_getstring(char* def, char *buf)
 					{
 						x--;
 						cursorOff();
-						term_print(LEFT);
-						term_print(' ');
-						term_print(LEFT);
+						putchar(LEFT);
+						putchar(' ');
+						putchar(LEFT);
 						cursorOn();
 					}
 					break;
@@ -160,7 +160,7 @@ int term_getstring(char* def, char *buf)
 					{
 						buf[x++] = c;
 						cursorOff();
-						term_print(c);
+						putchar(c);
 						cursorOn();
 					}
 					break;
