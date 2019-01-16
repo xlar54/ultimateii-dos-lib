@@ -62,9 +62,11 @@ Demo program does not alter any data
 #ifdef __C128__
 #define SCREEN_WIDTH	80
 #define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s                                                        %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#define VDC_CURSOR_ON   asm("jsr $cb21");
 #else
 #define SCREEN_WIDTH	40
 #define DISPLAY_HEADER	printf("%cUltimateTerm v%s                      %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#define VDC_CURSOR_ON
 #endif
 
 int term_getstring(char* def, char *buf);
@@ -73,6 +75,7 @@ int putchar_ascii(int c);
 int (*term_print)(int c) = putchar;
 void term_getconfig(void);
 void term_bell(void);
+void vdcEnable80Column(void);
 
 void cursorOn(void);
 void cursorOff(void);
@@ -523,7 +526,10 @@ void main(void)
 	POKEW(0xD021,0);
 	
 #ifdef __C128__
+	vdcEnable80Column();
+	putchar(14);
 	fast();
+	VDC_CURSOR_ON
 #endif
 
 	// set up bell sound
@@ -618,7 +624,6 @@ void main(void)
 			}
 		}
 	}
-
 }
 
 #pragma optimize (push, off)
@@ -643,6 +648,18 @@ loop:
 exitloop:
 	asm("ldy $ff");
 	asm("sty $cc");
+#endif
+}
+#pragma optimize (pop)
+
+#pragma optimize (push, off)
+void vdcEnable80Column(void) {
+#ifdef __C128__
+	asm("bit $d7");
+	asm("bpl %g", switch_mode);
+	asm("rts"); 
+switch_mode:
+	asm("jsr $cd2c");
 #endif
 }
 #pragma optimize (pop)
