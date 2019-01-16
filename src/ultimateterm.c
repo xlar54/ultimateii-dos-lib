@@ -67,9 +67,6 @@ Demo program does not alter any data
 #define DISPLAY_HEADER	printf("%cUltimateTerm v%s                      %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
-#define SCREEN_HEIGHT	24
-#define VDC_REG	0xd600
-
 int term_getstring(char* def, char *buf);
 void term_updateheader(char *chan);
 int putchar_ascii(int c);
@@ -212,7 +209,7 @@ int putchar_ascii(int c)
 
 	if (c == BELL)
 		term_bell();
-	else
+	else if (c != LF)
 		putchar(c);
 
 	return c;
@@ -579,8 +576,7 @@ void main(void)
 				{
 					cursorOff();
 					for(x=2;x<datacount+2;x++)
-						if(uii_data[x] != LF)
-							term_print(uii_data[x]);
+						term_print(uii_data[x]);
 					cursorOn();
 				}
 
