@@ -631,6 +631,9 @@ void cursorOn(void) {
 #ifdef __C64__
 	asm("ldy #$00");
 	asm("sty $cc");
+#else
+	asm("ldy #$60");
+	asm("sty $0a2b");
 #endif
 }
 #pragma optimize (pop)
@@ -648,6 +651,9 @@ loop:
 exitloop:
 	asm("ldy $ff");
 	asm("sty $cc");
+#else
+	asm("ldy #$20");
+	asm("sty $0a2b");
 #endif
 }
 #pragma optimize (pop)
