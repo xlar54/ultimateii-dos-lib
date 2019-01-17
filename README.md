@@ -23,7 +23,7 @@ Example programs:
  * u-chat64.prg is an irc client for the 64
  * geouterm is a basic ASCII terminal for GEOS (for both GEOS 64 and 128)
 
-Some programs also have an 80 column c128 version.
+Some programs also have an 80 column C128 version (u-term and u-chat).
 
 Note: these are really just demo applications. You are encouraged to utilize,
 improve on, and and build even better apps than I have.  Enjoy!
