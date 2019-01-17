@@ -62,13 +62,12 @@ Demo program does not alter any data
 #ifdef __C128__
 #define SCREEN_WIDTH	80
 #define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s                                                        %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#define VDC_CURSOR_ON   asm("jsr $cb21");
 #else
 #define SCREEN_WIDTH	40
 #define DISPLAY_HEADER	printf("%cUltimateTerm v%s                      %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#define VDC_CURSOR_ON
 #endif
-
-#define SCREEN_HEIGHT	24
-#define VDC_REG	0xd600
 
 int term_getstring(char* def, char *buf);
 void term_updateheader(char *chan);
@@ -76,6 +75,8 @@ int putchar_ascii(int c);
 int (*term_print)(int c) = putchar;
 void term_getconfig(void);
 void term_bell(void);
+void vdc_write_reg(void);
+void vdcEnable80Column(void);
 
 void cursorOn(void);
 void cursorOff(void);
@@ -121,7 +122,7 @@ int term_getstring(char* def, char *buf)
 	for(x=0;x<strlen(def);x++)
 	{
 		buf[x] = def[x];
-		term_print(def[x]);
+		putchar(def[x]);
 	}
 	
 #ifdef __C64__
@@ -150,9 +151,9 @@ int term_getstring(char* def, char *buf)
 					{
 						x--;
 						cursorOff();
-						term_print(LEFT);
-						term_print(' ');
-						term_print(LEFT);
+						putchar(LEFT);
+						putchar(' ');
+						putchar(LEFT);
 						cursorOn();
 					}
 					break;
@@ -163,7 +164,7 @@ int term_getstring(char* def, char *buf)
 					{
 						buf[x++] = c;
 						cursorOff();
-						term_print(c);
+						putchar(c);
 						cursorOn();
 					}
 					break;
@@ -212,7 +213,7 @@ int putchar_ascii(int c)
 
 	if (c == BELL)
 		term_bell();
-	else
+	else if (c != LF)
 		putchar(c);
 
 	return c;
@@ -526,7 +527,10 @@ void main(void)
 	POKEW(0xD021,0);
 	
 #ifdef __C128__
+	vdcEnable80Column();
+	putchar(14);
 	fast();
+	VDC_CURSOR_ON
 #endif
 
 	// set up bell sound
@@ -579,8 +583,7 @@ void main(void)
 				{
 					cursorOff();
 					for(x=2;x<datacount+2;x++)
-						if(uii_data[x] != LF)
-							term_print(uii_data[x]);
+						term_print(uii_data[x]);
 					cursorOn();
 				}
 
@@ -622,7 +625,6 @@ void main(void)
 			}
 		}
 	}
-
 }
 
 #pragma optimize (push, off)
@@ -630,6 +632,10 @@ void cursorOn(void) {
 #ifdef __C64__
 	asm("ldy #$00");
 	asm("sty $cc");
+#else
+	asm("ldx #$0a");
+	asm("lda #$60");
+	asm("jsr %v", vdc_write_reg);
 #endif
 }
 #pragma optimize (pop)
@@ -641,12 +647,43 @@ void cursorOff(void) {
 	asm("bne %g", exitloop);
 	asm("ldy #$01");
 	asm("sty $cd");
-loop:	
+loop:
 	asm("ldy $cf");
 	asm("bne %g", loop);
 exitloop:
 	asm("ldy $ff");
 	asm("sty $cc");
+#else
+	asm("ldx #$0a");
+	asm("lda #$20");
+	asm("jsr %v", vdc_write_reg);
 #endif
 }
 #pragma optimize (pop)
+
+#pragma optimize (push, off)
+void vdcEnable80Column(void) {
+#ifdef __C128__
+	asm("bit $d7");
+	asm("bpl %g", switch_mode);
+	asm("rts"); 
+switch_mode:
+	asm("jsr $cd2c");
+#endif
+}
+#pragma optimize (pop)
+
+#pragma optimize (push,off)
+void vdc_write_reg(void)
+{
+#ifdef __C128__
+	asm("stx $d600");
+vdc_write_wait:
+	asm("ldx $d600");
+	asm("bpl %g", vdc_write_wait);
+	asm("sta $d601");
+
+#endif
+}
+#pragma optimize (pop)
+
