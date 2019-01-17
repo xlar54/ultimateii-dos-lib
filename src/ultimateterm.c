@@ -75,6 +75,7 @@ int putchar_ascii(int c);
 int (*term_print)(int c) = putchar;
 void term_getconfig(void);
 void term_bell(void);
+void vdc_write_reg(void);
 void vdcEnable80Column(void);
 
 void cursorOn(void);
@@ -631,6 +632,10 @@ void cursorOn(void) {
 #ifdef __C64__
 	asm("ldy #$00");
 	asm("sty $cc");
+#else
+	asm("ldx #$0a");
+	asm("lda #$60");
+	asm("jsr %v", vdc_write_reg);
 #endif
 }
 #pragma optimize (pop)
@@ -648,6 +653,10 @@ loop:
 exitloop:
 	asm("ldy $ff");
 	asm("sty $cc");
+#else
+	asm("ldx #$0a");
+	asm("lda #$20");
+	asm("jsr %v", vdc_write_reg);
 #endif
 }
 #pragma optimize (pop)
@@ -663,3 +672,18 @@ switch_mode:
 #endif
 }
 #pragma optimize (pop)
+
+#pragma optimize (push,off)
+void vdc_write_reg(void)
+{
+#ifdef __C128__
+	asm("stx $d600");
+vdc_write_wait:
+	asm("ldx $d600");
+	asm("bpl %g", vdc_write_wait);
+	asm("sta $d601");
+
+#endif
+}
+#pragma optimize (pop)
+
