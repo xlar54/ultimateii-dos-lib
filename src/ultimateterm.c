@@ -62,30 +62,26 @@ Demo program does not alter any data
 #ifdef __C128__
 #define SCREEN_WIDTH	80
 #define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s                                                        %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#define VDC_CURSOR_ON   asm("jsr $cb21");
 #else
 #define SCREEN_WIDTH	40
 #define DISPLAY_HEADER	printf("%cUltimateTerm v%s                      %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#define VDC_CURSOR_ON
 #endif
-
-#define SCREEN_HEIGHT	24
-#define VDC_REG	0xd600
 
 int term_getstring(char* def, char *buf);
 void term_updateheader(char *chan);
-void term_print(unsigned char c);
+int putchar_ascii(int c);
+int (*term_print)(int c) = putchar;
 void term_getconfig(void);
 void term_bell(void);
-
-#ifdef __C128__
 void vdc_write_reg(void);
-void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo);
-#endif
+void vdcEnable80Column(void);
 
-void waitCursorOff(void);
 void cursorOn(void);
 void cursorOff(void);
 
-char *version = "1.40";
+char *version = "1.41";
 char host[80];
 char portbuff[10];
 int port = 0;
@@ -126,7 +122,7 @@ int term_getstring(char* def, char *buf)
 	for(x=0;x<strlen(def);x++)
 	{
 		buf[x] = def[x];
-		term_print(def[x]);
+		putchar(def[x]);
 	}
 	
 #ifdef __C64__
@@ -145,7 +141,7 @@ int term_getstring(char* def, char *buf)
 			{
 				case 0x0D:
 				{
-					waitCursorOff();
+					cursorOff();
 					buf[x] = 0;
 					return x;
 				}
@@ -154,10 +150,10 @@ int term_getstring(char* def, char *buf)
 					if(x > 0)
 					{
 						x--;
-						waitCursorOff();
-						term_print(LEFT);
-						term_print(' ');
-						term_print(LEFT);
+						cursorOff();
+						putchar(LEFT);
+						putchar(' ');
+						putchar(LEFT);
 						cursorOn();
 					}
 					break;
@@ -167,8 +163,8 @@ int term_getstring(char* def, char *buf)
 					if(c > 32 && c < 91)
 					{
 						buf[x++] = c;
-						waitCursorOff();
-						term_print(c);
+						cursorOff();
+						putchar(c);
 						cursorOn();
 					}
 					break;
@@ -211,20 +207,16 @@ void term_updateheader(char *bbs)
 	gotoxy(x,y);
 }
 
-
-void term_print(unsigned char c)
+int putchar_ascii(int c)
 {
-	if(asciimode == 1)
-		c = ascToPet[c];
+	c = ascToPet[(unsigned char) c];
 
-	if(c == BELL)
-	{
+	if (c == BELL)
 		term_bell();
-	}
-	else
-	{
-		printf("%c",c);
-	}
+	else if (c != LF)
+		putchar(c);
+
+	return c;
 }
 
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height)
@@ -527,6 +519,7 @@ void main(void)
 	unsigned char c = 0;
 	char buff[2] = {0,0};
 	int x = 0;
+	term_print = putchar;
 
 	dev = getcurrentdevice();
 	
@@ -534,7 +527,10 @@ void main(void)
 	POKEW(0xD021,0);
 	
 #ifdef __C128__
+	vdcEnable80Column();
+	putchar(14);
 	fast();
+	VDC_CURSOR_ON
 #endif
 
 	// set up bell sound
@@ -580,15 +576,14 @@ void main(void)
 			cursorOn();
 			while(1)
 			{
-				uii_tcpsocketread(socketnr, 767);
+				uii_tcpsocketread(socketnr, 832);
 				datacount = uii_data[0] | (uii_data[1]<<8);
 
 				if(datacount > -1)
 				{
-					waitCursorOff();
+					cursorOff();
 					for(x=2;x<datacount+2;x++)
-						if(uii_data[x] != LF)
-							term_print(uii_data[x]);
+						term_print(uii_data[x]);
 					cursorOn();
 				}
 
@@ -606,6 +601,7 @@ void main(void)
 					else if (c == 134)
 					{
 						asciimode = (asciimode == 1 ? 0 : 1);
+						term_print = (asciimode ? putchar_ascii : putchar);
 					}
 					else
 					{
@@ -629,7 +625,6 @@ void main(void)
 			}
 		}
 	}
-
 }
 
 #pragma optimize (push, off)
@@ -637,6 +632,10 @@ void cursorOn(void) {
 #ifdef __C64__
 	asm("ldy #$00");
 	asm("sty $cc");
+#else
+	asm("ldx #$0a");
+	asm("lda #$60");
+	asm("jsr %v", vdc_write_reg);
 #endif
 }
 #pragma optimize (pop)
@@ -644,79 +643,47 @@ void cursorOn(void) {
 #pragma optimize (push, off)
 void cursorOff(void) {
 #ifdef __C64__
-	asm("ldy #$ff");
-	asm("sty $cc");
-#endif
-}
-#pragma optimize (pop)
-
-#pragma optimize (push, off)
-void waitCursorOff(void) {
-#ifdef __C64__
 	asm("ldy $cc");
-	asm("cpy #$00");
 	asm("bne %g", exitloop);
 	asm("ldy #$01");
 	asm("sty $cd");
-loop:	
+loop:
 	asm("ldy $cf");
 	asm("bne %g", loop);
 exitloop:
 	asm("ldy $ff");
 	asm("sty $cc");
+#else
+	asm("ldx #$0a");
+	asm("lda #$20");
+	asm("jsr %v", vdc_write_reg);
 #endif
 }
 #pragma optimize (pop)
 
+#pragma optimize (push, off)
+void vdcEnable80Column(void) {
 #ifdef __C128__
-
-#pragma optimize (push,off)
-void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo)
-{
-	// Set src line
-	asm("ldx #$20");
-	asm("ldy #%o", srchi);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	asm("ldx #$21");
-	asm("ldy #%o", srclo);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	// Set dest line
-	asm("ldx #$12");
-	asm("ldy #%o", desthi);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	asm("ldx #$13");
-	asm("ldy #%o", destlo);
-	asm("lda (sp),y");
-	asm("jsr %v", vdc_write_reg);
-	
-	// set copy mode
-	asm("ldx #$18");
-	asm("lda #$80");				// set bit 7 = copy
-	asm("jsr %v", vdc_write_reg);
-	
-	// Set byte count (initates copy operation)
-	asm("ldx #$1E");
-	asm("lda #$4F");				// 80 chars - 1
-	asm("jsr %v", vdc_write_reg);
+	asm("bit $d7");
+	asm("bpl %g", switch_mode);
+	asm("rts"); 
+switch_mode:
+	asm("jsr $cd2c");
+#endif
 }
 #pragma optimize (pop)
 
 #pragma optimize (push,off)
 void vdc_write_reg(void)
 {
+#ifdef __C128__
 	asm("stx $d600");
 vdc_write_wait:
 	asm("ldx $d600");
 	asm("bpl %g", vdc_write_wait);
 	asm("sta $d601");
 
+#endif
 }
 #pragma optimize (pop)
 
-#endif
