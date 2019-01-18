@@ -81,7 +81,7 @@ void vdcEnable80Column(void);
 void cursorOn(void);
 void cursorOff(void);
 
-char *version = "1.41";
+char *version = "1.45";
 char host[80];
 char portbuff[10];
 int port = 0;
@@ -213,7 +213,7 @@ int putchar_ascii(int c)
 
 	if (c == BELL)
 		term_bell();
-	else if (c != LF)
+	else
 		putchar(c);
 
 	return c;
@@ -583,6 +583,9 @@ void main(void)
 				{
 					cursorOff();
 					for(x=2;x<datacount+2;x++)
+						#ifdef __C128__
+						if (uii_data[x] != LF)
+						#endif
 						term_print(uii_data[x]);
 					cursorOn();
 				}
