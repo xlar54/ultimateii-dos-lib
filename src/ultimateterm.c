@@ -261,22 +261,18 @@ startover:
 					gotoxy(28,18); cprintf("%d",phonebookctr);
 					ctr=0;
 				}
-				else
+				else if(c != LF)
 				{
-					if(c != 0x0A)
-					{
-						// c to lowercase
-						if ((c >= 97 && c <= 122) || (c >= 193 && c <= 218))
-							c &= 95;
+					// c to lowercase
+					if ((c >= 97 && c <= 122) || (c >= 193 && c <= 218))
+						c &= 95;
 
-						hst[ctr] = c;
-						ctr++;
-						hst[ctr] = 0;
+					hst[ctr] = c;
+					hst[++ctr] = 0;
 
-						// hostname too big
-						if(ctr == 78)
-							break;
-					}
+					// hostname too big
+					if(ctr == 78)
+						break;
 				}
 
 				bytesRead = cbm_read(2, b, 1);
@@ -298,7 +294,6 @@ startover:
 			}
 			
 			cbm_close(2);
-
 		}
 	}
 
@@ -552,13 +547,13 @@ void main(void)
 				{
 					c = cgetc();
 					buff[0] = c;
-					if (c == 133) // KEY F1: CLOSE CONNECTION
+					if (c == 133) // KEY F1: close connection
 					{
 						printf("%c\n\nClosing connection", 14);
 						uii_tcpclose(socketnr);
 						break;
 					}
-					else if (c == 134) // KEY F3: SWITCH PETSCII/ASCII
+					else if (c == 134) // KEY F3: switch petscii/ascii
 					{
 						asciimode = (asciimode == 1 ? 0 : 1);
 						term_print = (asciimode ? putchar_ascii : putchar);
