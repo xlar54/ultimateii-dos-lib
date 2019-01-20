@@ -495,8 +495,7 @@ void main(void)
 	blank_vicII();
 	fast();
 #else
-	POKE(0xD020,0);
-	POKE(0xD021,0);
+	POKEW(0xD020,0);
 #endif
 
 	// set up bell sound
