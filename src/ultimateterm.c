@@ -252,6 +252,8 @@ startover:
 			phonebookctr = 0;
 			ctr=0;
 
+			cputsxy(10,18,"                      ");
+			cputsxy(10,18,"Entries found.....");
 			while(bytesRead > 0)
 			{
 				c = b[0];
@@ -259,9 +261,7 @@ startover:
 				{
 					phonebookctr++;
 					strcpy(phonebook[phonebookctr], hst);
-					cputsxy(10,18,"                      ");
-					cputsxy(10,18,"Entries found.....");
-					cprintf("%d",phonebookctr);
+					gotoxy(28,18); cprintf("%d",phonebookctr);
 					ctr=0;
 				}
 				else
