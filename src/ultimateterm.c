@@ -78,7 +78,7 @@ int putchar_ascii(int c);
 int (*term_print)(int c) = putchar;
 void term_hostselect(void);
 void term_getconfig(void);
-void term_bell(void);
+int term_bell(void);
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
 
 void cursorOn(void);
@@ -180,14 +180,7 @@ void term_displayheader(void)
 
 int putchar_ascii(int c)
 {
-	c = ascToPet[(unsigned char) c];
-
-	if (c == BELL)
-		term_bell();
-	else
-		putchar(c);
-
-	return c;
+	return c==BELL ? term_bell() : putchar(ascToPet[(unsigned char) c]);
 }
 
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border)
@@ -457,13 +450,13 @@ void term_getconfig(void)
 	printf("\n   Gateway: %c%d.%d.%d.%d%c", CG_COLOR_WHITE,uii_data[8], uii_data[9], uii_data[10], uii_data[11],CG_COLOR_CYAN);
 }
 
-void term_bell(void)
+int term_bell(void)
 {
 	int x;
-	
 	POKE(0xD418, 15);
 	for(x=0; x<2000; x++);
 	POKE(0xD418, 0);
+	return 7;
 }
 
 void main(void) 
@@ -472,7 +465,6 @@ void main(void)
 	unsigned char c = 0;
 	char buff[2] = {0,0};
 	int x = 0;
-	term_print = putchar;
 
 	dev = getcurrentdevice();
 		

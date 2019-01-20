@@ -22,6 +22,7 @@ cd ../target
 c1541 -format "ultimatedemos,sh" d64 ultimatedemos.d64
 c1541 -format "ultimate-term,sh" d64 ultimate-term.d64
 
+c1541 -attach ultimatedemos.d64 -write ../src/term-loader.prg term-loader
 c1541 -attach ultimatedemos.d64 -write u-term64.prg u-term64
 c1541 -attach ultimatedemos.d64 -write u-term128.prg u-term128
 c1541 -attach ultimatedemos.d64 -write u-term.seq u-term,s
@@ -32,6 +33,7 @@ c1541 -attach ultimatedemos.d64 -geoswrite ../src/cbm40.cvt
 c1541 -attach ultimatedemos.d64 -geoswrite ../src/cbm80.cvt
 c1541 -attach ultimatedemos.d64 -geoswrite geouterm.cvt
 
+c1541 -attach ultimate-term.d64 -write ../src/term-loader.prg term-loader
 c1541 -attach ultimate-term.d64 -write u-term64.prg u-term64
 c1541 -attach ultimate-term.d64 -write u-term128.prg u-term128
 c1541 -attach ultimate-term.d64 -write u-term.seq u-term,s
