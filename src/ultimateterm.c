@@ -89,7 +89,7 @@ char host[80];
 char portbuff[10];
 int port = 0;
 unsigned char socketnr = 0;
-unsigned char asciimode = 0;
+unsigned char asciimode;
 unsigned char phonebookctr = 0;
 unsigned char phonebook[20][80];
 unsigned char dev = 0;
@@ -202,6 +202,8 @@ void term_hostselect(void)
 startover:
 	term_window(0, 14, 40, 10, 1);
 	if (phonebookctr == 0) {
+
+		// Default phonebook
 		strcpy(phonebook[0], "MANUAL ENTRY");
 		strcpy(phonebook[1], "afterlife.dynu.org 6400");
 		strcpy(phonebook[2], "bbs.jammingsignal.com 23");
@@ -213,20 +215,11 @@ startover:
 		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 		phonebookctr = 8;
 		
-		if(dev < 8 || !file_exists(file, dev))
-		{
-			// cant get a device number or cant find phonebook file. use default hardcoded hosts
-			cputsxy(9,14,"[  Default Phonebook  ]");
-		}
-		else
-		{
-			cbm_open(2, dev, CBM_READ, file);
-			// clear existing
-			for(ctr=1;ctr<=phonebookctr;ctr++)
-				phonebook[ctr][0] = 0;
-			
+		if(dev >= 8 && file_exists(file, dev)) {
 			// load phonebook data
 			cputsxy(9,14,"[ Loading Phonebook... ]");
+
+			cbm_open(2, dev, CBM_READ, file);
 			bytesRead = cbm_read(2, b, 1);	
 			
 			phonebookctr = 0;
@@ -481,6 +474,8 @@ void main(void)
 	cursorOff();
 	while(1)
 	{
+		asciimode = 0;
+		term_print = putchar;
 		term_displayheader();
 		term_getconfig();
 		term_hostselect();
