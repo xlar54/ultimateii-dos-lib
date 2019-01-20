@@ -121,31 +121,24 @@ int term_getstring(char* def, char *buf)
 	unsigned char x = 0;
 	
 	cursorOn();
-	for(x=0;x<strlen(def);x++)
-	{
+	for(x=0;x<strlen(def);x++) {
 		buf[x] = def[x];
 		putchar(def[x]);
 	}
 	
 	POKE(KEYBOARD_BUFFER,0);
-	while(1)
-	{
+	while(1) {
 		c = kbhit();
-		if(c != 0)
-		{
+		if(c != 0) {
 			c = cgetc();
-			switch(c) 
-			{
-				case 0x0D:
-				{
+			switch(c) {
+				case CR:
 					cursorOff();
 					buf[x] = 0;
 					return x;
-				}
+
 				case DELETE:
-				{
-					if(x > 0)
-					{
+					if(x > 0) {
 						x--;
 						cursorOff();
 						putchar(LEFT);
@@ -154,18 +147,15 @@ int term_getstring(char* def, char *buf)
 						cursorOn();
 					}
 					break;
-				}
+
 				default:
-				{
-					if(c > 32 && c < 91)
-					{
+					if(c > 32 && c < 91) {
 						buf[x++] = c;
 						cursorOff();
 						putchar(c);
 						cursorOn();
 					}
 					break;
-				}
 			}
 		}
 	}
