@@ -61,31 +61,31 @@ Demo program does not alter any data
 
 #ifdef __C128__
 #define SCREEN_WIDTH	80
-#define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s                                                        %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
-#define VDC_CURSOR_ON   asm("jsr $cb21");
+#define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+void vdc_write_reg(void);
+void blank_vicII(void);
 #else
 #define SCREEN_WIDTH	40
-#define DISPLAY_HEADER	printf("%cUltimateTerm v%s                      %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
-#define VDC_CURSOR_ON
+#define DISPLAY_HEADER	printf("%cUltimateTerm v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
+int file_exists(char *name, unsigned char dev);
 int term_getstring(char* def, char *buf);
-void term_updateheader(char *chan);
+void term_displayheader(void);
 int putchar_ascii(int c);
 int (*term_print)(int c) = putchar;
+void term_hostselect(void);
 void term_getconfig(void);
 void term_bell(void);
-void vdc_write_reg(void);
-void vdcEnable80Column(void);
+void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
 
 void cursorOn(void);
 void cursorOff(void);
 
-char *version = "1.45";
+char *version = "1.46";
 char host[80];
 char portbuff[10];
 int port = 0;
-char *nochan = "No Connection";
 unsigned char socketnr = 0;
 unsigned char asciimode = 0;
 unsigned char phonebookctr = 0;
@@ -174,37 +174,11 @@ int term_getstring(char* def, char *buf)
 	}
 }
 
-void term_updateheader(char *bbs)
+void term_displayheader(void)
 {
-	unsigned char x = 0;
-	unsigned char y = 0;
-	unsigned char t = 0;
-	unsigned char i = 0;
-	unsigned char e = 0;
-	
-	x=wherex();
-	y=wherey();
-	t = 0;
-
-	gotoxy(0,0);
+	clrscr();
 	DISPLAY_HEADER
-
-	e = strlen(bbs);
-#ifdef __C64__
-	if(e > 20)
-		e = 20;
-#endif 
-	for(i=e; i>0; i--)
-	{
-		cputcxy((SCREEN_WIDTH-1)-t,0, bbs[i-1]);
-		t++;
-	}
-	
 	chlinexy(0,1,SCREEN_WIDTH);
-	
-	if(y < 2) y=2;
-	
-	gotoxy(x,y);
 }
 
 int putchar_ascii(int c)
@@ -219,18 +193,19 @@ int putchar_ascii(int c)
 	return c;
 }
 
-void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height)
+void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border)
 {
-	unsigned char z=0;
-	unsigned char v=0;
-	
-	chlinexy(x,y,width-1);chlinexy(x,y+height,width-1);
-	cvlinexy(x,y+1,height-1);cvlinexy(width-1,y+1,height-1);
-	cputcxy(x,y,176);cputcxy(width-1,y,174);cputcxy(x,y+height,173);cputcxy(width-1,y+height,189);
-	
-	for(z=y+1;z<y+height;z++)
-		for(v=x+1;v<x+width-1;v++)
-			cputcxy(v,z,' ');
+	unsigned char i;
+	char *spaces="                                        ";
+
+	spaces[width-2] = 0;
+	for(i=y+1;i<y+height;i++)
+		cputsxy(x+1,i,spaces);
+	if (!border) return;
+
+	chlinexy(x+1,y,width-2);chlinexy(x+1,y+height,width-2);
+	cvlinexy(x,y+1,height-1);cvlinexy(x+width-1,y+1,height-1);
+	cputcxy(x,y,176);cputcxy(width-1,y,174);cputcxy(x,y+height,173);cputcxy(x+width-1,y+height,189);
 }
 
 void term_hostselect(void)
@@ -245,113 +220,106 @@ void term_hostselect(void)
 	int bytesRead = 0;
 	
 startover:
-	strcpy(phonebook[0], "MANUAL ENTRY");
-	strcpy(phonebook[1], "afterlife.dynu.org 6400");
-	strcpy(phonebook[2], "bbs.jammingsignal.com 23");
-	strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
-	strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
-	strcpy(phonebook[5], "eagleman.bounceme.net 6464");
-	strcpy(phonebook[6], "hurricanebbs.dynu.net 6401");
-	strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
-	strcpy(phonebook[8], "bbs.retroacademy.it 6510");
-	phonebookctr = 8;
-	
-	term_window(0, 14, 40, 10);
-	
-	y = 15;
-
-	if(dev < 8)
-	{
-		// cant get a device number,  use default hardcoded hosts
-		cputsxy(9,14,"[  Default Phonebook  ]");
-
-		for(ctr=0;ctr<=phonebookctr;ctr++)
-			cputsxy(3,y + ctr, phonebook[ctr]);
-
-	}
-	else if(cbm_open(2, dev, CBM_READ, file) != 0)
-	{
-		// cant find phonebook file. use default hardcoded hosts
-		cputsxy(9,14,"[  Default Phonebook  ]");
-
-		for(ctr=0;ctr<=phonebookctr;ctr++)
-			cputsxy(3,y + ctr, phonebook[ctr]);
-
-	}
-	else
-	{
-		// clear existing
-		for(ctr=1;ctr<=phonebookctr;ctr++)
-			phonebook[ctr][0] = 0;
+	term_window(0, 14, 40, 10, 1);
+	if (phonebookctr == 0) {
+		strcpy(phonebook[0], "MANUAL ENTRY");
+		strcpy(phonebook[1], "afterlife.dynu.org 6400");
+		strcpy(phonebook[2], "bbs.jammingsignal.com 23");
+		strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
+		strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
+		strcpy(phonebook[5], "eagleman.bounceme.net 6464");
+		strcpy(phonebook[6], "hurricanebbs.dynu.net 6401");
+		strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
+		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
+		phonebookctr = 8;
 		
-		// load phonebook data
-		cputsxy(9,14,"[ Loading Phonebook... ]");
-		bytesRead = cbm_read(2, b, 1);	
-		
-		phonebookctr = 0;
-		ctr=0;
-		
-		while(bytesRead > 0)
-		{		
-			if(b[0] == CR)
+		if(dev < 8 || !file_exists(file, dev))
+		{
+			// cant get a device number or cant find phonebook file. use default hardcoded hosts
+			cputsxy(9,14,"[  Default Phonebook  ]");
+		}
+		else
+		{
+			cbm_open(2, dev, CBM_READ, file);
+			// clear existing
+			for(ctr=1;ctr<=phonebookctr;ctr++)
+				phonebook[ctr][0] = 0;
+			
+			// load phonebook data
+			cputsxy(9,14,"[ Loading Phonebook... ]");
+			bytesRead = cbm_read(2, b, 1);	
+			
+			phonebookctr = 0;
+			ctr=0;
+
+			while(bytesRead > 0)
 			{
-				phonebookctr++;
-				strcpy(phonebook[phonebookctr], hst);
-				cputsxy(10,18,"                      ");
-				cputsxy(10,18,"Entries found.....");
-				cprintf("%d",phonebookctr);
-				ctr=0;
-			}
-			else
-			{
-				if(b[0] != 0x0A)
+				c = b[0];
+				if(c == CR)
 				{
-					hst[ctr] = b[0];
-					ctr++;
-					hst[ctr] = 0;
-					
-					// hostname too big
-					if(ctr == 78)
-						break;
+					phonebookctr++;
+					strcpy(phonebook[phonebookctr], hst);
+					cputsxy(10,18,"                      ");
+					cputsxy(10,18,"Entries found.....");
+					cprintf("%d",phonebookctr);
+					ctr=0;
 				}
-			}
-			
-			bytesRead = cbm_read(2, b, 1);
-			
-			// load any remaining items
-			if(bytesRead == 0 && ctr != 0)
-			{
-				phonebookctr++;
-				strcpy(phonebook[phonebookctr], hst);
-				ctr=0;
-			}
-		};
+				else
+				{
+					if(c != 0x0A)
+					{
+						// c to lowercase
+						if ((c >= 97 && c <= 122) || (c >= 193 && c <= 218))
+							c &= 95;
 
-		// handle error
-		if(bytesRead == -1)
-		{
-			gotoxy(9,14);
-			cprintf("[ Read Error: %d       ]", _oserror);
-		}
-		
-		cbm_close(2);
-		chlinexy(9,14,24);
-		
-		y = 15;
-		pbtopidx = 0;
-		
-		// display 1st 8
-		for(ctr=pbtopidx;ctr<=phonebookctr;ctr++)
-		{
-			gotoxy(3,y);
-			cprintf("%s",phonebook[ctr]);
-			y++;
+						hst[ctr] = c;
+						ctr++;
+						hst[ctr] = 0;
+
+						// hostname too big
+						if(ctr == 78)
+							break;
+					}
+				}
+
+				bytesRead = cbm_read(2, b, 1);
+
+				// load any remaining items
+				if(bytesRead == 0 && ctr != 0)
+				{
+					phonebookctr++;
+					strcpy(phonebook[phonebookctr], hst);
+					ctr=0;
+				}
+			};
+
+			// handle error
+			if(bytesRead == -1)
+			{
+				gotoxy(9,14);
+				cprintf("[ Read Error: %d       ]", _oserror);
+			}
 			
-			if(ctr == 8)
-				break;
+			cbm_close(2);
+
 		}
 	}
+
+	chlinexy(9,14,24);
+	y = 15;
+	pbtopidx = 0;
 	
+	// display 1st 8
+	for(ctr=pbtopidx;ctr<=phonebookctr;ctr++)
+	{
+		gotoxy(3,y);
+		cprintf("%s",phonebook[ctr]);
+		y++;
+
+		if(ctr == 8)
+			break;
+	}
+
 	y = 15;
 	cputsxy(1,y,">");
 	gotoxy(1,y);
@@ -382,13 +350,12 @@ startover:
 			{
 				if(phonebookctr >= pbtopidx+8)
 				{
-					term_window(0, 14, 40, 10);
 					pbtopidx++;
 					y = 15;
 					for(ctr=pbtopidx;ctr<=phonebookctr;ctr++)
 					{
 						gotoxy(3,y);
-						cprintf("%s",phonebook[ctr]);
+						cprintf("%-36s",phonebook[ctr]);
 						y++;
 						if(ctr == pbtopidx + 8)
 							break;
@@ -409,13 +376,12 @@ startover:
 			{
 				if(pbtopidx > 0)
 				{
-					term_window(0, 14, 40, 10);
 					pbtopidx--;
 					y = 15;
 					for(ctr=pbtopidx;ctr<=phonebookctr;ctr++)
 					{
 						gotoxy(3,y);
-						cprintf("%s",phonebook[ctr]);
+						cprintf("%-36s",phonebook[ctr]);
 						y++;
 						if(ctr == pbtopidx + 8)
 							break;
@@ -429,7 +395,7 @@ startover:
 			{
 				if(pbselectedidx == 0)
 				{
-					term_window(0, 14, 40, 10);
+					term_window(0, 14, 40, 10, 0);
 					
 					gotoxy(5,16);
 					printf("%c", CG_COLOR_CYAN);
@@ -522,24 +488,24 @@ void main(void)
 	term_print = putchar;
 
 	dev = getcurrentdevice();
-	
-	POKEW(0xD020,0);
-	POKEW(0xD021,0);
-	
+		
 #ifdef __C128__
-	vdcEnable80Column();
+	videomode(VIDEOMODE_80COL);
 	putchar(14);
+	blank_vicII();
 	fast();
-	VDC_CURSOR_ON
+#else
+	POKE(0xD020,0);
+	POKE(0xD021,0);
 #endif
 
 	// set up bell sound
-	POKE(0XD400 + 5, 68);
-	POKE(0XD400 + 6, 70);
-	POKE(0XD400 + 4, 17);
-	POKE(0XD400 + 1, 45);
-	POKE(0XD400 + 0, 255);
-	POKE(0XD400 + 24, 0);
+	POKE(0xD400 + 5, 68);
+	POKE(0xD400 + 6, 70);
+	POKE(0xD400 + 4, 17);
+	POKE(0xD400 + 1, 45);
+	POKE(0xD400 + 0, 255);
+	POKE(0xD400 + 24, 0);
 
 	printf("Accessing network target...(if no response, perhaps connection was not closed?");
 	
@@ -547,24 +513,19 @@ void main(void)
 	cursorOff();
 	while(1)
 	{
-		clrscr();
-		term_updateheader(nochan);
+		term_displayheader();
 		term_getconfig();
 		term_hostselect();
 		cursorOff();
 
-		clrscr();
-		term_updateheader(nochan);
+		term_displayheader();
 		gotoxy(0,2);
 		printf("%c\n[F1] to close the connection when done\n", CG_COLOR_YELLOW);
 
-#ifdef __C64__
-		printf("\n * Connecting to");
-		printf("\n   %s:%u\n\n",host, port);
-#endif
-
 #ifdef __C128__
 		printf("\n * Connecting to %s:%u\n\n",host, port);
+#else
+		printf("\n * Connecting to\n   %s:%u\n\n",host, port);
 #endif
 		
 		uii_tcpconnect(host, port);
@@ -572,7 +533,7 @@ void main(void)
 		
 		if (uii_status[0] == '0' && uii_status[1] == '0')
 		{
-			term_updateheader(host);
+			putchar(CG_COLOR_CYAN);
 			cursorOn();
 			while(1)
 			{
@@ -630,6 +591,15 @@ void main(void)
 	}
 }
 
+int file_exists(char *name, unsigned char dev) {
+	int bytesRead;
+	unsigned char b[2];
+	if (cbm_open(127, dev, CBM_READ, name) != 0) return 0;
+	bytesRead = cbm_read(127, b, 1);
+	cbm_close(127);
+	return bytesRead;
+}
+
 #pragma optimize (push, off)
 void cursorOn(void) {
 #ifdef __C64__
@@ -664,29 +634,25 @@ exitloop:
 }
 #pragma optimize (pop)
 
-#pragma optimize (push, off)
-void vdcEnable80Column(void) {
 #ifdef __C128__
-	asm("bit $d7");
-	asm("bpl %g", switch_mode);
-	asm("rts"); 
-switch_mode:
-	asm("jsr $cd2c");
-#endif
-}
-#pragma optimize (pop)
-
 #pragma optimize (push,off)
 void vdc_write_reg(void)
 {
-#ifdef __C128__
 	asm("stx $d600");
 vdc_write_wait:
 	asm("ldx $d600");
 	asm("bpl %g", vdc_write_wait);
 	asm("sta $d601");
 
-#endif
 }
 #pragma optimize (pop)
 
+#pragma optimize (push,off)
+void blank_vicII(void)
+{
+	asm("lda $d011");
+	asm("and #$ef");
+	asm("sta $d011");
+}
+#pragma optimize (pop)
+#endif
