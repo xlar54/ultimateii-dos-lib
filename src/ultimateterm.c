@@ -203,8 +203,8 @@ void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned
 	if (!border) return;
 
 	chlinexy(x+1,y,width-2);chlinexy(x+1,y+height,width-2);
-	cvlinexy(x,y+1,height-1);cvlinexy(width-1,y+1,height-1);
-	cputcxy(x,y,176);cputcxy(width-1,y,174);cputcxy(x,y+height,173);cputcxy(width-1,y+height,189);
+	cvlinexy(x,y+1,height-1);cvlinexy(x+width-1,y+1,height-1);
+	cputcxy(x,y,176);cputcxy(width-1,y,174);cputcxy(x,y+height,173);cputcxy(x+width-1,y+height,189);
 }
 
 void term_hostselect(void)
