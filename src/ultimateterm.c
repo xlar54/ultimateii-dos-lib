@@ -74,6 +74,7 @@ int term_getstring(char* def, char *buf);
 void term_displayheader(void);
 int putchar_ascii(int c);
 int (*term_print)(int c) = putchar;
+void term_hostselect(void);
 void term_getconfig(void);
 void term_bell(void);
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
@@ -219,108 +220,106 @@ void term_hostselect(void)
 	int bytesRead = 0;
 	
 startover:
-	strcpy(phonebook[0], "MANUAL ENTRY");
-	strcpy(phonebook[1], "afterlife.dynu.org 6400");
-	strcpy(phonebook[2], "bbs.jammingsignal.com 23");
-	strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
-	strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
-	strcpy(phonebook[5], "eagleman.bounceme.net 6464");
-	strcpy(phonebook[6], "hurricanebbs.dynu.net 6401");
-	strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
-	strcpy(phonebook[8], "bbs.retroacademy.it 6510");
-	phonebookctr = 8;
-	
 	term_window(0, 14, 40, 10, 1);
-	
-	y = 15;
-	if(dev < 8 || !file_exists(file, dev))
-	{
-		// cant get a device number or cant find phonebook file. use default hardcoded hosts
-		cputsxy(9,14,"[  Default Phonebook  ]");
-
-		for(ctr=0;ctr<=phonebookctr;ctr++)
-			cputsxy(3,y + ctr, phonebook[ctr]);
-	}
-	else
-	{
-		cbm_open(2, dev, CBM_READ, file);
-		// clear existing
-		for(ctr=1;ctr<=phonebookctr;ctr++)
-			phonebook[ctr][0] = 0;
+	if (phonebookctr == 0) {
+		strcpy(phonebook[0], "MANUAL ENTRY");
+		strcpy(phonebook[1], "afterlife.dynu.org 6400");
+		strcpy(phonebook[2], "bbs.jammingsignal.com 23");
+		strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
+		strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
+		strcpy(phonebook[5], "eagleman.bounceme.net 6464");
+		strcpy(phonebook[6], "hurricanebbs.dynu.net 6401");
+		strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
+		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
+		phonebookctr = 8;
 		
-		// load phonebook data
-		cputsxy(9,14,"[ Loading Phonebook... ]");
-		bytesRead = cbm_read(2, b, 1);	
-		
-		phonebookctr = 0;
-		ctr=0;
-		
-		while(bytesRead > 0)
+		if(dev < 8 || !file_exists(file, dev))
 		{
-			c = b[0];
-			if(c == CR)
+			// cant get a device number or cant find phonebook file. use default hardcoded hosts
+			cputsxy(9,14,"[  Default Phonebook  ]");
+		}
+		else
+		{
+			cbm_open(2, dev, CBM_READ, file);
+			// clear existing
+			for(ctr=1;ctr<=phonebookctr;ctr++)
+				phonebook[ctr][0] = 0;
+			
+			// load phonebook data
+			cputsxy(9,14,"[ Loading Phonebook... ]");
+			bytesRead = cbm_read(2, b, 1);	
+			
+			phonebookctr = 0;
+			ctr=0;
+
+			while(bytesRead > 0)
 			{
-				phonebookctr++;
-				strcpy(phonebook[phonebookctr], hst);
-				cputsxy(10,18,"                      ");
-				cputsxy(10,18,"Entries found.....");
-				cprintf("%d",phonebookctr);
-				ctr=0;
-			}
-			else
-			{
-				if(c != 0x0A)
-				{	
-					// c to lowercase
-					if ((c >= 97 && c <= 122) || (c >= 193 && c <= 218))
-						c &= 95;
-					
-					hst[ctr] = c;
-					ctr++;
-					hst[ctr] = 0;
-					
-					// hostname too big
-					if(ctr == 78)
-						break;
+				c = b[0];
+				if(c == CR)
+				{
+					phonebookctr++;
+					strcpy(phonebook[phonebookctr], hst);
+					cputsxy(10,18,"                      ");
+					cputsxy(10,18,"Entries found.....");
+					cprintf("%d",phonebookctr);
+					ctr=0;
 				}
-			}
-			
-			bytesRead = cbm_read(2, b, 1);
-			
-			// load any remaining items
-			if(bytesRead == 0 && ctr != 0)
-			{
-				phonebookctr++;
-				strcpy(phonebook[phonebookctr], hst);
-				ctr=0;
-			}
-		};
+				else
+				{
+					if(c != 0x0A)
+					{
+						// c to lowercase
+						if ((c >= 97 && c <= 122) || (c >= 193 && c <= 218))
+							c &= 95;
 
-		// handle error
-		if(bytesRead == -1)
-		{
-			gotoxy(9,14);
-			cprintf("[ Read Error: %d       ]", _oserror);
-		}
-		
-		cbm_close(2);
-		chlinexy(9,14,24);
-		
-		y = 15;
-		pbtopidx = 0;
-		
-		// display 1st 8
-		for(ctr=pbtopidx;ctr<=phonebookctr;ctr++)
-		{
-			gotoxy(3,y);
-			cprintf("%s",phonebook[ctr]);
-			y++;
+						hst[ctr] = c;
+						ctr++;
+						hst[ctr] = 0;
+
+						// hostname too big
+						if(ctr == 78)
+							break;
+					}
+				}
+
+				bytesRead = cbm_read(2, b, 1);
+
+				// load any remaining items
+				if(bytesRead == 0 && ctr != 0)
+				{
+					phonebookctr++;
+					strcpy(phonebook[phonebookctr], hst);
+					ctr=0;
+				}
+			};
+
+			// handle error
+			if(bytesRead == -1)
+			{
+				gotoxy(9,14);
+				cprintf("[ Read Error: %d       ]", _oserror);
+			}
 			
-			if(ctr == 8)
-				break;
+			cbm_close(2);
+
 		}
 	}
+
+	chlinexy(9,14,24);
+	y = 15;
+	pbtopidx = 0;
 	
+	// display 1st 8
+	for(ctr=pbtopidx;ctr<=phonebookctr;ctr++)
+	{
+		gotoxy(3,y);
+		cprintf("%s",phonebook[ctr]);
+		y++;
+
+		if(ctr == 8)
+			break;
+	}
+
 	y = 15;
 	cputsxy(1,y,">");
 	gotoxy(1,y);
