@@ -350,13 +350,12 @@ startover:
 			{
 				if(phonebookctr >= pbtopidx+8)
 				{
-					term_window(0, 14, 40, 10, 0);
 					pbtopidx++;
 					y = 15;
 					for(ctr=pbtopidx;ctr<=phonebookctr;ctr++)
 					{
 						gotoxy(3,y);
-						cprintf("%s",phonebook[ctr]);
+						cprintf("%-36s",phonebook[ctr]);
 						y++;
 						if(ctr == pbtopidx + 8)
 							break;
@@ -377,13 +376,12 @@ startover:
 			{
 				if(pbtopidx > 0)
 				{
-					term_window(0, 14, 40, 10, 0);
 					pbtopidx--;
 					y = 15;
 					for(ctr=pbtopidx;ctr<=phonebookctr;ctr++)
 					{
 						gotoxy(3,y);
-						cprintf("%s",phonebook[ctr]);
+						cprintf("%-36s",phonebook[ctr]);
 						y++;
 						if(ctr == pbtopidx + 8)
 							break;
@@ -490,24 +488,24 @@ void main(void)
 	term_print = putchar;
 
 	dev = getcurrentdevice();
-	
-	POKEW(0xD020,0);
-	POKEW(0xD021,0);
-	
+		
 #ifdef __C128__
 	videomode(VIDEOMODE_80COL);
 	putchar(14);
 	blank_vicII();
 	fast();
+#else
+	POKE(0xD020,0);
+	POKE(0xD021,0);
 #endif
 
 	// set up bell sound
-	POKE(0XD400 + 5, 68);
-	POKE(0XD400 + 6, 70);
-	POKE(0XD400 + 4, 17);
-	POKE(0XD400 + 1, 45);
-	POKE(0XD400 + 0, 255);
-	POKE(0XD400 + 24, 0);
+	POKE(0xD400 + 5, 68);
+	POKE(0xD400 + 6, 70);
+	POKE(0xD400 + 4, 17);
+	POKE(0xD400 + 1, 45);
+	POKE(0xD400 + 0, 255);
+	POKE(0xD400 + 24, 0);
 
 	printf("Accessing network target...(if no response, perhaps connection was not closed?");
 	
