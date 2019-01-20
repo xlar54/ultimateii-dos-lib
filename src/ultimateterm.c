@@ -202,20 +202,19 @@ void term_hostselect(void)
 startover:
 	term_window(0, 14, 40, 10, 1);
 	if (phonebookctr == 0) {
-
-		// Default phonebook
 		strcpy(phonebook[0], "MANUAL ENTRY");
-		strcpy(phonebook[1], "afterlife.dynu.org 6400");
-		strcpy(phonebook[2], "bbs.jammingsignal.com 23");
-		strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
-		strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
-		strcpy(phonebook[5], "eagleman.bounceme.net 6464");
-		strcpy(phonebook[6], "hurricanebbs.dynu.net 6401");
-		strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
-		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
-		phonebookctr = 8;
-		
-		if(dev >= 8 && file_exists(file, dev)) {
+		if(dev < 8 || !file_exists(file, dev)) {
+			// Default phonebook
+			strcpy(phonebook[1], "afterlife.dynu.org 6400");
+			strcpy(phonebook[2], "bbs.jammingsignal.com 23");
+			strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
+			strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
+			strcpy(phonebook[5], "eagleman.bounceme.net 6464");
+			strcpy(phonebook[6], "hurricanebbs.dynu.net 6401");
+			strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
+			strcpy(phonebook[8], "bbs.retroacademy.it 6510");
+			phonebookctr = 8;
+		} else {
 			// load phonebook data
 			cputsxy(9,14,"[ Loading Phonebook... ]");
 
