@@ -84,7 +84,7 @@ void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned
 void cursorOn(void);
 void cursorOff(void);
 
-char *version = "1.46";
+char *version = "1.48";
 char host[80];
 char portbuff[10];
 int port = 0;
