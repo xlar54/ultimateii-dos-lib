@@ -61,11 +61,13 @@ Demo program does not alter any data
 
 #ifdef __C128__
 #define SCREEN_WIDTH	80
+#define KEYBOARD_BUFFER 208
 #define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 void vdc_write_reg(void);
 void blank_vicII(void);
 #else
 #define SCREEN_WIDTH	40
+#define KEYBOARD_BUFFER 198
 #define DISPLAY_HEADER	printf("%cUltimateTerm v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
@@ -82,7 +84,7 @@ void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned
 void cursorOn(void);
 void cursorOff(void);
 
-char *version = "1.46";
+char *version = "1.48";
 char host[80];
 char portbuff[10];
 int port = 0;
@@ -125,12 +127,7 @@ int term_getstring(char* def, char *buf)
 		putchar(def[x]);
 	}
 	
-#ifdef __C64__
-	POKE(198,0);
-#else
-	POKE(208,0);
-#endif
-	
+	POKE(KEYBOARD_BUFFER,0);
 	while(1)
 	{
 		c = kbhit();
@@ -252,6 +249,8 @@ startover:
 			phonebookctr = 0;
 			ctr=0;
 
+			cputsxy(10,18,"                      ");
+			cputsxy(10,18,"Entries found.....");
 			while(bytesRead > 0)
 			{
 				c = b[0];
@@ -259,9 +258,7 @@ startover:
 				{
 					phonebookctr++;
 					strcpy(phonebook[phonebookctr], hst);
-					cputsxy(10,18,"                      ");
-					cputsxy(10,18,"Entries found.....");
-					cprintf("%d",phonebookctr);
+					gotoxy(28,18); cprintf("%d",phonebookctr);
 					ctr=0;
 				}
 				else
@@ -325,12 +322,7 @@ startover:
 	gotoxy(1,y);
 	pbselectedidx = 0;
 	
-#ifdef __C64__
-	POKE(198,0);
-#else
-	POKE(208,0);
-#endif
-	
+	POKE(KEYBOARD_BUFFER,0);
 	while(1)
 	{
 		c = kbhit();
@@ -472,16 +464,16 @@ void term_getconfig(void)
 
 void term_bell(void)
 {
-	int x = 0;
+	int x;
 	
-	POKE(0XD400 + 24, 15);
-	for(x=0; x< 2000; x++);
-	POKE(0XD400 + 24, 0);
+	POKE(0xD418, 15);
+	for(x=0; x<2000; x++);
+	POKE(0xD418, 0);
 }
 
 void main(void) 
 {
-	int datacount = 0;
+	int datacount;
 	unsigned char c = 0;
 	char buff[2] = {0,0};
 	int x = 0;
@@ -495,8 +487,7 @@ void main(void)
 	blank_vicII();
 	fast();
 #else
-	POKE(0xD020,0);
-	POKE(0xD021,0);
+	POKEW(0xD020,0);
 #endif
 
 	// set up bell sound
@@ -543,11 +534,15 @@ void main(void)
 				if(datacount > -1)
 				{
 					cursorOff();
-					for(x=2;x<datacount+2;x++)
-						#ifdef __C128__
-						if (uii_data[x] != LF)
-						#endif
-						term_print(uii_data[x]);
+					#ifdef __C128__
+						for(x=2;x<datacount+2;x++)
+							if (uii_data[x] != LF) term_print(uii_data[x]);
+					#else
+						if (asciimode)
+							for(x=2;x<datacount+2;x++) putchar_ascii(uii_data[x]);
+						else
+							printf("%s",uii_data+2);
+					#endif
 					cursorOn();
 				}
 
@@ -556,23 +551,20 @@ void main(void)
 				if(c != 0)
 				{
 					c = cgetc();
-					if (c == 133)
+					buff[0] = c;
+					if (c == 133) // KEY F1: CLOSE CONNECTION
 					{
 						printf("%c\n\nClosing connection", 14);
 						uii_tcpclose(socketnr);
 						break;
 					}
-					else if (c == 134)
+					else if (c == 134) // KEY F3: SWITCH PETSCII/ASCII
 					{
 						asciimode = (asciimode == 1 ? 0 : 1);
 						term_print = (asciimode ? putchar_ascii : putchar);
 					}
 					else
-					{
-						buff[0] = c;
-						buff[1] = 0;
 						uii_tcpsocketwrite(socketnr, buff);
-					}
 				}
 			}
 			cursorOff();
@@ -583,10 +575,7 @@ void main(void)
 			printf("\n\n * Press any key");
 			
 			c = 0;
-			while(c==0)
-			{
-				c=kbhit();
-			}
+			while(c==0) c=kbhit();
 		}
 	}
 }
