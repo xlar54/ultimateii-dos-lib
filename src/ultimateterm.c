@@ -81,6 +81,8 @@ int term_bell(void);
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
 void cursorOn(void);
 void cursorOff(void);
+void detect_uci(void);
+void exit_uci_error(void);
 
 char *version = "1.5";
 char host[80];
@@ -387,8 +389,9 @@ void main(void)
 	char buff[2] = {0,0};
 	int x = 0;
 
+	detect_uci();
 	dev = getcurrentdevice();
-		
+
 #ifdef __C128__
 	videomode(VIDEOMODE_80COL);
 	putchar(14);
@@ -540,3 +543,39 @@ void blank_vicII(void) {
 }
 #pragma optimize (pop)
 #endif
+
+#pragma optimize (push,off)
+void detect_uci(void) {
+	asm("lda $df1d");
+	asm("cmp #$c9");
+	asm("bne %g", nointerface);
+	asm("rts");
+nointerface:
+	asm("jmp %v", exit_uci_error);
+}
+#pragma optimize (pop)
+
+void exit_uci_error(void) {
+	POKEW(0xD020,0);
+	printf(
+		"%c"
+		"\223\005WARNING:\233 Turn on \005Command Interface\233\n" 
+		"----------------------------------\n"
+		"\n"
+		"1. Enter Ultimate's menu, press F2,\n"
+		"   go to \005C64 and cartridge settings\233\n"
+		"\n"
+		"2. Go to \005Command Interface\233 and set\n"
+		"   it to \005Enabled\233 using Cursor Keys\n"
+		"\n"
+		"3. Press \005RUN/STOP\233 twice and \005reboot\233\n"
+		"   your computer (turn it off and on)\n\n"
+		"\n"
+		"You have to do these steps \005once\233. Then\n"
+		"\005reload UltimateTerm\233 and run it.\n"
+		"\243\243\243\243\243\243\243\243\243\243"
+		"\243\243\243\243\243\243\243\243\243\n"
+		,147
+	);
+	exit(1);
+}
