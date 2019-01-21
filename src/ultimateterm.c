@@ -166,8 +166,7 @@ int putchar_ascii(int c) {
 	return c==BELL ? term_bell() : putchar(ascToPet[c]);
 }
 
-void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border)
-{
+void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border) {
 	unsigned char i;
 	char *spaces="                                        ";
 
@@ -181,8 +180,7 @@ void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned
 	cputcxy(x,y,176);cputcxy(width-1,y,174);cputcxy(x,y+height,173);cputcxy(x+width-1,y+height,189);
 }
 
-void term_hostselect(void)
-{
+void term_hostselect(void) {
 	unsigned char b[2];
 	unsigned char hst[80];
 	unsigned char ctr = 0;
@@ -253,7 +251,6 @@ startover:
 				gotoxy(9,14);
 				cprintf("[ Read Error: %d       ]", _oserror);
 			}
-			
 			cbm_close(2);
 		}
 	}
@@ -275,38 +272,28 @@ startover:
 	while(1)
 	{
 		c = kbhit();
-
-		if(c != 0)
-		{
+		if(c != 0) {
 			c = cgetc();
 			
-			if(c == DOWN && wherey() < 23 && (pbselectedidx + 1 <= phonebookctr))
-			{
+			if(c == DOWN && wherey() < 23 && (pbselectedidx + 1 <= phonebookctr)) {
 				cputcxy(1,y++,' ');
 				cputcxy(1,y,'>');
 				pbselectedidx++;
 			}
-			else if(c == DOWN && wherey() == 23 && (pbselectedidx + 1 <= phonebookctr))
-			{
-				if(phonebookctr >= pbtopidx+8)
-				{
+			else if(c == DOWN && wherey() == 23 && (pbselectedidx + 1 <= phonebookctr)) {
+				if(phonebookctr >= pbtopidx+8) {
 					pbtopidx++;
 					y = 15;
-					for(ctr=pbtopidx;ctr<=phonebookctr;ctr++)
-					{
-						gotoxy(3,y);
+					for(ctr=pbtopidx; (ctr<=pbtopidx+8) && (ctr<=phonebookctr); ++ctr) {
+						gotoxy(3,y++);
 						cprintf("%-36s",phonebook[ctr]);
-						y++;
-						if(ctr == pbtopidx + 8)
-							break;
 					}
 					y=23;
 					cputcxy(1,y,'>');
 					pbselectedidx++;
 				}
 			}
-			else if(c == UP && wherey() > 15)
-			{
+			else if(c == UP && wherey() > 15) {
 				cputcxy(1,y--,' ');
 				cputcxy(1,y,'>');
 				pbselectedidx--;
@@ -317,13 +304,9 @@ startover:
 				{
 					pbtopidx--;
 					y = 15;
-					for(ctr=pbtopidx;ctr<=phonebookctr;ctr++)
-					{
-						gotoxy(3,y);
+					for(ctr=pbtopidx; (ctr<=pbtopidx+8) && (ctr<=phonebookctr); ++ctr) {
+						gotoxy(3,y++);
 						cprintf("%-36s",phonebook[ctr]);
-						y++;
-						if(ctr == pbtopidx + 8)
-							break;
 					}
 					y=15;
 					cputcxy(1,y,'>');
@@ -370,11 +353,9 @@ startover:
 			}
 		}
 	}
-	
 }
 
-void term_getconfig(void)
-{
+void term_getconfig(void) {
 	gotoxy(0,2);
 	printf("Bug reports to: scott.hutter@gmail.com");
 	printf("\n\n%cPlease ensure the following:%c",CG_COLOR_YELLOW,CG_COLOR_CYAN);
@@ -391,8 +372,7 @@ void term_getconfig(void)
 	printf("\n   Gateway: %c%d.%d.%d.%d%c", CG_COLOR_WHITE,uii_data[8], uii_data[9], uii_data[10], uii_data[11],CG_COLOR_CYAN);
 }
 
-int term_bell(void)
-{
+int term_bell(void) {
 	int x;
 	POKE(0xD418, 15);
 	for(x=0; x<2000; x++);
@@ -430,8 +410,7 @@ void main(void)
 	
 	uii_settarget(TARGET_NETWORK);
 	cursorOff();
-	while(1)
-	{
+	while(1) {
 		asciimode = 0;
 		term_displayheader();
 		term_getconfig();
@@ -451,17 +430,14 @@ void main(void)
 		uii_tcpconnect(host, port);
 		socketnr = uii_data[0];
 		
-		if (uii_status[0] == '0' && uii_status[1] == '0')
-		{
+		if (uii_status[0] == '0' && uii_status[1] == '0') {
 			putchar(CG_COLOR_CYAN);
 			cursorOn();
-			while(1)
-			{
+			while(1) {
 				uii_tcpsocketread(socketnr, 892);
 				datacount = uii_data[0] | (uii_data[1]<<8);
 
-				if(datacount > 0)
-				{
+				if(datacount > 0) {
 					#ifdef __C128__
 					for(x=2;x<datacount+2;++x) if (uii_data[x] == LF) uii_data[x]=0x01;
 					#endif
@@ -475,23 +451,19 @@ void main(void)
 				}
 
 				c = kbhit();
-
-				if(c != 0)
-				{
+				if(c != 0) {
 					c = cgetc();
 					buff[0] = c;
 					if (c == 133) // KEY F1: close connection
-					{
-						printf("%c\n\nClosing connection", 14);
-						uii_tcpclose(socketnr);
 						break;
-					}
 					else if (c == 134) // KEY F3: switch petscii/ascii
 						asciimode = !asciimode;
 					else
 						uii_tcpsocketwrite(socketnr, buff);
 				}
 			}
+			printf("%c\n\nClosing connection", 14);
+			uii_tcpclose(socketnr);
 			cursorOff();
 		}
 		else
