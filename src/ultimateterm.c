@@ -84,7 +84,7 @@ void cursorOff(void);
 void detect_uci(void);
 void exit_uci_error(void);
 
-char *version = "1.5";
+char *version = "1.51";
 char host[80];
 char portbuff[10];
 int port = 0;
