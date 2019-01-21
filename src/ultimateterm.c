@@ -75,16 +75,14 @@ int file_exists(char *name, unsigned char dev);
 int term_getstring(char* def, char *buf);
 void term_displayheader(void);
 int putchar_ascii(int c);
-int (*term_print)(int c) = putchar;
 void term_hostselect(void);
 void term_getconfig(void);
 int term_bell(void);
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
-
 void cursorOn(void);
 void cursorOff(void);
 
-char *version = "1.48";
+char *version = "1.5";
 char host[80];
 char portbuff[10];
 int port = 0;
@@ -115,10 +113,8 @@ unsigned char ascToPet[] = {
 0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff
 };
 
-int term_getstring(char* def, char *buf)
-{
-	unsigned char c = 0;
-	unsigned char x = 0;
+int term_getstring(char* def, char *buf) {
+	unsigned char c,x;
 	
 	cursorOn();
 	for(x=0;x<strlen(def);x++) {
@@ -155,22 +151,19 @@ int term_getstring(char* def, char *buf)
 						putchar(c);
 						cursorOn();
 					}
-					break;
 			}
 		}
 	}
 }
 
-void term_displayheader(void)
-{
+void term_displayheader(void) {
 	clrscr();
 	DISPLAY_HEADER
 	chlinexy(0,1,SCREEN_WIDTH);
 }
 
-int putchar_ascii(int c)
-{
-	return c==BELL ? term_bell() : putchar(ascToPet[(unsigned char) c]);
+int putchar_ascii(int c) {
+	return c==BELL ? term_bell() : putchar(ascToPet[c]);
 }
 
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border)
@@ -198,8 +191,10 @@ void term_hostselect(void)
 	unsigned char *file = "0:u-term,s";
 	unsigned char c = 0;
 	int bytesRead = 0;
+	unsigned len;
 	
 startover:
+	POKE(KEYBOARD_BUFFER,0);
 	term_window(0, 14, 40, 10, 1);
 	if (phonebookctr == 0) {
 		strcpy(phonebook[0], "MANUAL ENTRY");
@@ -217,53 +212,44 @@ startover:
 		} else {
 			// load phonebook data
 			cputsxy(9,14,"[ Loading Phonebook... ]");
+			cputsxy(10,18,"Entries found.....");
 
-			cbm_open(2, dev, CBM_READ, file);
-			bytesRead = cbm_read(2, b, 1);	
-			
 			phonebookctr = 0;
 			ctr=0;
 
-			cputsxy(10,18,"                      ");
-			cputsxy(10,18,"Entries found.....");
+			cbm_open(2, dev, CBM_READ, file);
+			bytesRead = cbm_read(2, b, 1);	
 			while(bytesRead > 0)
 			{
 				c = b[0];
-				if(c == CR)
-				{
-					phonebookctr++;
-					strcpy(phonebook[phonebookctr], hst);
+				if(c == CR) {
+					strcpy(phonebook[++phonebookctr], hst);
 					gotoxy(28,18); cprintf("%d",phonebookctr);
 					ctr=0;
 				}
-				else if(c != LF)
-				{
+				else if(c != LF) {
 					// c to lowercase
-					if ((c >= 97 && c <= 122) || (c >= 193 && c <= 218))
+					if ((c>=97 && c<=122) || (c>=193 && c<=218))
 						c &= 95;
 
 					hst[ctr] = c;
 					hst[++ctr] = 0;
 
 					// hostname too big
-					if(ctr == 78)
-						break;
+					if(ctr == 78) break;
 				}
 
 				bytesRead = cbm_read(2, b, 1);
 
 				// load any remaining items
-				if(bytesRead == 0 && ctr != 0)
-				{
-					phonebookctr++;
-					strcpy(phonebook[phonebookctr], hst);
+				if(bytesRead == 0 && ctr != 0) {
+					strcpy(phonebook[++phonebookctr], hst);
 					ctr=0;
 				}
-			};
+			}
 
 			// handle error
-			if(bytesRead == -1)
-			{
+			if(bytesRead == -1) {
 				gotoxy(9,14);
 				cprintf("[ Read Error: %d       ]", _oserror);
 			}
@@ -277,18 +263,11 @@ startover:
 	pbtopidx = 0;
 	
 	// display 1st 8
-	for(ctr=pbtopidx;ctr<=phonebookctr;ctr++)
-	{
-		gotoxy(3,y);
-		cprintf("%s",phonebook[ctr]);
-		y++;
-
-		if(ctr == 8)
-			break;
-	}
+	for(ctr=0;ctr<=phonebookctr && ctr<=8;ctr++)
+		cputsxy(3, y++ ,phonebook[ctr]);
 
 	y = 15;
-	cputsxy(1,y,">");
+	cputcxy(1,y,'>');
 	gotoxy(1,y);
 	pbselectedidx = 0;
 	
@@ -303,9 +282,8 @@ startover:
 			
 			if(c == DOWN && wherey() < 23 && (pbselectedidx + 1 <= phonebookctr))
 			{
-				cputsxy(1,y," ");
-				y++;
-				cputsxy(1,y,">");
+				cputcxy(1,y++,' ');
+				cputcxy(1,y,'>');
 				pbselectedidx++;
 			}
 			else if(c == DOWN && wherey() == 23 && (pbselectedidx + 1 <= phonebookctr))
@@ -323,15 +301,14 @@ startover:
 							break;
 					}
 					y=23;
-					cputsxy(1,y,">");
+					cputcxy(1,y,'>');
 					pbselectedidx++;
 				}
 			}
 			else if(c == UP && wherey() > 15)
 			{
-				cputsxy(1,y," ");
-				y--;
-				cputsxy(1,y,">");
+				cputcxy(1,y--,' ');
+				cputcxy(1,y,'>');
 				pbselectedidx--;
 			}
 			else if(c == UP && wherey() == 15)
@@ -349,7 +326,7 @@ startover:
 							break;
 					}
 					y=15;
-					cputsxy(1,y,">");
+					cputcxy(1,y,'>');
 					pbselectedidx--;
 				}
 			}
@@ -360,51 +337,33 @@ startover:
 					term_window(0, 14, 40, 10, 0);
 					
 					gotoxy(5,16);
-					printf("%c", CG_COLOR_CYAN);
-					cprintf("Host: ");
-					printf("%c", CG_COLOR_WHITE);
+					printf("%cHost: %c", CG_COLOR_CYAN, CG_COLOR_WHITE);
 					term_getstring("", host);
 					
 					gotoxy(5,18);
-					printf("%c", CG_COLOR_CYAN);
-					cprintf("Port: "); 
-					printf("%c", CG_COLOR_WHITE);
+					printf("%cPort: %c", CG_COLOR_CYAN, CG_COLOR_WHITE); 
 					term_getstring("", portbuff);
-					printf("%c", CG_COLOR_CYAN);
+					putchar(CG_COLOR_CYAN);
 					
 					if(host[0] == 0 || portbuff[0] == 0)
 						goto startover;
-					else
-					{
-						port = atoi(portbuff);
-						return;
-					}
+
+					port = atoi(portbuff);
+					return;
 				}
 				else
 				{
 					ctr = 0;
-					for(x=0;x<strlen(phonebook[pbselectedidx]);x++)
-					{
-						if(phonebook[pbselectedidx][x] != ' ')
-						{
-							host[ctr] = phonebook[pbselectedidx][x];
-							ctr++;
-							host[ctr] = 0;
-						}
-						else
-						{
-							x++;
-							break;
-						}
-					}
+					len = strlen(phonebook[pbselectedidx]);
+					for(x=0; x<len && phonebook[pbselectedidx][x]!=' '; x++)
+						host[ctr++] = phonebook[pbselectedidx][x];
+					host[ctr] = 0;
 					
 					ctr = 0;
-					for(;x<strlen(phonebook[pbselectedidx]);x++)
-					{
-						portbuff[ctr] = phonebook[pbselectedidx][x];
-						ctr++;
-						portbuff[ctr] = 0;
-					}
+					for(; x<len; x++)
+						portbuff[ctr++] = phonebook[pbselectedidx][x];
+					portbuff[ctr] = 0;
+
 					port = atoi(portbuff);
 					return;
 				}
@@ -474,7 +433,6 @@ void main(void)
 	while(1)
 	{
 		asciimode = 0;
-		term_print = putchar;
 		term_displayheader();
 		term_getconfig();
 		term_hostselect();
@@ -499,21 +457,20 @@ void main(void)
 			cursorOn();
 			while(1)
 			{
-				uii_tcpsocketread(socketnr, 832);
+				uii_tcpsocketread(socketnr, 892);
 				datacount = uii_data[0] | (uii_data[1]<<8);
 
-				if(datacount > -1)
+				if(datacount > 0)
 				{
-					cursorOff();
 					#ifdef __C128__
-						for(x=2;x<datacount+2;x++)
-							if (uii_data[x] != LF) term_print(uii_data[x]);
-					#else
-						if (asciimode)
-							for(x=2;x<datacount+2;x++) putchar_ascii(uii_data[x]);
-						else
-							printf("%s",uii_data+2);
+					for(x=2;x<datacount+2;++x) if (uii_data[x] == LF) uii_data[x]=0x01;
 					#endif
+
+					cursorOff();
+					if (asciimode)
+						for(x=2;x<datacount+2;++x) putchar_ascii(uii_data[x]);
+					else
+						printf("%s",uii_data+2);
 					cursorOn();
 				}
 
@@ -530,10 +487,7 @@ void main(void)
 						break;
 					}
 					else if (c == 134) // KEY F3: switch petscii/ascii
-					{
-						asciimode = (asciimode == 1 ? 0 : 1);
-						term_print = (asciimode ? putchar_ascii : putchar);
-					}
+						asciimode = !asciimode;
 					else
 						uii_tcpsocketwrite(socketnr, buff);
 				}
@@ -596,8 +550,7 @@ exitloop:
 
 #ifdef __C128__
 #pragma optimize (push,off)
-void vdc_write_reg(void)
-{
+void vdc_write_reg(void) {
 	asm("stx $d600");
 vdc_write_wait:
 	asm("ldx $d600");
@@ -608,8 +561,7 @@ vdc_write_wait:
 #pragma optimize (pop)
 
 #pragma optimize (push,off)
-void blank_vicII(void)
-{
+void blank_vicII(void) {
 	asm("lda $d011");
 	asm("and #$ef");
 	asm("sta $d011");
