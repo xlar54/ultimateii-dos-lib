@@ -532,7 +532,7 @@ void exit_uci_error(void) {
 	POKEW(0xD020,0);
 	printf(
 		"%c"
-		"\223\005WARNING:\233 Turn on \005Command Interface\233\n" 
+		"\005WARNING:\233 Turn on \005Command Interface\233\n" 
 		"----------------------------------\n"
 		"\n"
 		"1. Enter Ultimate's menu, press F2,\n"
