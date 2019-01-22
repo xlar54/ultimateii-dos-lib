@@ -297,10 +297,8 @@ startover:
 				cputcxy(1,y,'>');
 				pbselectedidx--;
 			}
-			else if(c == UP && wherey() == 15)
-			{
-				if(pbtopidx > 0)
-				{
+			else if(c == UP && wherey() == 15) {
+				if(pbtopidx > 0) {
 					pbtopidx--;
 					y = 15;
 					for(ctr=pbtopidx; (ctr<=pbtopidx+8) && (ctr<=phonebookctr); ++ctr) {
@@ -312,10 +310,9 @@ startover:
 					pbselectedidx--;
 				}
 			}
-			else if(c == CR)
-			{
-				if(pbselectedidx == 0)
-				{
+			else if(c == CR) {
+				if(pbselectedidx == 0) {
+					// MANUAL ENTRY
 					term_window(0, 14, 40, 10, 0);
 					
 					gotoxy(5,16);
@@ -332,9 +329,7 @@ startover:
 
 					port = atoi(portbuff);
 					return;
-				}
-				else
-				{
+				} else {
 					ctr = 0;
 					len = strlen(phonebook[pbselectedidx]);
 					for(x=0; x<len && phonebook[pbselectedidx][x]!=' '; x++)
