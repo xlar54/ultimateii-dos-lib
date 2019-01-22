@@ -71,6 +71,8 @@ void blank_vicII(void);
 #define DISPLAY_HEADER	printf("%cUltimateTerm v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
+#define PHONEBOOK_FILE_SIZE 1600
+
 int file_exists(char *name, unsigned char dev);
 int term_getstring(char* def, char *buf);
 void term_displayheader(void);
@@ -95,6 +97,8 @@ unsigned char phonebook[20][80];
 unsigned char dev = 0;
 unsigned char pbtopidx = 0;
 unsigned char pbselectedidx = 0;
+unsigned char phonebook_file[PHONEBOOK_FILE_SIZE+1];
+unsigned file_index;
 
 unsigned char ascToPet[] = {
 0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x14,0x20,0x0a,0x11,0x93,0x0d,0x0e,0x0f,
@@ -179,11 +183,11 @@ void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned
 
 	chlinexy(x+1,y,width-2);chlinexy(x+1,y+height,width-2);
 	cvlinexy(x,y+1,height-1);cvlinexy(x+width-1,y+1,height-1);
-	cputcxy(x,y,176);cputcxy(width-1,y,174);cputcxy(x,y+height,173);cputcxy(x+width-1,y+height,189);
+	cputcxy(x,y,176);cputcxy(width-1,y,174);
+	cputcxy(x,y+height,173);cputcxy(x+width-1,y+height,189);
 }
 
 void term_hostselect(void) {
-	unsigned char b[2];
 	unsigned char hst[80];
 	unsigned char ctr = 0;
 	unsigned char x = 0;
@@ -218,10 +222,11 @@ startover:
 			ctr=0;
 
 			cbm_open(2, dev, CBM_READ, file);
-			bytesRead = cbm_read(2, b, 1);	
-			while(bytesRead > 0)
+			bytesRead = cbm_read(2, phonebook_file, PHONEBOOK_FILE_SIZE);
+			file_index = 0;
+			for (file_index=0; file_index<bytesRead; ++file_index)
 			{
-				c = b[0];
+				c = phonebook_file[file_index];
 				if(c == CR) {
 					strcpy(phonebook[++phonebookctr], hst);
 					gotoxy(28,18); cprintf("%d",phonebookctr);
@@ -237,14 +242,6 @@ startover:
 
 					// hostname too big
 					if(ctr == 78) break;
-				}
-
-				bytesRead = cbm_read(2, b, 1);
-
-				// load any remaining items
-				if(bytesRead == 0 && ctr != 0) {
-					strcpy(phonebook[++phonebookctr], hst);
-					ctr=0;
 				}
 			}
 
@@ -486,7 +483,7 @@ int file_exists(char *name, unsigned char dev) {
 	if (cbm_open(127, dev, CBM_READ, name) != 0) return 0;
 	bytesRead = cbm_read(127, b, 1);
 	cbm_close(127);
-	return bytesRead;
+	return bytesRead > 0;
 }
 
 #pragma optimize (push, off)
