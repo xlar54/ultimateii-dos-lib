@@ -71,9 +71,8 @@ void blank_vicII(void);
 #define DISPLAY_HEADER	printf("%cUltimateTerm v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
-#define PHONEBOOK_FILE_SIZE 1600
+#define PB_SIZE 1600
 
-int file_exists(char *name, unsigned char dev);
 int term_getstring(char* def, char *buf);
 void term_displayheader(void);
 int putchar_ascii(int c);
@@ -97,7 +96,7 @@ unsigned char phonebook[20][80];
 unsigned char dev = 0;
 unsigned char pbtopidx = 0;
 unsigned char pbselectedidx = 0;
-unsigned char phonebook_file[PHONEBOOK_FILE_SIZE+1];
+unsigned char pb_bytes[PB_SIZE+1];
 unsigned file_index;
 
 unsigned char ascToPet[] = {
@@ -201,8 +200,10 @@ startover:
 	POKE(KEYBOARD_BUFFER,0);
 	term_window(0, 14, 40, 10, 1);
 	if (phonebookctr == 0) {
+		cputsxy(9,14,"[ Loading Phonebook... ]");
 		strcpy(phonebook[0], "MANUAL ENTRY");
-		if(dev < 8 || !file_exists(file, dev)) {
+		bytesRead = cbm_open(2, dev, CBM_READ, file) ? 0 : cbm_read(2, pb_bytes, PB_SIZE);
+		if(dev < 8 || bytesRead <= 0) { // No drive or no file
 			// Default phonebook
 			strcpy(phonebook[1], "afterlife.dynu.org 6400");
 			strcpy(phonebook[2], "bbs.jammingsignal.com 23");
@@ -213,23 +214,18 @@ startover:
 			strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
 			strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 			phonebookctr = 8;
+			if (dev >= 8) cbm_open(15, dev, 15, "I");
 		} else {
-			// load phonebook data
-			cputsxy(9,14,"[ Loading Phonebook... ]");
-			cputsxy(10,18,"Entries found.....");
-
+			// read phonebook data
 			phonebookctr = 0;
 			ctr=0;
 
-			cbm_open(2, dev, CBM_READ, file);
-			bytesRead = cbm_read(2, phonebook_file, PHONEBOOK_FILE_SIZE);
 			file_index = 0;
 			for (file_index=0; file_index<bytesRead; ++file_index)
 			{
-				c = phonebook_file[file_index];
+				c = pb_bytes[file_index];
 				if(c == CR) {
 					strcpy(phonebook[++phonebookctr], hst);
-					gotoxy(28,18); cprintf("%d",phonebookctr);
 					ctr=0;
 				}
 				else if(c != LF) {
@@ -243,12 +239,6 @@ startover:
 					// hostname too big
 					if(ctr == 78) break;
 				}
-			}
-
-			// handle error
-			if(bytesRead == -1) {
-				gotoxy(9,14);
-				cprintf("[ Read Error: %d       ]", _oserror);
 			}
 			cbm_close(2);
 		}
@@ -470,15 +460,6 @@ void main(void)
 			while(c==0) c=kbhit();
 		}
 	}
-}
-
-int file_exists(char *name, unsigned char dev) {
-	int bytesRead;
-	unsigned char b[2];
-	if (cbm_open(127, dev, CBM_READ, name) != 0) return 0;
-	bytesRead = cbm_read(127, b, 1);
-	cbm_close(127);
-	return bytesRead > 0;
 }
 
 #pragma optimize (push, off)
