@@ -202,7 +202,7 @@ startover:
 	if (phonebookctr == 0) {
 		cputsxy(9,14,"[ Loading Phonebook... ]");
 		strcpy(phonebook[0], "MANUAL ENTRY");
-		bytesRead = cbm_open(2, dev, CBM_READ, file) ? 0 : cbm_read(2, pb_bytes, PB_SIZE);
+		bytesRead = (dev >= 8 && cbm_open(2, dev, CBM_READ, file)) ? 0 : cbm_read(2, pb_bytes, PB_SIZE);
 		if(dev < 8 || bytesRead <= 0) { // No drive or no file
 			// Default phonebook
 			strcpy(phonebook[1], "afterlife.dynu.org 6400");
