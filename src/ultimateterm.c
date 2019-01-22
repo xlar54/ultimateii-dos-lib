@@ -214,7 +214,7 @@ startover:
 			strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
 			strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 			phonebookctr = 8;
-			if (dev >= 8) cbm_open(15, dev, 15, "I");
+			if (dev >= 8) cbm_open(15, dev, 15, "i");
 		} else {
 			// read phonebook data
 			phonebookctr = 0;
