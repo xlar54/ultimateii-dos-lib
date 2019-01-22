@@ -71,7 +71,7 @@ void blank_vicII(void);
 #define DISPLAY_HEADER	printf("%cUltimateTerm v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
-#define PB_SIZE 1600
+#define PB_SIZE 1640
 
 int term_getstring(char* def, char *buf);
 void term_displayheader(void);
