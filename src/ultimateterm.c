@@ -506,7 +506,8 @@ void main(void)
 	POKE(808,107); // Disable RUN/STOP + RESTORE on C128
 #else
 	POKEW(0xD020,0);
-	POKE(808,225); // Disable RUN/STOP + RESTORE on C64
+	POKE(808,239); // Disable RUN/STOP on C64
+	POKE(792,193); // Disable RESTORE  on C64
 #endif
 
 	// set up bell sound
