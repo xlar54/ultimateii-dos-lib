@@ -273,7 +273,7 @@ void save_phonebook(void) {
 
 	putchar(CG_COLOR_WHITE);
 	term_window(0, 14, 40, 10, 0);
-	cputsxy(7,18,"SAVING: PLEASE WAIT...");
+	cputsxy(9,18,"SAVING: PLEASE WAIT...");
 
 	pb_bytes[0] = 0;
 	for(ctr=1; ctr<=phonebookctr; ++ctr) {
