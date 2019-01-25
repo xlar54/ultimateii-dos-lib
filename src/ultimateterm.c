@@ -58,6 +58,7 @@ Demo program does not alter any data
 #define CG_COLOR_L_BLUE  	0x9A
 #define CG_COLOR_L_RED  	0x96
 #define CG_COLOR_L_GRAY  	0x9B
+#define SPACE38				"                                      "
 
 #ifdef __C128__
 #define SCREEN_WIDTH	80
@@ -80,24 +81,36 @@ void term_hostselect(void);
 void term_getconfig(void);
 int term_bell(void);
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
-void cursorOn(void);
-void cursorOff(void);
+void cursor_on(void);
+void cursor_off(void);
 void detect_uci(void);
 void exit_uci_error(void);
+unsigned char read_host_and_port(char *prompt_host, char *prompt_port);
+void display_phonebook(void);
+void update_phonebook(unsigned char new_y);
+void delete_phonebook_entry(void);
+void add_phonebook_entry(void);
+void load_phonebook(void);
+void save_phonebook(void);
+void quit(void);
 
-char *version = "1.51";
+char *version = "1.6";
 char host[80];
 char portbuff[10];
 int port = 0;
 unsigned char socketnr = 0;
 unsigned char asciimode;
+unsigned char pb_loaded = 0;
 unsigned char phonebookctr = 0;
 unsigned char phonebook[20][80];
 unsigned char dev = 0;
 unsigned char pbtopidx = 0;
 unsigned char pbselectedidx = 0;
 unsigned char pb_bytes[PB_SIZE+1];
+unsigned char hst[80];
 unsigned file_index;
+unsigned char y = 0;
+
 
 unsigned char ascToPet[] = {
 0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x14,0x20,0x0a,0x11,0x93,0x0d,0x0e,0x0f,
@@ -121,7 +134,7 @@ unsigned char ascToPet[] = {
 int term_getstring(char* def, char *buf) {
 	unsigned char c,x;
 	
-	cursorOn();
+	cursor_on();
 	for(x=0;x<strlen(def);x++) {
 		buf[x] = def[x];
 		putchar(def[x]);
@@ -134,27 +147,27 @@ int term_getstring(char* def, char *buf) {
 			c = cgetc();
 			switch(c) {
 				case CR:
-					cursorOff();
+					cursor_off();
 					buf[x] = 0;
 					return x;
 
 				case DELETE:
 					if(x > 0) {
 						x--;
-						cursorOff();
+						cursor_off();
 						putchar(LEFT);
 						putchar(' ');
 						putchar(LEFT);
-						cursorOn();
+						cursor_on();
 					}
 					break;
 
 				default:
 					if(c > 32 && c < 91) {
 						buf[x++] = c;
-						cursorOff();
+						cursor_off();
 						putchar(c);
-						cursorOn();
+						cursor_on();
 					}
 			}
 		}
@@ -186,139 +199,246 @@ void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned
 	cputcxy(x,y+height,173);cputcxy(x+width-1,y+height,189);
 }
 
-void term_hostselect(void) {
-	unsigned char hst[80];
+void delete_phonebook_entry(void) {
+	unsigned char ch, ctr, x;
+	if (!pbselectedidx || phonebookctr<=0) return;
+
+	for(ctr=pbselectedidx; ctr<phonebookctr; ++ctr)
+		strcpy(phonebook[ctr], phonebook[ctr+1]);
+	--phonebookctr;
+	if (pbtopidx>0 && pbselectedidx>phonebookctr && pbtopidx==pbselectedidx) {
+		--pbtopidx;
+		--pbselectedidx;
+	} else if (pbselectedidx > phonebookctr) {
+		--y;
+		--pbselectedidx;
+	}
+	x = 15;
+	for(ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr+1; ++ctr) {
+		gotoxy(1,x++); 
+		ch = (ctr == pbselectedidx) ? '>' : ' ';
+		printf(ctr<=phonebookctr ? "%c %-36s" : SPACE38,ch,phonebook[ctr]);
+	}
+	cputcxy(1,y,'>');
+}
+
+void add_phonebook_entry(void) {
+	unsigned char ctr;
+	if (phonebookctr >= 20) return;
+
+	putchar(CG_COLOR_CYAN);
+	cputsxy(8,14,"[Add entry to phonebook]");
+	if(read_host_and_port("", "")) {
+		sprintf(hst,"%s %d",host,port);
+		++phonebookctr;
+		for (ctr=phonebookctr-1; ctr>=pbselectedidx+1; --ctr)
+			strcpy(phonebook[ctr+1], phonebook[ctr]);
+		strcpy(phonebook[ctr+1], hst);
+	}
+	putchar(CG_COLOR_CYAN);
+	chlinexy(8,14,24);
+	display_phonebook();
+}
+
+void edit_phonebook_entry() {
+	unsigned char ctr,x,len;
+	if (!pbselectedidx || phonebookctr<=0) return;
+
+	putchar(CG_COLOR_CYAN);
+	cputsxy(7,14,"[Edit entry of phonebook]");
+	ctr = 0;
+	len = strlen(phonebook[pbselectedidx]);
+	for(x=0; x<len && phonebook[pbselectedidx][x]!=' '; x++)
+		host[ctr++] = phonebook[pbselectedidx][x];
+	host[ctr] = 0;
+	
+	++x;
+	ctr = 0;
+	for(; x<len; x++)
+		portbuff[ctr++] = phonebook[pbselectedidx][x];
+	portbuff[ctr] = 0;
+
+	if(read_host_and_port(host, portbuff)) {
+		sprintf(hst,"%s %d",host,port);
+		strcpy(phonebook[pbselectedidx],hst);
+	}
+	putchar(CG_COLOR_CYAN);
+	chlinexy(7,14,25);
+	display_phonebook();
+}
+
+void save_phonebook(void) {
 	unsigned char ctr = 0;
-	unsigned char x = 0;
-	unsigned char y = 0;
+	int status;
+
+	putchar(CG_COLOR_WHITE);
+	term_window(0, 14, 40, 10, 0);
+	cputsxy(9,18,"SAVING: PLEASE WAIT...");
+
+	pb_bytes[0] = 0;
+	for(ctr=1; ctr<=phonebookctr; ++ctr) {
+		strcat(pb_bytes, phonebook[ctr]);
+		strcat(pb_bytes, "\n");
+	}
+	cbm_close(15); cbm_close(2);
+	cbm_open(15, dev, 15,"s:u-term,s"); cbm_close(15);
+	status = cbm_open(2, dev, CBM_WRITE,"u-term,s");
+	if (status == 0) {
+		cbm_write(2, pb_bytes, strlen(pb_bytes));
+		cbm_close(2);
+	}
+	cbm_open(15,dev,15,"i");
+
+	display_phonebook();
+}
+
+void quit(void) {
+	putchar(CG_COLOR_CYAN);
+	cputsxy(7,14,"[Reset and back to BASIC]");
+	putchar(CG_COLOR_WHITE);
+	term_window(0, 14, 40, 10, 0);
+	gotoxy(9,18); printf("ARE YOU SURE (Y/N)? ");
+	cursor_on();
+	term_getstring("", hst);
+	cursor_off();
+	if (hst[0]=='y' || hst[0]=='Y')
+		RESET_MACHINE;
+	putchar(CG_COLOR_CYAN);
+	chlinexy(7,14,25);
+	display_phonebook();
+}
+
+void load_phonebook(void) {
 	unsigned char *file = "0:u-term,s";
-	unsigned char c = 0;
+	unsigned char c, ctr;
 	int bytesRead = 0;
+	pbtopidx = 0;
+	pbselectedidx = 0;
+
+	term_window(0, 14, 40, 10, 0);
+	cputsxy(8,14,"[ Loading Phonebook... ]");
+	cbm_close(2);
+	cbm_close(15);
+	if(dev >= 8) bytesRead = cbm_open(2, dev, CBM_READ, file) ? 0 : cbm_read(2, pb_bytes, PB_SIZE);
+	strcpy(phonebook[0], "MANUAL ENTRY");
+	if(dev < 8 || bytesRead <= 0) { // No drive or no file
+		// Default phonebook
+		strcpy(phonebook[1], "afterlife.dynu.org 6400");
+		strcpy(phonebook[2], "bbs.jammingsignal.com 23");
+		strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
+		strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
+		strcpy(phonebook[5], "eagleman.bounceme.net 6464");
+		strcpy(phonebook[6], "hurricanebbs.dynu.net 6401");
+		strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
+		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
+		phonebookctr = 8;
+		if (dev >= 8) cbm_open(15, dev, 15, "i");
+	} else {
+		// read phonebook data
+		phonebookctr = 0;
+		ctr=0;
+
+		file_index = 0;
+		for (file_index=0; file_index<bytesRead; ++file_index) {
+			c = pb_bytes[file_index];
+			if(c == CR) {
+				strcpy(phonebook[++phonebookctr], hst);
+				ctr=0;
+			}
+			else if(c != LF) {
+				// c to lowercase
+				if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
+
+				hst[ctr] = c;
+				hst[++ctr] = 0;
+
+				// hostname too big
+				if(ctr == 78) break;
+			}
+		}
+	}
+	chlinexy(8,14,24);
+	y = 15;
+	display_phonebook();
+	cputcxy(1,y,'>');
+	pb_loaded = 1;
+}
+
+void term_hostselect(void) {
+	unsigned char ctr;
+	unsigned char x;
+	unsigned char c = 0;
 	unsigned len;
 	
 startover:
 	POKE(KEYBOARD_BUFFER,0);
 	term_window(0, 14, 40, 10, 1);
-	if (phonebookctr == 0) {
-		cputsxy(9,14,"[ Loading Phonebook... ]");
-		if(dev >= 8) bytesRead = cbm_open(2, dev, CBM_READ, file) ? 0 : cbm_read(2, pb_bytes, PB_SIZE);
-		strcpy(phonebook[0], "MANUAL ENTRY");
-		if(dev < 8 || bytesRead <= 0) { // No drive or no file
-			// Default phonebook
-			strcpy(phonebook[1], "afterlife.dynu.org 6400");
-			strcpy(phonebook[2], "bbs.jammingsignal.com 23");
-			strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
-			strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
-			strcpy(phonebook[5], "eagleman.bounceme.net 6464");
-			strcpy(phonebook[6], "hurricanebbs.dynu.net 6401");
-			strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
-			strcpy(phonebook[8], "bbs.retroacademy.it 6510");
-			phonebookctr = 8;
-			if (dev >= 8) cbm_open(15, dev, 15, "i");
-		} else {
-			// read phonebook data
-			phonebookctr = 0;
-			ctr=0;
-
-			file_index = 0;
-			for (file_index=0; file_index<bytesRead; ++file_index)
-			{
-				c = pb_bytes[file_index];
-				if(c == CR) {
-					strcpy(phonebook[++phonebookctr], hst);
-					ctr=0;
-				}
-				else if(c != LF) {
-					// c to lowercase
-					if ((c>=97 && c<=122) || (c>=193 && c<=218))
-						c &= 95;
-
-					hst[ctr] = c;
-					hst[++ctr] = 0;
-
-					// hostname too big
-					if(ctr == 78) break;
-				}
-			}
-			cbm_close(2);
-		}
+	if (pb_loaded == 0)
+		load_phonebook();
+	else {
+		display_phonebook();
+		cputcxy(1,y,'>');
 	}
 
-	chlinexy(9,14,24);
-	y = 15;
-	pbtopidx = 0;
-	
-	// display 1st 8
-	for(ctr=0;ctr<=phonebookctr && ctr<=8;ctr++)
-		cputsxy(3, y++ ,phonebook[ctr]);
-
-	y = 15;
-	cputcxy(1,y,'>');
-	gotoxy(1,y);
-	pbselectedidx = 0;
 	
 	POKE(KEYBOARD_BUFFER,0);
-	while(1)
-	{
+	while(1) {
 		c = kbhit();
 		if(c != 0) {
 			c = cgetc();
-			
-			if(c == DOWN && wherey() < 23 && (pbselectedidx + 1 <= phonebookctr)) {
+			if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95; // c to lowercase
+
+			if(c == 'd') 
+				delete_phonebook_entry();
+
+			else if(c == 'a')
+				add_phonebook_entry();
+
+			else if(c == 'e')
+				edit_phonebook_entry();
+
+			else if(c == 'l') 
+				load_phonebook();
+
+			else if(c == 's')
+				save_phonebook();
+
+			else if(c == 'q')
+				quit();
+
+			else if(c == DOWN && wherey() < 23 && (pbselectedidx + 1 <= phonebookctr)) {
 				cputcxy(1,y++,' ');
 				cputcxy(1,y,'>');
 				pbselectedidx++;
 			}
+
 			else if(c == DOWN && wherey() == 23 && (pbselectedidx + 1 <= phonebookctr)) {
 				if(phonebookctr >= pbtopidx+8) {
 					pbtopidx++;
-					y = 15;
-					for(ctr=pbtopidx; (ctr<=pbtopidx+8) && (ctr<=phonebookctr); ++ctr) {
-						gotoxy(3,y++);
-						cprintf("%-36s",phonebook[ctr]);
-					}
-					y=23;
-					cputcxy(1,y,'>');
+					update_phonebook(23);
 					pbselectedidx++;
 				}
 			}
+
 			else if(c == UP && wherey() > 15) {
 				cputcxy(1,y--,' ');
 				cputcxy(1,y,'>');
 				pbselectedidx--;
 			}
+
 			else if(c == UP && wherey() == 15) {
 				if(pbtopidx > 0) {
 					pbtopidx--;
-					y = 15;
-					for(ctr=pbtopidx; (ctr<=pbtopidx+8) && (ctr<=phonebookctr); ++ctr) {
-						gotoxy(3,y++);
-						cprintf("%-36s",phonebook[ctr]);
-					}
-					y=15;
-					cputcxy(1,y,'>');
+					update_phonebook(15);
 					pbselectedidx--;
 				}
 			}
+
 			else if(c == CR) {
 				if(pbselectedidx == 0) {
 					// MANUAL ENTRY
-					term_window(0, 14, 40, 10, 0);
-					
-					gotoxy(5,16);
-					printf("%cHost: %c", CG_COLOR_CYAN, CG_COLOR_WHITE);
-					term_getstring("", host);
-					
-					gotoxy(5,18);
-					printf("%cPort: %c", CG_COLOR_CYAN, CG_COLOR_WHITE); 
-					term_getstring("", portbuff);
-					putchar(CG_COLOR_CYAN);
-					
-					if(host[0] == 0 || portbuff[0] == 0)
-						goto startover;
-
-					port = atoi(portbuff);
-					return;
+					if(read_host_and_port("", "")) return;
+					goto startover;
 				} else {
 					ctr = 0;
 					len = strlen(phonebook[pbselectedidx]);
@@ -340,7 +460,6 @@ startover:
 }
 
 void term_getconfig(void) {
-	gotoxy(0,2);
 	printf("Bug reports to: scott.hutter@gmail.com");
 	printf("\n\n%cPlease ensure the following:%c",CG_COLOR_YELLOW,CG_COLOR_CYAN);
 	printf("\n - Command Interface is enabled");
@@ -354,6 +473,11 @@ void term_getconfig(void) {
 	printf("\nIP Address: %c%d.%d.%d.%d%c", CG_COLOR_WHITE,uii_data[0], uii_data[1], uii_data[2], uii_data[3],CG_COLOR_CYAN);
 	printf("\n   Netmask: %c%d.%d.%d.%d%c", CG_COLOR_WHITE,uii_data[4], uii_data[5], uii_data[6], uii_data[7],CG_COLOR_CYAN);
 	printf("\n   Gateway: %c%d.%d.%d.%d%c", CG_COLOR_WHITE,uii_data[8], uii_data[9], uii_data[10], uii_data[11],CG_COLOR_CYAN);
+
+	gotoxy(30,10); printf("\005A%cdd  \005S%cave", CG_COLOR_CYAN, CG_COLOR_CYAN);
+	gotoxy(30,11); printf("\005D%cel  \005L%coad", CG_COLOR_CYAN, CG_COLOR_CYAN);
+	gotoxy(30,12); printf("\005E%cdit \005Q%cuit", CG_COLOR_CYAN, CG_COLOR_CYAN);
+	gotoxy(0,2);
 }
 
 int term_bell(void) {
@@ -379,8 +503,11 @@ void main(void)
 	putchar(14);
 	blank_vicII();
 	fast();
+	POKE(808,107); // Disable RUN/STOP + RESTORE on C128
 #else
 	POKEW(0xD020,0);
+	POKE(808,239); // Disable RUN/STOP on C64
+	POKE(792,193); // Disable RESTORE  on C64
 #endif
 
 	// set up bell sound
@@ -394,13 +521,13 @@ void main(void)
 	printf("Accessing network target...(if no response, perhaps connection was not closed?");
 	
 	uii_settarget(TARGET_NETWORK);
-	cursorOff();
+	cursor_off();
 	while(1) {
 		asciimode = 0;
 		term_displayheader();
 		term_getconfig();
 		term_hostselect();
-		cursorOff();
+		cursor_off();
 
 		term_displayheader();
 		gotoxy(0,2);
@@ -417,7 +544,7 @@ void main(void)
 		
 		if (uii_status[0] == '0' && uii_status[1] == '0') {
 			putchar(CG_COLOR_CYAN);
-			cursorOn();
+			cursor_on();
 			while(1) {
 				uii_tcpsocketread(socketnr, 892);
 				datacount = uii_data[0] | (uii_data[1]<<8);
@@ -427,12 +554,12 @@ void main(void)
 					for(x=2;x<datacount+2;++x) if (uii_data[x] == LF) uii_data[x]=0x01;
 					#endif
 
-					cursorOff();
+					cursor_off();
 					if (asciimode)
 						for(x=2;x<datacount+2;++x) putchar_ascii(uii_data[x]);
 					else
 						printf("%s",uii_data+2);
-					cursorOn();
+					cursor_on();
 				}
 
 				c = kbhit();
@@ -449,7 +576,7 @@ void main(void)
 			}
 			printf("%c\n\nClosing connection", 14);
 			uii_tcpclose(socketnr);
-			cursorOff();
+			cursor_off();
 		}
 		else
 		{
@@ -462,8 +589,45 @@ void main(void)
 	}
 }
 
+void update_phonebook(unsigned char new_y) {
+	unsigned char ctr;
+	y = 15;
+	for(ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr; ++ctr) {
+		gotoxy(3,y++);
+		cprintf("%-36s",phonebook[ctr]);
+	}
+	y=new_y;
+	cputcxy(1,y,'>');
+}
+
+void display_phonebook(void) {
+	int ctr, x = 15;
+	putchar(CG_COLOR_CYAN);
+	term_window(0, 14, 40, 10, 0);
+	for(ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr; ++ctr)
+		cputsxy(3,x++,phonebook[ctr]);
+	cputcxy(1,y,'>');
+}
+
+unsigned char read_host_and_port(char *prompt_host, char *prompt_port) {
+	putchar(CG_COLOR_WHITE);
+	term_window(0, 14, 40, 10, 0);
+	gotoxy(5,16);
+	printf("%cHost: %c", CG_COLOR_CYAN, CG_COLOR_WHITE);
+	term_getstring(prompt_host, host);
+	putchar(CG_COLOR_CYAN);
+	if (host[0]==0) return 0;
+	gotoxy(5,18);
+	printf("%cPort: %c", CG_COLOR_CYAN, CG_COLOR_WHITE); 
+	term_getstring(prompt_port, portbuff);
+	putchar(CG_COLOR_CYAN);
+	if (portbuff[0] == 0) return 0;
+	port = atoi(portbuff);
+	return 1;
+}
+
 #pragma optimize (push, off)
-void cursorOn(void) {
+void cursor_on(void) {
 #ifdef __C64__
 	asm("ldy #$00");
 	asm("sty $cc");
@@ -476,7 +640,7 @@ void cursorOn(void) {
 #pragma optimize (pop)
 
 #pragma optimize (push, off)
-void cursorOff(void) {
+void cursor_off(void) {
 #ifdef __C64__
 	asm("ldy $cc");
 	asm("bne %g", exitloop);
