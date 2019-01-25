@@ -284,7 +284,7 @@ void save_phonebook(void) {
 	cbm_open(15, dev, 15,"s:u-term,s"); cbm_close(15);
 	status = cbm_open(2, dev, CBM_WRITE,"u-term,s");
 	if (status == 0) {
-		cbm_write(2, pb_bytes, strlen(pb_bytes)+1);
+		cbm_write(2, pb_bytes, strlen(pb_bytes));
 		cbm_close(2);
 	}
 	cbm_open(15,dev,15,"i");
