@@ -74,9 +74,10 @@ void blank_vicII(void);
 
 #define PB_SIZE 1640
 
+void uii_data_print(void);
 int term_getstring(char* def, char *buf);
 void term_displayheader(void);
-int putchar_ascii(int c);
+void putstring_ascii(char* str);
 void term_hostselect(void);
 void term_getconfig(void);
 int term_bell(void);
@@ -180,8 +181,14 @@ void term_displayheader(void) {
 	chlinexy(0,1,SCREEN_WIDTH);
 }
 
-int putchar_ascii(int c) {
-	return c==BELL ? term_bell() : putchar(ascToPet[c]);
+void putstring_ascii(char* str) {
+	char c;
+	c = str[0];
+	while (c != '0') {
+		if (c != LF) c==BELL ? term_bell() : putchar(ascToPet[c]);
+		++str;
+		c = *str;
+	}
 }
 
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border) {
@@ -550,15 +557,8 @@ void main(void)
 				datacount = uii_data[0] | (uii_data[1]<<8);
 
 				if(datacount > 0) {
-					#ifdef __C128__
-					for(x=2;x<datacount+2;++x) if (uii_data[x] == LF) uii_data[x]=0x01;
-					#endif
-
 					cursor_off();
-					if (asciimode)
-						for(x=2;x<datacount+2;++x) putchar_ascii(uii_data[x]);
-					else
-						printf("%s",uii_data+2);
+					if (asciimode) putstring_ascii(uii_data+2); else uii_data_print();
 					cursor_on();
 				}
 
@@ -689,6 +689,36 @@ void detect_uci(void) {
 	asm("rts");
 nointerface:
 	asm("jmp %v", exit_uci_error);
+}
+#pragma optimize (pop)
+
+#pragma optimize (push,off)
+void uii_data_print(void) {
+	asm("lda %v", uii_data);
+	asm("clc");
+	asm("adc #$02");
+	asm("sta $fb");
+	asm("lda %v+1", uii_data);
+	asm("adc #$00");
+	asm("sta $fc");
+	asm("ldy #$00");
+loop:
+	asm("lda ($fb),y");
+	asm("beq %g", done);
+#ifdef __C128__
+	asm("cmp #$0a");
+	asm("beq %g", skipline);
+#endif
+	asm("jsr $ffd2");
+#ifdef __C128__
+skipline:
+#endif
+	asm("iny");
+	asm("bne %g", loop);
+	asm("inc $fc");
+	asm("jmp %g", loop);
+done:
+	asm("rts");
 }
 #pragma optimize (pop)
 
