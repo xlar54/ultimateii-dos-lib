@@ -323,7 +323,7 @@ void load_phonebook(void) {
 	strcpy(phonebook[0], "MANUAL ENTRY");
 	if(dev < 8 || bytesRead <= 0) { // No drive or no file
 		// Default phonebook
-		strcpy(phonebook[1], "afterlife.dynu.org 6400");
+		strcpy(phonebook[1], "afterlife.dynu.com 6400");
 		strcpy(phonebook[2], "bbs.jammingsignal.com 23");
 		strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
 		strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
