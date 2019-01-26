@@ -94,10 +94,10 @@ void load_phonebook(void);
 void save_phonebook(void);
 void quit(void);
 
-char *version = "1.6";
+char *version = "1.61";
 char host[80];
 char portbuff[10];
-int port = 0;
+unsigned int port = 0;
 unsigned char socketnr = 0;
 unsigned char asciimode;
 unsigned char pb_loaded = 0;
@@ -229,7 +229,7 @@ void add_phonebook_entry(void) {
 	putchar(CG_COLOR_CYAN);
 	cputsxy(8,14,"[Add entry to phonebook]");
 	if(read_host_and_port("", "")) {
-		sprintf(hst,"%s %d",host,port);
+		sprintf(hst,"%s %u",host,port);
 		++phonebookctr;
 		for (ctr=phonebookctr-1; ctr>=pbselectedidx+1; --ctr)
 			strcpy(phonebook[ctr+1], phonebook[ctr]);
@@ -259,7 +259,7 @@ void edit_phonebook_entry() {
 	portbuff[ctr] = 0;
 
 	if(read_host_and_port(host, portbuff)) {
-		sprintf(hst,"%s %d",host,port);
+		sprintf(hst,"%s %u",host,port);
 		strcpy(phonebook[pbselectedidx],hst);
 	}
 	putchar(CG_COLOR_CYAN);
