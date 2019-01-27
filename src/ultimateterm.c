@@ -112,7 +112,6 @@ unsigned char hst[80];
 unsigned file_index;
 unsigned char y = 0;
 
-
 unsigned char ascToPet[] = {
 0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x14,0x20,0x0a,0x11,0x93,0x0d,0x0e,0x0f,
 0x10,0x0b,0x12,0x13,0x08,0x15,0x16,0x17,0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f,
@@ -181,14 +180,9 @@ void term_displayheader(void) {
 	chlinexy(0,1,SCREEN_WIDTH);
 }
 
-void putstring_ascii(char* str) {
-	char c;
-	c = str[0];
-	while (c != '0') {
-		if (c != LF) c==BELL ? term_bell() : putchar(ascToPet[c]);
-		++str;
-		c = *str;
-	}
+void putstring_ascii(char *str) {
+	for (; *str; str++)
+		if (*str != LF) *str==BELL ? term_bell() : putchar(ascToPet[*str]);
 }
 
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border) {
@@ -694,11 +688,12 @@ nointerface:
 
 #pragma optimize (push,off)
 void uii_data_print(void) {
-	asm("lda %v", uii_data);
+	static char *string_ptr = uii_data;
+	asm("lda %v", string_ptr);
 	asm("clc");
 	asm("adc #$02");
 	asm("sta $fb");
-	asm("lda %v+1", uii_data);
+	asm("lda %v+1", string_ptr);
 	asm("adc #$00");
 	asm("sta $fc");
 	asm("ldy #$00");
