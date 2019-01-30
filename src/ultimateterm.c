@@ -23,11 +23,21 @@ Demo program does not alter any data
 #ifdef __C128__
 #include <c128.h>
 #define RESET_MACHINE	asm("jmp $FF3D");
+#define SCREEN_WIDTH	80
+#define KEYBOARD_BUFFER 208
+#define CHARCOLOR       241
+#define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+void vdc_write_reg(void);
+void blank_vicII(void);
 #endif
 
 #ifdef __C64__
 #include <c64.h>
 #define RESET_MACHINE 	asm("jmp $FCE2");
+#define SCREEN_WIDTH	40
+#define KEYBOARD_BUFFER 198
+#define CHARCOLOR       646
+#define DISPLAY_HEADER	printf("%cUltimateTerm v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
 #include <conio.h>
@@ -59,18 +69,6 @@ Demo program does not alter any data
 #define CG_COLOR_L_RED  	0x96
 #define CG_COLOR_L_GRAY  	0x9B
 #define SPACE38				"                                      "
-
-#ifdef __C128__
-#define SCREEN_WIDTH	80
-#define KEYBOARD_BUFFER 208
-#define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
-void vdc_write_reg(void);
-void blank_vicII(void);
-#else
-#define SCREEN_WIDTH	40
-#define KEYBOARD_BUFFER 198
-#define DISPLAY_HEADER	printf("%cUltimateTerm v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
-#endif
 
 #define PB_SIZE 1640
 
@@ -333,7 +331,6 @@ void load_phonebook(void) {
 		strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
 		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 		phonebookctr = 8;
-		if (dev >= 8) cbm_open(15, dev, 15, "i");
 	} else {
 		// read phonebook data
 		phonebookctr = 0;
@@ -358,6 +355,8 @@ void load_phonebook(void) {
 			}
 		}
 	}
+	cbm_close(2);
+
 	chlinexy(8,14,24);
 	y = 15;
 	display_phonebook();
@@ -482,10 +481,12 @@ void term_getconfig(void) {
 }
 
 int term_bell(void) {
-	int x;
 	POKE(0xD418, 15);
-	for(x=0; x<2000; x++);
-	POKE(0xD418, 0);
+	POKE(0xD401, 20);
+	POKE(0xD405, 0);
+	POKE(0xD406, 249);
+	POKE(0xD404, 17);
+	POKE(0xD404, 16);
 	return 7;
 }
 
@@ -512,12 +513,7 @@ void main(void)
 #endif
 
 	// set up bell sound
-	POKE(0xD400 + 5, 68);
-	POKE(0xD400 + 6, 70);
-	POKE(0xD400 + 4, 17);
-	POKE(0xD400 + 1, 45);
-	POKE(0xD400 + 0, 255);
-	POKE(0xD400 + 24, 0);
+	for (c=0; c<25; ++c) POKE(0xD400 + c, 0);
 
 	printf("Accessing network target...(if no response, perhaps connection was not closed?");
 	
@@ -595,7 +591,7 @@ void update_phonebook(unsigned char new_y) {
 }
 
 void display_phonebook(void) {
-	int ctr, x = 15;
+	unsigned char ctr, x = 15;
 	putchar(CG_COLOR_CYAN);
 	term_window(0, 14, 40, 10, 0);
 	for(ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr; ++ctr)
