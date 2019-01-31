@@ -93,7 +93,7 @@ void load_phonebook(void);
 void save_phonebook(void);
 void quit(void);
 
-char *version = "1.61";
+char *version = "1.61-next";
 char host[80];
 char portbuff[10];
 unsigned int port = 0;
