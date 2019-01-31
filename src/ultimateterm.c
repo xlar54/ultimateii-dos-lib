@@ -331,6 +331,7 @@ void load_phonebook(void) {
 		strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
 		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 		phonebookctr = 8;
+		if(dev >= 8) cbm_open(15, dev, 15, "i");
 	} else {
 		// read phonebook data
 		phonebookctr = 0;
@@ -354,8 +355,8 @@ void load_phonebook(void) {
 				if(ctr == 78) break;
 			}
 		}
+		cbm_close(2);
 	}
-	cbm_close(2);
 
 	chlinexy(8,14,24);
 	y = 15;
