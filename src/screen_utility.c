@@ -14,10 +14,7 @@
 unsigned char vic_chars[1000], vic_color[1000], scr_saved_lowcase;
 #else
 #define CHARCOLOR 241
-unsigned char vdc_saved_screen[4096];
-unsigned char *ptr_vdc_screen = vdc_saved_screen;
-unsigned char vdc_x_w, vdc_y_w, vdc_x_r, vdc_y_r, vdc_temp;
-void vdc_write_reg(void);
+unsigned char vdc_hi, vdc_lo, vdc_x_w, vdc_y_w, vdc_x_r, vdc_y_r, vdc_temp;
 #endif
 unsigned char scr_saved_x, scr_saved_y, scr_saved_c;
 
@@ -43,34 +40,21 @@ void restore_screen() {
 void vdc_prepare(void) {
 	asm("lda #$12");
 	asm("sta $d600");
-	asm("lda %v+1", ptr_vdc_screen);
+	asm("lda %v", vdc_hi);
 	asm("sta $d601");
 	asm("lda #$13");
 	asm("sta $d600");
-	asm("lda %v", ptr_vdc_screen);
+	asm("lda %v", vdc_lo);
 	asm("sta $d601");
 	asm("lda #$1f");
 	asm("sta $d600");
-}
-
-void vdc_read(void) {
-notyet:
-	asm("bit $d600");
-	asm("bpl %g", notyet);
-	asm("lda $d601"); 
-}
-
-void vdc_write(void) {
-notyet: 
-	asm("bit $d600");
-	asm("bpl %g", notyet);
-	asm("sta $d601");
 }
 
 void save_screen(void) {
 	scr_saved_x = wherex();
 	scr_saved_y = wherey();
 	scr_saved_c = PEEK(CHARCOLOR);
+
 	asm("ldx #$00");
 	asm("ldy #$10");
 	asm("stx %v", vdc_x_w);
@@ -80,18 +64,24 @@ void save_screen(void) {
 loop:
 	asm("stx %v", vdc_x_r);
 	asm("sty %v", vdc_y_r);
-	asm("stx %v", ptr_vdc_screen);
-	asm("sty %v+1", ptr_vdc_screen);
+	asm("stx %v", vdc_lo);
+	asm("sty %v", vdc_hi);
 	asm("jsr %v", vdc_prepare);
-	asm("jsr %v", vdc_read);
+notyet_read:
+	asm("bit $d600");
+	asm("bpl %g", notyet_read);
+	asm("lda $d601"); 
 	asm("sta %v", vdc_temp);
 	asm("ldx %v", vdc_x_w);
-	asm("stx %v", ptr_vdc_screen);
+	asm("stx %v", vdc_lo);
 	asm("ldy %v", vdc_y_w);
-	asm("sty %v+1", ptr_vdc_screen);
+	asm("sty %v", vdc_hi);
 	asm("jsr %v", vdc_prepare);
 	asm("lda %v", vdc_temp);
-	asm("jsr %v", vdc_write);
+notyet_write: 
+	asm("bit $d600");
+	asm("bpl %g", notyet_write);
+	asm("sta $d601");
 	asm("inx");
 	asm("stx %v", vdc_x_r);
 	asm("stx %v", vdc_x_w);
@@ -122,18 +112,24 @@ void restore_screen(void) {
 loop: 
 	asm("stx %v", vdc_x_r);
 	asm("sty %v", vdc_y_r);
-	asm("stx %v", ptr_vdc_screen);
-	asm("sty %v+1", ptr_vdc_screen);
+	asm("stx %v", vdc_lo);
+	asm("sty %v", vdc_hi);
 	asm("jsr %v", vdc_prepare);
-	asm("jsr %v", vdc_read);
+notyet_read:
+	asm("bit $d600");
+	asm("bpl %g", notyet_read);
+	asm("lda $d601"); 
 	asm("sta %v", vdc_temp);
 	asm("ldx %v", vdc_x_w);
-	asm("stx %v", ptr_vdc_screen);
+	asm("stx %v", vdc_lo);
 	asm("ldy %v", vdc_y_w);
-	asm("sty %v+1", ptr_vdc_screen);
+	asm("sty %v", vdc_hi);
 	asm("jsr %v", vdc_prepare);
 	asm("lda %v", vdc_temp);
-	asm("jsr %v", vdc_write);
+notyet_write: 
+	asm("bit $d600");
+	asm("bpl %g", notyet_write);
+	asm("sta $d601");
 	asm("inx");
 	asm("stx %v", vdc_x_r);
 	asm("stx %v", vdc_x_w);
@@ -154,6 +150,19 @@ loop:
 done:
 	gotoxy(scr_saved_x, scr_saved_y);
 	POKE(CHARCOLOR, scr_saved_c);
+}
+#pragma optimize (pop)
+#endif
+
+#ifdef __C128__
+#pragma optimize (push,off)
+void vdc_write_reg(void) {
+	asm("stx $d600");
+vdc_write_wait:
+	asm("ldx $d600");
+	asm("bpl %g", vdc_write_wait);
+	asm("sta $d601");
+
 }
 #pragma optimize (pop)
 #endif
@@ -192,15 +201,3 @@ exitloop:
 }
 #pragma optimize (pop)
 
-#ifdef __C128__
-#pragma optimize (push,off)
-void vdc_write_reg(void) {
-	asm("stx $d600");
-vdc_write_wait:
-	asm("ldx $d600");
-	asm("bpl %g", vdc_write_wait);
-	asm("sta $d601");
-
-}
-#pragma optimize (pop)
-#endif
