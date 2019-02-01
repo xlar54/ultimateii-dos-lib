@@ -25,9 +25,7 @@ Demo program does not alter any data
 #define RESET_MACHINE	asm("jmp $FF3D");
 #define SCREEN_WIDTH	80
 #define KEYBOARD_BUFFER 208
-#define CHARCOLOR       241
 #define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
-void vdc_write_reg(void);
 void blank_vicII(void);
 #endif
 
@@ -36,7 +34,6 @@ void blank_vicII(void);
 #define RESET_MACHINE 	asm("jmp $FCE2");
 #define SCREEN_WIDTH	40
 #define KEYBOARD_BUFFER 198
-#define CHARCOLOR       646
 #define DISPLAY_HEADER	printf("%cUltimateTerm v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
@@ -44,6 +41,7 @@ void blank_vicII(void);
 #include <peekpoke.h>
 #include <unistd.h>
 #include "ultimate_ii.h"
+#include "screen_utility.h"
 
 #define RVS_ON			0x12
 #define RVS_OFF			0x92
@@ -80,8 +78,6 @@ void term_hostselect(void);
 void term_getconfig(void);
 int term_bell(void);
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
-void cursor_on(void);
-void cursor_off(void);
 void detect_uci(void);
 void exit_uci_error(void);
 unsigned char read_host_and_port(char *prompt_host, char *prompt_port);
@@ -91,6 +87,7 @@ void delete_phonebook_entry(void);
 void add_phonebook_entry(void);
 void load_phonebook(void);
 void save_phonebook(void);
+void help_screen(void);
 void quit(void);
 
 char *version = "1.61-next";
@@ -463,9 +460,9 @@ startover:
 void term_getconfig(void) {
 	printf("Bug reports to: scott.hutter@gmail.com");
 	printf("\n\n%cPlease ensure the following:%c",CG_COLOR_YELLOW,CG_COLOR_CYAN);
-	printf("\n - Command Interface is enabled");
 	printf("\n - Network link is in 'Link Up' state");
 	printf("\n - Disable any emulated cartridges");
+	printf("\n - Press F1 to get help in session");
 
 	uii_identify();
 	printf("\n\nNIC Status: %c%s%c", CG_COLOR_WHITE, uii_status, CG_COLOR_CYAN);
@@ -529,7 +526,7 @@ void main(void)
 
 		term_displayheader();
 		gotoxy(0,2);
-		printf("%c\n[F1] to close the connection when done\n", CG_COLOR_YELLOW);
+		printf("%c\n[F7] to close the connection when done\n", CG_COLOR_YELLOW);
 
 #ifdef __C128__
 		printf("\n * Connecting to %s:%u\n\n",host, port);
@@ -557,10 +554,12 @@ void main(void)
 				if(c != 0) {
 					c = cgetc();
 					buff[0] = c;
-					if (c == 133) // KEY F1: close connection
-						break;
+					if (c == 133) // KEY F1: HELP
+						help_screen();
 					else if (c == 134) // KEY F3: switch petscii/ascii
 						asciimode = !asciimode;
+					else if (c == 136) // KEY F7: close connection
+						break;
 					else
 						uii_tcpsocketwrite(socketnr, buff);
 				}
@@ -617,52 +616,7 @@ unsigned char read_host_and_port(char *prompt_host, char *prompt_port) {
 	return 1;
 }
 
-#pragma optimize (push, off)
-void cursor_on(void) {
-#ifdef __C64__
-	asm("ldy #$00");
-	asm("sty $cc");
-#else
-	asm("ldx #$0a");
-	asm("lda #$60");
-	asm("jsr %v", vdc_write_reg);
-#endif
-}
-#pragma optimize (pop)
-
-#pragma optimize (push, off)
-void cursor_off(void) {
-#ifdef __C64__
-	asm("ldy $cc");
-	asm("bne %g", exitloop);
-	asm("ldy #$01");
-	asm("sty $cd");
-loop:
-	asm("ldy $cf");
-	asm("bne %g", loop);
-exitloop:
-	asm("ldy $ff");
-	asm("sty $cc");
-#else
-	asm("ldx #$0a");
-	asm("lda #$20");
-	asm("jsr %v", vdc_write_reg);
-#endif
-}
-#pragma optimize (pop)
-
 #ifdef __C128__
-#pragma optimize (push,off)
-void vdc_write_reg(void) {
-	asm("stx $d600");
-vdc_write_wait:
-	asm("ldx $d600");
-	asm("bpl %g", vdc_write_wait);
-	asm("sta $d601");
-
-}
-#pragma optimize (pop)
-
 #pragma optimize (push,off)
 void blank_vicII(void) {
 	asm("lda $d011");
@@ -737,4 +691,30 @@ void exit_uci_error(void) {
 		,147
 	);
 	exit(1);
+}
+
+void help_screen(void) {
+	#ifdef __C128__
+	#define FACTOR 2
+	#else
+	#define FACTOR 1
+	#endif
+	cursor_off();
+	save_screen();
+
+	putchar(CG_COLOR_WHITE);
+	clrscr();
+	putchar(14);
+	gotoxy(FACTOR*15,1); printf("HELP SCREEN");
+	gotoxy(FACTOR*15,2); printf("\243\243\243\243\243\243\243\243\243\243\243");
+	gotoxy(FACTOR*8,20); printf("Press any key to go back");
+	gotoxy(FACTOR*9,5); printf("\022 F1 \222  This HELP screen");
+	gotoxy(FACTOR*9,7); printf("\022 F3 \222  Switch PETSCII/ASCII");
+	gotoxy(FACTOR*9,9); printf("\022 F7 \222  Exit BBS");
+
+	POKE(KEYBOARD_BUFFER,0);
+	cgetc();
+	POKE(KEYBOARD_BUFFER,0);
+	restore_screen();
+	cursor_on();
 }
