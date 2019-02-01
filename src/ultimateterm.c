@@ -23,11 +23,21 @@ Demo program does not alter any data
 #ifdef __C128__
 #include <c128.h>
 #define RESET_MACHINE	asm("jmp $FF3D");
+#define SCREEN_WIDTH	80
+#define KEYBOARD_BUFFER 208
+#define CHARCOLOR       241
+#define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+void vdc_write_reg(void);
+void blank_vicII(void);
 #endif
 
 #ifdef __C64__
 #include <c64.h>
 #define RESET_MACHINE 	asm("jmp $FCE2");
+#define SCREEN_WIDTH	40
+#define KEYBOARD_BUFFER 198
+#define CHARCOLOR       646
+#define DISPLAY_HEADER	printf("%cUltimateTerm v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
 #include <conio.h>
@@ -60,23 +70,12 @@ Demo program does not alter any data
 #define CG_COLOR_L_GRAY  	0x9B
 #define SPACE38				"                                      "
 
-#ifdef __C128__
-#define SCREEN_WIDTH	80
-#define KEYBOARD_BUFFER 208
-#define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
-void vdc_write_reg(void);
-void blank_vicII(void);
-#else
-#define SCREEN_WIDTH	40
-#define KEYBOARD_BUFFER 198
-#define DISPLAY_HEADER	printf("%cUltimateTerm v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
-#endif
-
 #define PB_SIZE 1640
 
+void uii_data_print(void);
 int term_getstring(char* def, char *buf);
 void term_displayheader(void);
-int putchar_ascii(int c);
+void putstring_ascii(char* str);
 void term_hostselect(void);
 void term_getconfig(void);
 int term_bell(void);
@@ -94,7 +93,7 @@ void load_phonebook(void);
 void save_phonebook(void);
 void quit(void);
 
-char *version = "1.61";
+char *version = "1.61-next";
 char host[80];
 char portbuff[10];
 unsigned int port = 0;
@@ -110,7 +109,6 @@ unsigned char pb_bytes[PB_SIZE+1];
 unsigned char hst[80];
 unsigned file_index;
 unsigned char y = 0;
-
 
 unsigned char ascToPet[] = {
 0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x14,0x20,0x0a,0x11,0x93,0x0d,0x0e,0x0f,
@@ -180,8 +178,9 @@ void term_displayheader(void) {
 	chlinexy(0,1,SCREEN_WIDTH);
 }
 
-int putchar_ascii(int c) {
-	return c==BELL ? term_bell() : putchar(ascToPet[c]);
+void putstring_ascii(char *str) {
+	for (; *str; str++)
+		if (*str != LF) *str==BELL ? term_bell() : putchar(ascToPet[*str]);
 }
 
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border) {
@@ -332,7 +331,7 @@ void load_phonebook(void) {
 		strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
 		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 		phonebookctr = 8;
-		if (dev >= 8) cbm_open(15, dev, 15, "i");
+		if(dev >= 8) cbm_open(15, dev, 15, "i");
 	} else {
 		// read phonebook data
 		phonebookctr = 0;
@@ -356,7 +355,9 @@ void load_phonebook(void) {
 				if(ctr == 78) break;
 			}
 		}
+		cbm_close(2);
 	}
+
 	chlinexy(8,14,24);
 	y = 15;
 	display_phonebook();
@@ -481,10 +482,12 @@ void term_getconfig(void) {
 }
 
 int term_bell(void) {
-	int x;
 	POKE(0xD418, 15);
-	for(x=0; x<2000; x++);
-	POKE(0xD418, 0);
+	POKE(0xD401, 20);
+	POKE(0xD405, 0);
+	POKE(0xD406, 249);
+	POKE(0xD404, 17);
+	POKE(0xD404, 16);
 	return 7;
 }
 
@@ -511,12 +514,7 @@ void main(void)
 #endif
 
 	// set up bell sound
-	POKE(0xD400 + 5, 68);
-	POKE(0xD400 + 6, 70);
-	POKE(0xD400 + 4, 17);
-	POKE(0xD400 + 1, 45);
-	POKE(0xD400 + 0, 255);
-	POKE(0xD400 + 24, 0);
+	for (c=0; c<25; ++c) POKE(0xD400 + c, 0);
 
 	printf("Accessing network target...(if no response, perhaps connection was not closed?");
 	
@@ -550,15 +548,8 @@ void main(void)
 				datacount = uii_data[0] | (uii_data[1]<<8);
 
 				if(datacount > 0) {
-					#ifdef __C128__
-					for(x=2;x<datacount+2;++x) if (uii_data[x] == LF) uii_data[x]=0x01;
-					#endif
-
 					cursor_off();
-					if (asciimode)
-						for(x=2;x<datacount+2;++x) putchar_ascii(uii_data[x]);
-					else
-						printf("%s",uii_data+2);
+					if (asciimode) putstring_ascii(uii_data+2); else uii_data_print();
 					cursor_on();
 				}
 
@@ -601,7 +592,7 @@ void update_phonebook(unsigned char new_y) {
 }
 
 void display_phonebook(void) {
-	int ctr, x = 15;
+	unsigned char ctr, x = 15;
 	putchar(CG_COLOR_CYAN);
 	term_window(0, 14, 40, 10, 0);
 	for(ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr; ++ctr)
@@ -689,6 +680,37 @@ void detect_uci(void) {
 	asm("rts");
 nointerface:
 	asm("jmp %v", exit_uci_error);
+}
+#pragma optimize (pop)
+
+#pragma optimize (push,off)
+void uii_data_print(void) {
+	static char *string_ptr = uii_data;
+	asm("lda %v", string_ptr);
+	asm("clc");
+	asm("adc #$02");
+	asm("sta $fb");
+	asm("lda %v+1", string_ptr);
+	asm("adc #$00");
+	asm("sta $fc");
+	asm("ldy #$00");
+loop:
+	asm("lda ($fb),y");
+	asm("beq %g", done);
+#ifdef __C128__
+	asm("cmp #$0a");
+	asm("beq %g", skipline);
+#endif
+	asm("jsr $ffd2");
+#ifdef __C128__
+skipline:
+#endif
+	asm("iny");
+	asm("bne %g", loop);
+	asm("inc $fc");
+	asm("jmp %g", loop);
+done:
+	asm("rts");
 }
 #pragma optimize (pop)
 
