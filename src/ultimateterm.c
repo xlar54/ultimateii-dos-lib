@@ -702,7 +702,7 @@ void help_screen(void) {
 	#else
 	#define LINE1 15
 	#define LINE2 8
-	#define LINE3 9
+	#define LINE3 7
 	#endif
 	cursor_off();
 	save_screen();
