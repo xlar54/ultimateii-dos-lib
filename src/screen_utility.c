@@ -37,6 +37,14 @@ void restore_screen() {
 }
 #else
 #pragma optimize (push,off)
+
+// C128 version (VDC 80 col) of these functions:
+// - vdc_prepare
+// - save_screen
+// - restore_screen
+// are an adaptation of the code from this site:
+// http://commodore128.mirkosoft.sk/vdc.html
+// http://archive.fo/0i6MI
 void vdc_prepare(void) {
 	asm("lda #$12");
 	asm("sta $d600");
