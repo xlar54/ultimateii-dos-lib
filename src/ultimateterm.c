@@ -170,6 +170,7 @@ int term_getstring(char* def, char *buf) {
 }
 
 void term_displayheader(void) {
+	putchar(CG_COLOR_WHITE);
 	clrscr();
 	DISPLAY_HEADER
 	chlinexy(0,1,SCREEN_WIDTH);
@@ -503,11 +504,11 @@ void main(void)
 	putchar(14);
 	blank_vicII();
 	fast();
-	POKE(808,107); // Disable RUN/STOP + RESTORE on C128
+	POKE(808,107);   // Disable RUN/STOP + RESTORE on C128
 #else
-	POKEW(0xD020,0);
-	POKE(808,239); // Disable RUN/STOP on C64
-	POKE(792,193); // Disable RESTORE  on C64
+	POKEW(0xD020,0); // Border + background = black
+	POKE(808,239);   // Disable RUN/STOP on C64
+	POKE(792,193);   // Disable RESTORE  on C64
 #endif
 
 	// set up bell sound
@@ -529,9 +530,9 @@ void main(void)
 		printf("%c\n[F7] to close the connection when done\n", CG_COLOR_YELLOW);
 
 #ifdef __C128__
-		printf("\n * Connecting to %s:%u\n\n",host, port);
+		printf("\n * Connecting to %s:%u\n\n", host, port);
 #else
-		printf("\n * Connecting to\n   %s:%u\n\n",host, port);
+		printf("\n * Connecting to\n   %s:%u\n\n", host, port);
 #endif
 		
 		uii_tcpconnect(host, port);
@@ -695,9 +696,13 @@ void exit_uci_error(void) {
 
 void help_screen(void) {
 	#ifdef __C128__
-	#define FACTOR 2
+	#define LINE1 15
+	#define LINE2 8
+	#define LINE3 27
 	#else
-	#define FACTOR 1
+	#define LINE1 34
+	#define LINE2 28
+	#define LINE3 9
 	#endif
 	cursor_off();
 	save_screen();
@@ -705,12 +710,12 @@ void help_screen(void) {
 	putchar(CG_COLOR_WHITE);
 	clrscr();
 	putchar(14);
-	gotoxy(FACTOR*15,1); printf("HELP SCREEN");
-	gotoxy(FACTOR*15,2); printf("\243\243\243\243\243\243\243\243\243\243\243");
-	gotoxy(FACTOR*8,20); printf("Press any key to go back");
-	gotoxy(FACTOR*9,5); printf("\022 F1 \222  This HELP screen");
-	gotoxy(FACTOR*9,7); printf("\022 F3 \222  Switch PETSCII/ASCII");
-	gotoxy(FACTOR*9,9); printf("\022 F7 \222  Exit BBS");
+	gotoxy(LINE1,1); printf("HELP SCREEN");
+	gotoxy(LINE1,2); printf("\243\243\243\243\243\243\243\243\243\243\243");
+	gotoxy(LINE2,20); printf("Press any key to go back");
+	gotoxy(LINE3,5); printf("\022 F1 \222  This HELP screen");
+	gotoxy(LINE3,7); printf("\022 F3 \222  Switch PETSCII/ASCII");
+	gotoxy(LINE3,9); printf("\022 F7 \222  Exit BBS");
 
 	POKE(KEYBOARD_BUFFER,0);
 	cgetc();
