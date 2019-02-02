@@ -41,10 +41,16 @@ void vdc_prepare(void) {
 	asm("lda #$12");
 	asm("sta $d600");
 	asm("lda %v", vdc_hi);
+loop_wait1:
+	asm("bit $d600");
+	asm("bpl %g", loop_wait1);
 	asm("sta $d601");
 	asm("lda #$13");
 	asm("sta $d600");
 	asm("lda %v", vdc_lo);
+loop_wait2:
+	asm("bit $d600");
+	asm("bpl %g", loop_wait2);
 	asm("sta $d601");
 	asm("lda #$1f");
 	asm("sta $d600");
