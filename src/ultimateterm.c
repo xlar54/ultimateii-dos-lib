@@ -696,12 +696,12 @@ void exit_uci_error(void) {
 
 void help_screen(void) {
 	#ifdef __C128__
-	#define LINE1 15
-	#define LINE2 8
+	#define LINE1 34 
+	#define LINE2 28
 	#define LINE3 27
 	#else
-	#define LINE1 34
-	#define LINE2 28
+	#define LINE1 15
+	#define LINE2 8
 	#define LINE3 9
 	#endif
 	cursor_off();
