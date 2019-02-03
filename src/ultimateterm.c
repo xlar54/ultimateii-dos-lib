@@ -1,6 +1,6 @@
 /*****************************************************************
 Ultimate II+ UltimateTerm 64 and 128
-Scott Hutter
+Scott Hutter, Francesco Sblendorio
 
 Based on ultimate_dos-1.1.docx and command interface.docx
 https://github.com/markusC64/1541ultimate2/tree/master/doc
