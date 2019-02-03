@@ -267,7 +267,7 @@ void edit_phonebook_entry() {
 
 void save_phonebook(void) {
 	unsigned char ctr = 0;
-	int status;
+	int status1, status2;
 
 	if (dev < 8) return;
 	putchar(CG_COLOR_WHITE);
@@ -280,14 +280,15 @@ void save_phonebook(void) {
 		strcat(pb_bytes, "\n");
 	}
 	cbm_close(15); cbm_close(2);
-	status = cbm_open(15, dev, 15,"s:u-term,s"); cbm_close(15);
-	if (!status && !cbm_open(2, dev, CBM_WRITE,"u-term,s")) {
-		cbm_write(2, pb_bytes, strlen(pb_bytes));
-		cbm_close(2);
-	}	
-	if(cbm_open(15, dev, 15, "")) cbm_read(15, pb_bytes, PB_SIZE);
-	cbm_close(15);
-
+	cbm_open(15, dev, 15,"s:u-term,s"); cbm_close(15);
+	status1 = cbm_open(2, dev, CBM_WRITE,"u-term,s");
+	status2 = cbm_write(2, pb_bytes, strlen(pb_bytes));
+	cbm_close(2);
+	if(!status1 && status2==-1) {
+		cbm_open(15, dev, 15, "");
+		cbm_read(15, pb_bytes, PB_SIZE);
+		cbm_close(15);
+	} 
 	display_phonebook();
 }
 
@@ -318,7 +319,11 @@ void load_phonebook(void) {
 	cputsxy(8,14,"[ Loading Phonebook... ]");
 	cbm_close(2);
 	cbm_close(15);
-	if(dev >= 8) bytesRead = cbm_open(2, dev, CBM_READ, file) ? 0 : cbm_read(2, pb_bytes, PB_SIZE);
+
+	if(dev>=8) {
+		c = cbm_open(2, dev, CBM_READ, file);
+		bytesRead = c ? 0 : cbm_read(2, pb_bytes, PB_SIZE);
+	}
 	strcpy(phonebook[0], "MANUAL ENTRY");
 	if(dev < 8 || bytesRead <= 0) { // No drive or no file
 		// Default phonebook
@@ -332,7 +337,7 @@ void load_phonebook(void) {
 		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 		phonebookctr = 8;
 		if(dev >= 8) {
-			if(!cbm_open(15, dev, 15, "")) cbm_read(15, pb_bytes, PB_SIZE);
+			if(!c && !cbm_open(15, dev, 15, "")) cbm_read(15, pb_bytes, PB_SIZE);
 			cbm_close(15);
 		}
 	} else {
