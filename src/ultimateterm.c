@@ -285,8 +285,7 @@ void save_phonebook(void) {
 		cbm_write(2, pb_bytes, strlen(pb_bytes));
 		cbm_close(2);
 	}	
-	cbm_open(15, dev, 15, "");
-	cbm_read(15, pb_bytes, PB_SIZE);
+	if(cbm_open(15, dev, 15, "")) cbm_read(15, pb_bytes, PB_SIZE);
 	cbm_close(15);
 
 	display_phonebook();
@@ -333,8 +332,7 @@ void load_phonebook(void) {
 		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 		phonebookctr = 8;
 		if(dev >= 8) {
-			cbm_open(15, dev, 15, "");
-			cbm_read(15, pb_bytes, PB_SIZE);
+			if(!cbm_open(15, dev, 15, "")) cbm_read(15, pb_bytes, PB_SIZE);
 			cbm_close(15);
 		}
 	} else {
