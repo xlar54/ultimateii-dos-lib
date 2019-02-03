@@ -268,6 +268,7 @@ void save_phonebook(void) {
 	unsigned char ctr = 0;
 	int status;
 
+	if (dev < 8) return;
 	putchar(CG_COLOR_WHITE);
 	term_window(0, 14, 40, 10, 0);
 	cputsxy(9,18,"SAVING: PLEASE WAIT...");
@@ -284,7 +285,9 @@ void save_phonebook(void) {
 		cbm_write(2, pb_bytes, strlen(pb_bytes));
 		cbm_close(2);
 	}
-	cbm_open(15,dev,15,"i");
+	cbm_open(15, dev, 15, "");
+	cbm_read(15, pb_bytes, PB_SIZE);
+	cbm_close(15);
 
 	display_phonebook();
 }
@@ -329,7 +332,11 @@ void load_phonebook(void) {
 		strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
 		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 		phonebookctr = 8;
-		if(dev >= 8) cbm_open(15, dev, 15, "i");
+		if(dev >= 8) {
+			cbm_open(15, dev, 15, "");
+			cbm_read(15, pb_bytes, PB_SIZE);
+			cbm_close(15);
+		}
 	} else {
 		// read phonebook data
 		phonebookctr = 0;
