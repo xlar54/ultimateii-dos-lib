@@ -279,12 +279,11 @@ void save_phonebook(void) {
 		strcat(pb_bytes, "\n");
 	}
 	cbm_close(15); cbm_close(2);
-	cbm_open(15, dev, 15,"s:u-term,s"); cbm_close(15);
-	status = cbm_open(2, dev, CBM_WRITE,"u-term,s");
-	if (status == 0) {
+	status = cbm_open(15, dev, 15,"s:u-term,s"); cbm_close(15);
+	if (!status && !cbm_open(2, dev, CBM_WRITE,"u-term,s")) {
 		cbm_write(2, pb_bytes, strlen(pb_bytes));
 		cbm_close(2);
-	}
+	}	
 	cbm_open(15, dev, 15, "");
 	cbm_read(15, pb_bytes, PB_SIZE);
 	cbm_close(15);
@@ -516,13 +515,12 @@ void main(void)
 	POKEW(0xD020,0); // Border + background = black
 	POKE(808,239);   // Disable RUN/STOP on C64
 	POKE(792,193);   // Disable RESTORE  on C64
+	for (x=0; x<6000; ++x); // Initial pause for handling direct "RUN" from u2(+)
 #endif
 
-	// set up bell sound
 	for (c=0; c<25; ++c) POKE(0xD400 + c, 0);
+	printf("Accessing network target...\n(if no response, perhaps connection was\nnot closed?");
 
-	printf("Accessing network target...(if no response, perhaps connection was not closed?");
-	
 	uii_settarget(TARGET_NETWORK);
 	cursor_off();
 	while(1) {
