@@ -752,7 +752,7 @@ void download_punter(void) {
 	#define LINEP3 7
 	#endif
 	char filename[80];
-	//SBLENDORIO char buf[100];
+	char buff[100];
 	char c;
 	unsigned int datacount;
 
@@ -781,13 +781,15 @@ void download_punter(void) {
 	cursor_off();
 	uii_tcpsocketwrite(socketnr, "goo");
 	while (1) {
-		uii_tcpsocketread(socketnr, 892);
-		datacount = uii_data[0] | (uii_data[1]<<8);
-
-		if(datacount > 0) {
-			uii_data_print();
+		buff[0]=0;
+		while (strlen(buff)<3) {
+			uii_tcpsocketread(socketnr, 1);
+			datacount = uii_data[0] | (uii_data[1]<<8);
+			if(datacount > 0) strcat(buff, uii_data+2);
 		}
 
+		printf("- %s\n",  buff);
+		uii_tcpsocketwrite(socketnr, "ack");
 		c = kbhit();
 		if (c) break;
 
