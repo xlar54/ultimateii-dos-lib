@@ -12,8 +12,6 @@ cl65 -O -t c128 ultimate_ii.c screen_utility.c ultimateterm.c -o ../target/u-ter
 cl65 -O -t c128 ultimate_ii.c u-chat.c -o ../target/u-chat128.prg
 cl65 -t geos-cbm -O -o ../target/geouterm.cvt geouterm-res.grc ultimate_ii.c geouterm.c
 
-cat u-term.seq | tr "\n" "\r" >../target/u-term.seq
-
 rm -f *.o
 rm -f *.inf
 
@@ -31,7 +29,7 @@ c1541 -attach UltimateTerm-and-demos.d64 -write u-chat128.prg u-chat128
 c1541 -attach UltimateTerm-and-demos.d64 -geoswrite geouterm.cvt
 c1541 -attach UltimateTerm-and-demos.d64 -geoswrite ../src/cbm40.cvt
 c1541 -attach UltimateTerm-and-demos.d64 -geoswrite ../src/cbm80.cvt
-c1541 -attach UltimateTerm-and-demos.d64 -write u-term.seq u-term,s
+c1541 -attach UltimateTerm-and-demos.d64 -write ../src/u-term.seq u-term,s
 
 rm -f u-term.seq geouterm.cvt
 

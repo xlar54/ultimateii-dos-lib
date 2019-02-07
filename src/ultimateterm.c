@@ -348,11 +348,10 @@ void load_phonebook(void) {
 		file_index = 0;
 		for (file_index=0; file_index<bytesRead; ++file_index) {
 			c = pb_bytes[file_index];
-			if(c == CR) {
+			if ((c == CR || c == LF) && ctr) {
 				strcpy(phonebook[++phonebookctr], hst);
 				ctr=0;
-			}
-			else if(c != LF) {
+			} else if (c != LF && c != CR) {
 				// c to lowercase
 				if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
 
