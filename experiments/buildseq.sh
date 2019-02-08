@@ -10,4 +10,4 @@ rm -f *.inf
 c1541 -format "seqdisk,sh" d64 seqdisk.d64
 
 c1541 -attach seqdisk.d64 -write seq.prg seq
-c1541 -attach seqdisk.d64 -write ../src/u-term.seq u-term,s
+c1541 -attach seqdisk.d64 -write u-term.seq u-term,s
