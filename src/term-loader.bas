@@ -6,4 +6,3 @@
 60 end
 70 poke631,145:poke632,145:poke633,145
 80 poke634,13:poke635,82:poke636,85:poke637,78:poke638,13:poke198,8
-
