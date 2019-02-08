@@ -12,6 +12,8 @@ cl65 -O -t c128 ultimate_ii.c screen_utility.c ultimateterm.c -o ..\target\u-ter
 cl65 -O -t c128 ultimate_ii.c u-chat.c -o ..\target\u-chat128.prg
 cl65 -t geos-cbm -O -o ..\target\geouterm.cvt geouterm-res.grc ultimate_ii.c geouterm.c
 
+petcat -w2 -o ..\target\term-loader.prg term-loader.bas
+
 del *.o
 del *.inf
 
@@ -19,7 +21,7 @@ cd ..\target
 
 c1541 -format "ultimatedemos,sh" d64 UltimateTerm-and-demos.d64
 
-c1541 -attach UltimateTerm-and-demos.d64 -write ..\src\term-loader.prg term-loader
+c1541 -attach UltimateTerm-and-demos.d64 -write term-loader.prg term-loader
 c1541 -attach UltimateTerm-and-demos.d64 -write u-term64.prg u-term64
 c1541 -attach UltimateTerm-and-demos.d64 -write u-term128.prg u-term128
 c1541 -attach UltimateTerm-and-demos.d64 -write u-shell.prg u-shell
