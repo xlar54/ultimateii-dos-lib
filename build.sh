@@ -34,5 +34,6 @@ c1541 -attach UltimateTerm-and-demos.d64 -geoswrite ../src/cbm80.cvt
 c1541 -attach UltimateTerm-and-demos.d64 -write ../src/u-term.seq u-term,s
 
 rm -f geouterm.cvt
+rm -f term-loader.prg
 
 cd ..
