@@ -537,11 +537,11 @@ void main(void)
 		gotoxy(0,2);
 		printf("%c\n[F7] to close the connection when done\n", CG_COLOR_YELLOW);
 
-#ifdef __C128__
+		#ifdef __C128__
 		printf("\n * Connecting to %s:%u\n\n", host, port);
-#else
+		#else
 		printf("\n * Connecting to\n   %s:%u\n\n", host, port);
-#endif
+		#endif
 		
 		uii_tcpconnect(host, port);
 		socketnr = uii_data[0];
