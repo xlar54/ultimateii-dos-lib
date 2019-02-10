@@ -553,11 +553,13 @@ void main(void)
 				uii_tcpsocketread(socketnr, 892);
 				datacount = uii_data[0] | (uii_data[1]<<8);
 
-				if(datacount > 0) {
+				if (datacount == 0) { // datacount == 0 means "disconnected"
+					break;
+				} else if (datacount > 0) {
 					cursor_off();
 					if (asciimode) putstring_ascii(uii_data+2); else uii_data_print();
 					cursor_on();
-				}
+				} // datacount == -1 means "wait state"
 
 				c = kbhit();
 				if(c != 0) {

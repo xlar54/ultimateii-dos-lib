@@ -11,10 +11,10 @@
 
 unsigned char socketnr = 0;
 int datacount;
-char buff[400];
+char buff[1024];
 
 unsigned char ascToPet[] = {
-0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x14,0x09,0x0d,0x11,0x93,0x0a,0x0e,0x0f,
+0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x14,0x09,0x0a,0x11,0x93,0x0a,0x0e,0x0f,
 0x10,0x0b,0x12,0x13,0x08,0x15,0x16,0x17,0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f,
 0x20,0x21,0x22,0x23,0x24,0x25,0x26,0x27,0x28,0x29,0x2a,0x2b,0x2c,0x2d,0x2e,0x2f,
 0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x3a,0x3b,0x3c,0x3d,0x3e,0x3f,
@@ -32,6 +32,10 @@ unsigned char ascToPet[] = {
 0xb0,0xb1,0xb2,0xb3,0xb4,0xb5,0xb6,0xb7,0xb8,0xb9,0xba,0xbb,0xbc,0xbd,0xbe,0xbf
 };
 
+char nextchar(void);
+int nextline(char *, int);
+
+int len_buff, ibuff;
 
 void main(void) {
 	//int i;
@@ -55,24 +59,54 @@ void main(void) {
 	socketnr = uii_data[0];
     
     if (uii_status[0] == '0' && uii_status[1] == '0') {
-    	printf("FASE 1-----------------\n");
-        strcpy(buff,"GET /api/exportbbslist/service.php?f=csv HTTP/1.0\r\n\r\n"); // added \r\n 
+        strcpy(buff,"GET /api/exportbbslist/service.php?f=csv HTTP/1.0\n\n"); 
 
         // convert to proper ASCII case for http server
         l = strlen(buff);
         for(i=0;i<l;i++)
            buff[i] = ascToPet[buff[i]];
 
-    	uii_tcpsocketwrite(socketnr, buff);
+        uii_tcpsocketwrite(socketnr, buff);
 
-    	printf("FASE 2-----------------\n");
-        while(1) {
-            uii_tcpsocketread(socketnr, 892);
-            datacount = uii_data[0] | (uii_data[1]<<8);
-            if (datacount > 0)
-                printf("%s",uii_data+2);
+        ibuff = 0;
+        while (nextline(buff, 1)) {
+            printf("* %s\n", buff);
         }
+        uii_tcpclose(socketnr);
+
     } else {
         printf("ERRORE\n");
     }
 }
+
+int nextline(char *result, int swapCase) {
+    int c, count = 0;
+    *result = 0;
+    while ((c = nextchar()) != 0 && c != 0x0A && c != 0x0D) {
+        if (swapCase) {
+            if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
+            else if (c>=65 && c<=90) c |= 32;
+        }
+        result[count++] = c;
+    }
+    result[count] = 0;
+    return c != 0 || count > 0;
+}
+
+char nextchar(void) {
+    char result;
+    if (ibuff < len_buff) {
+        result = uii_data[ibuff+2];
+        ibuff++;
+    } else {
+        do {
+            uii_tcpsocketread(socketnr, 892);
+            len_buff = uii_data[0] | (uii_data[1]<<8);
+            if (len_buff == 0) return 0; // EOF
+        } while (len_buff == -1);
+        result = uii_data[2];
+        ibuff = 0;
+    }
+    return result;
+}
+
