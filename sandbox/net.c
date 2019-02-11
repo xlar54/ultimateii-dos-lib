@@ -11,8 +11,8 @@ char *p1, *p2, *p3;
 
 void main(void) {
     uii_settarget(TARGET_NETWORK);
-	uii_identify();
-	uii_getipaddress();
+    uii_identify();
+    uii_getipaddress();
 
     printf("\nIP Address: %d.%d.%d.%d", uii_data[0], uii_data[1], uii_data[2], uii_data[3]);
     printf("\n   Netmask: %d.%d.%d.%d", uii_data[4], uii_data[5], uii_data[6], uii_data[7]);
