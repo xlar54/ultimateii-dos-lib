@@ -543,8 +543,7 @@ void main(void)
 		printf("\n * Connecting to\n   %s:%u\n\n", host, port);
 		#endif
 		
-		uii_tcpconnect(host, port);
-		socketnr = uii_data[0];
+		socketnr = uii_tcpconnect(host, port);
 		
 		if (uii_status[0] == '0' && uii_status[1] == '0') {
 			putchar(CG_COLOR_CYAN);
@@ -755,7 +754,7 @@ void download_punter(void) {
 	char filename[80];
 	char buff[100];
 	char c;
-	unsigned int datacount;
+	int datacount;
 
 	cursor_off();
 	save_screen();

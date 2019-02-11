@@ -8,6 +8,7 @@ char name[100];
 char host[100];
 char port[10];
 char *p1, *p2, *p3;
+int count = 0;
 
 void main(void) {
     uii_settarget(TARGET_NETWORK);
@@ -44,7 +45,7 @@ void main(void) {
             strncpy(port, p2+2, (p3-p2)-2);
             port[p3-p2-3]=0;
 
-            printf("%s:%s\n", host, port);
+            printf("%d) %s:%s\n", ++count, host, port);
         }
         uii_tcpclose(socket);
 

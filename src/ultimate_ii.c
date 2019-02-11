@@ -458,6 +458,7 @@ void uii_abort(void)
 	uii_logtext("\nsending abort");
 	*controlreg |= 0x04;
 }
+
 int uii_readdata(void) 
 {
 	int count = 0;
@@ -591,7 +592,6 @@ void uii_tcpsocketread(unsigned char socketid, unsigned short length)
 	cmd[2] = socketid;
 	cmd[3] = length & 0xff;
 	cmd[4] = (length>>8) & 0xff;
-	
 	
 	uii_settarget(TARGET_NETWORK);
 	uii_sendcommand(cmd, 0x05);
