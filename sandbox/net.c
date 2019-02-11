@@ -20,7 +20,7 @@ void main(void) {
 
     socket = uii_tcpconnect("cbbsoutpost.servebbs.com", 80);
 
-	if (uii_status[0] == '0' && uii_status[1] == '0') {
+    if (uii_status[0] == '0' && uii_status[1] == '0') {
         uii_tcpsocketwrite_ascii(socket, "GET /api/exportbbslist/service.php?f=csv HTTP/1.0\n\n");
 
         // Skip HTTP header
