@@ -36,6 +36,8 @@ Patches and pull requests are welcome
 //#define DEBUG
 #define DISPLAY_READ
 
+#define uii_tcpconnect_success() (uii_status[0] == '0' && uii_status[1] == '0')
+
 extern unsigned char uii_status[STATUS_QUEUE_SZ];
 extern unsigned char uii_data[DATA_QUEUE_SZ*2];
 
@@ -71,7 +73,7 @@ void uii_getinterfacecount(void);
 void uii_getipaddress(void);
 unsigned char uii_tcpconnect(char* host, unsigned short port);
 void uii_tcpclose(unsigned char socketid);
-void uii_tcpsocketread(unsigned char socketid, unsigned short length);
+int uii_tcpsocketread(unsigned char socketid, unsigned short length);
 void uii_tcpsocketwrite(unsigned char socketid, char *data);
 void uii_tcpsocketwrite_ascii(unsigned char socketid, char *data);
 

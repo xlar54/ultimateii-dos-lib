@@ -472,7 +472,7 @@ void term_getconfig(void) {
 	printf("\n\n%cPlease ensure the following:%c",CG_COLOR_YELLOW,CG_COLOR_CYAN);
 	printf("\n - Network link is in 'Link Up' state");
 	printf("\n - Disable any emulated cartridges");
-	printf("\n - Press F1 to get help in session");
+	printf("\n - %cPress F1%c to get help in session", CG_COLOR_WHITE, CG_COLOR_CYAN);
 
 	uii_identify();
 	printf("\n\nNIC Status: %c%s%c", CG_COLOR_WHITE, uii_status, CG_COLOR_CYAN);
@@ -536,21 +536,15 @@ void main(void)
 		term_displayheader();
 		gotoxy(0,2);
 		printf("%c\n[F7] to close the connection when done\n", CG_COLOR_YELLOW);
-
-		#ifdef __C128__
-		printf("\n * Connecting to %s:%u\n\n", host, port);
-		#else
 		printf("\n * Connecting to\n   %s:%u\n\n", host, port);
-		#endif
 		
 		socketnr = uii_tcpconnect(host, port);
 		
-		if (uii_status[0] == '0' && uii_status[1] == '0') {
+		if (uii_tcpconnect_success()) {
 			putchar(CG_COLOR_CYAN);
 			cursor_on();
 			while(1) {
-				uii_tcpsocketread(socketnr, 892);
-				datacount = uii_data[0] | (uii_data[1]<<8);
+				datacount = uii_tcpsocketread(socketnr, 892);
 
 				if (datacount == 0) { // datacount == 0 means "disconnected"
 					break;
@@ -576,7 +570,7 @@ void main(void)
 						uii_tcpsocketwrite(socketnr, buff);
 				}
 			}
-			printf("%c\n\nClosing connection", 14);
+			printf("%c\nClosing connection", 14);
 			uii_tcpclose(socketnr);
 			cursor_off();
 		}
@@ -783,8 +777,7 @@ void download_punter(void) {
 	while (1) {
 		buff[0]=0;
 		while (strlen(buff)<3) {
-			uii_tcpsocketread(socketnr, 1);
-			datacount = uii_data[0] | (uii_data[1]<<8);
+			datacount = uii_tcpsocketread(socketnr, 1);
 			if(datacount > 0) strcat(buff, uii_data+2);
 		}
 

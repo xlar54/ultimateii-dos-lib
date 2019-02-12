@@ -568,8 +568,7 @@ void main(void)
 	{
 		while(1)
 		{
-			uii_tcpsocketread(socketnr, 400);
-			datacount = uii_data[0] | (uii_data[1]<<8);
+			datacount = uii_tcpsocketread(socketnr, 400);
 
 			for(x=2;x<datacount+2;x++)
 			{

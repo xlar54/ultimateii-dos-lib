@@ -42,7 +42,7 @@ void restore_screen() {
 // - vdc_prepare
 // - save_screen
 // - restore_screen
-// are an adaptation of the code from this site:
+// are an adaption of the code from this site:
 // http://commodore128.mirkosoft.sk/vdc.html
 // http://archive.fo/0i6MI
 void vdc_prepare(void) {

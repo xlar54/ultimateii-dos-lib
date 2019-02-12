@@ -551,7 +551,6 @@ unsigned char uii_tcpconnect(char* host, unsigned short port)
 	//for(x=0;x < 4+strlen(host)+1; x++)
 	//	printf("\nbyte %d: %d", x, fullcmd[x]);
 	
-	
 	uii_settarget(TARGET_NETWORK);
 	uii_sendcommand(fullcmd, 4+strlen(host)+1);
 
@@ -582,7 +581,7 @@ void uii_tcpclose(unsigned char socketid)
 	uii_target = tempTarget;
 }
 
-void uii_tcpsocketread(unsigned char socketid, unsigned short length)
+int uii_tcpsocketread(unsigned char socketid, unsigned short length)
 {
 	unsigned char tempTarget = uii_target;
 	unsigned char cmd[] = {0x00,0x10, 0x00, 0x00, 0x00};
@@ -601,6 +600,7 @@ void uii_tcpsocketread(unsigned char socketid, unsigned short length)
 	uii_accept();
 	
 	uii_target = tempTarget;
+	return uii_data[0] | (uii_data[1]<<8);
 }
 
 
@@ -657,8 +657,7 @@ char uii_tcp_nextchar(unsigned char socketid) {
         uii_data_index++;
     } else {
         do {
-            uii_tcpsocketread(socketid, DATA_QUEUE_SZ-4);
-            uii_data_len = uii_data[0] | (uii_data[1]<<8);
+            uii_data_len = uii_tcpsocketread(socketid, DATA_QUEUE_SZ-4);
             if (uii_data_len == 0) return 0; // EOF
         } while (uii_data_len == -1);
         result = uii_data[2];

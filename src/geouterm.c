@@ -485,7 +485,7 @@ void main(void)
 #ifndef TESTING	
 	socketnr = uii_data[0];
 	
-	if (uii_status[0] == '0' && uii_status[1] == '0')
+	if (uii_tcpconnect_success())
 	{
 #endif
 		hook_into_system();
