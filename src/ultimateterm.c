@@ -748,7 +748,7 @@ void download_punter(void) {
 	char filename[80];
 	char buff[100];
 	char c;
-	int datacount;
+	int i;
 
 	cursor_off();
 	save_screen();
@@ -773,21 +773,28 @@ void download_punter(void) {
 	}
 	// Start Punter transfer
 	cursor_off();
-	uii_tcpsocketwrite(socketnr, "goo");
+	uii_tcpsocketwrite_ascii(socketnr, "GOO");
+	printf("SENT goo\n");
 	while (1) {
 		buff[0]=0;
-		while (strlen(buff)<3) {
-			datacount = uii_tcpsocketread(socketnr, 1);
-			if(datacount > 0) strcat(buff, uii_data+2);
+		i = 0;
+		while (i<3) {
+			c = uii_tcp_nextchar(socketnr);
+			if (c) {
+				buff[i++] = c;
+			} else goto endp;
 		}
+		buff[i]=0;
 
-		printf("- %s\n",  buff);
-		uii_tcpsocketwrite(socketnr, "ack");
+		printf("RECEIVED: %s\n",  buff);
+		uii_tcpsocketwrite_ascii(socketnr, "ACK");
+		printf("SENT ack\n");
 		c = kbhit();
 		if (c) break;
 
 	}
 
+endp:
 	gotoxy(LINEP2,20); printf("Press any key to go back");
 	POKE(KEYBOARD_BUFFER,0);
 	cgetc();
