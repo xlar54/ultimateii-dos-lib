@@ -745,6 +745,11 @@ void download_punter(void) {
 	#define LINEP2 7
 	#define LINEP3 7
 	#endif
+	char filename[80];
+	char buff[100];
+	char c;
+	int i;
+
 	cursor_off();
 	save_screen();
 
@@ -757,7 +762,39 @@ void download_punter(void) {
 	gotoxy(LINEP1,7);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
 							  "\243\243\243\243\243\243\243\243\243\243\243\243\243\243");
 	putchar(CG_COLOR_L_GRAY);
-	gotoxy(LINEP3,5);  printf("Work in progress, coming soon");
+	gotoxy(LINEP3,5);  printf("Enter destination filename:");
+	gotoxy(LINEP3,6);  printf("                            ");
+	gotoxy(LINEP3,6);  term_getstring("", filename);
+	cursor_off();
+	if (!filename[0]) {
+		restore_screen();
+		cursor_on();
+		return;
+	}
+	// Start Punter transfer
+	cursor_off();
+	uii_tcpsocketwrite_ascii(socketnr, "GOO");
+	printf("SENT goo\n");
+	while (1) {
+		buff[0]=0;
+		i = 0;
+		while (i<3) {
+			c = uii_tcp_nextchar(socketnr);
+			if (c) {
+				buff[i++] = c;
+			} else goto endp;
+		}
+		buff[i]=0;
+
+		printf("RECEIVED: %s\n",  buff);
+		uii_tcpsocketwrite_ascii(socketnr, "ACK");
+		printf("SENT ack\n");
+		c = kbhit();
+		if (c) break;
+
+	}
+
+endp:
 	gotoxy(LINEP2,20); printf("Press any key to go back");
 	POKE(KEYBOARD_BUFFER,0);
 	cgetc();
