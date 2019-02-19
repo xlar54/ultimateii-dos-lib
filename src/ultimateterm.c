@@ -89,6 +89,7 @@ void load_phonebook(void);
 void save_phonebook(void);
 void help_screen(void);
 void quit(void);
+void download_punter(void);
 
 char *version = "1.61-next";
 char host[80];
@@ -266,7 +267,7 @@ void edit_phonebook_entry() {
 
 void save_phonebook(void) {
 	unsigned char ctr = 0;
-	int status;
+	int status1, status2;
 
 	if (dev < 8) return;
 	putchar(CG_COLOR_WHITE);
@@ -279,15 +280,15 @@ void save_phonebook(void) {
 		strcat(pb_bytes, "\n");
 	}
 	cbm_close(15); cbm_close(2);
-	status = cbm_open(15, dev, 15,"s:u-term,s"); cbm_close(15);
-	if (!status && !cbm_open(2, dev, CBM_WRITE,"u-term,s")) {
-		cbm_write(2, pb_bytes, strlen(pb_bytes));
-		cbm_close(2);
-	}	
-	cbm_open(15, dev, 15, "");
-	cbm_read(15, pb_bytes, PB_SIZE);
-	cbm_close(15);
-
+	cbm_open(15, dev, 15,"s:u-term,s"); cbm_close(15);
+	status1 = cbm_open(2, dev, CBM_WRITE,"u-term,s");
+	status2 = cbm_write(2, pb_bytes, strlen(pb_bytes));
+	cbm_close(2);
+	if(!status1 && status2==-1) {
+		cbm_open(15, dev, 15, "");
+		cbm_read(15, pb_bytes, PB_SIZE);
+		cbm_close(15);
+	} 
 	display_phonebook();
 }
 
@@ -318,7 +319,11 @@ void load_phonebook(void) {
 	cputsxy(8,14,"[ Loading Phonebook... ]");
 	cbm_close(2);
 	cbm_close(15);
-	if(dev >= 8) bytesRead = cbm_open(2, dev, CBM_READ, file) ? 0 : cbm_read(2, pb_bytes, PB_SIZE);
+
+	if(dev>=8) {
+		c = cbm_open(2, dev, CBM_READ, file);
+		bytesRead = c ? 0 : cbm_read(2, pb_bytes, PB_SIZE);
+	}
 	strcpy(phonebook[0], "MANUAL ENTRY");
 	if(dev < 8 || bytesRead <= 0) { // No drive or no file
 		// Default phonebook
@@ -332,8 +337,7 @@ void load_phonebook(void) {
 		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 		phonebookctr = 8;
 		if(dev >= 8) {
-			cbm_open(15, dev, 15, "");
-			cbm_read(15, pb_bytes, PB_SIZE);
+			if(!c && !cbm_open(15, dev, 15, "")) cbm_read(15, pb_bytes, PB_SIZE);
 			cbm_close(15);
 		}
 	} else {
@@ -344,11 +348,10 @@ void load_phonebook(void) {
 		file_index = 0;
 		for (file_index=0; file_index<bytesRead; ++file_index) {
 			c = pb_bytes[file_index];
-			if(c == CR) {
+			if ((c == CR || c == LF) && ctr) {
 				strcpy(phonebook[++phonebookctr], hst);
 				ctr=0;
-			}
-			else if(c != LF) {
+			} else if (c != LF && c != CR) {
 				// c to lowercase
 				if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
 
@@ -469,7 +472,7 @@ void term_getconfig(void) {
 	printf("\n\n%cPlease ensure the following:%c",CG_COLOR_YELLOW,CG_COLOR_CYAN);
 	printf("\n - Network link is in 'Link Up' state");
 	printf("\n - Disable any emulated cartridges");
-	printf("\n - Press F1 to get help in session");
+	printf("\n - %cPress F1%c to get help in session", CG_COLOR_WHITE, CG_COLOR_CYAN);
 
 	uii_identify();
 	printf("\n\nNIC Status: %c%s%c", CG_COLOR_WHITE, uii_status, CG_COLOR_CYAN);
@@ -515,10 +518,10 @@ void main(void)
 	POKEW(0xD020,0); // Border + background = black
 	POKE(808,239);   // Disable RUN/STOP on C64
 	POKE(792,193);   // Disable RESTORE  on C64
-	for (x=0; x<6000; ++x); // Initial pause for handling direct "RUN" from u2(+)
 #endif
 
-	for (c=0; c<25; ++c) POKE(0xD400 + c, 0);
+	for (x=0; x<6000; ++x); // Initial pause for handling direct "RUN" from u2(+)
+	for (c=0; c<25; ++c) POKE(0xD400 + c, 0); // Initialize SID
 	printf("Accessing network target...\n(if no response, perhaps connection was\nnot closed?");
 
 	uii_settarget(TARGET_NETWORK);
@@ -533,28 +536,23 @@ void main(void)
 		term_displayheader();
 		gotoxy(0,2);
 		printf("%c\n[F7] to close the connection when done\n", CG_COLOR_YELLOW);
-
-#ifdef __C128__
-		printf("\n * Connecting to %s:%u\n\n", host, port);
-#else
 		printf("\n * Connecting to\n   %s:%u\n\n", host, port);
-#endif
 		
-		uii_tcpconnect(host, port);
-		socketnr = uii_data[0];
+		socketnr = uii_tcpconnect(host, port);
 		
-		if (uii_status[0] == '0' && uii_status[1] == '0') {
+		if (uii_tcpconnect_success()) {
 			putchar(CG_COLOR_CYAN);
 			cursor_on();
 			while(1) {
-				uii_tcpsocketread(socketnr, 892);
-				datacount = uii_data[0] | (uii_data[1]<<8);
+				datacount = uii_tcpsocketread(socketnr, 892);
 
-				if(datacount > 0) {
+				if (datacount == 0) { // datacount == 0 means "disconnected"
+					break;
+				} else if (datacount > 0) {
 					cursor_off();
 					if (asciimode) putstring_ascii(uii_data+2); else uii_data_print();
 					cursor_on();
-				}
+				} // datacount == -1 means "wait state"
 
 				c = kbhit();
 				if(c != 0) {
@@ -564,13 +562,15 @@ void main(void)
 						help_screen();
 					else if (c == 134) // KEY F3: switch petscii/ascii
 						asciimode = !asciimode;
+					else if (c == 135) // KEY F5: download (punter protocol)
+						download_punter();
 					else if (c == 136) // KEY F7: close connection
 						break;
 					else
 						uii_tcpsocketwrite(socketnr, buff);
 				}
 			}
-			printf("%c\n\nClosing connection", 14);
+			printf("%c\nClosing connection", 14);
 			uii_tcpclose(socketnr);
 			cursor_off();
 		}
@@ -720,13 +720,45 @@ void help_screen(void) {
 	putchar(CG_COLOR_WHITE);
 	clrscr();
 	putchar(14);
-	gotoxy(LINE1,1); printf("HELP SCREEN");
-	gotoxy(LINE1,2); printf("\243\243\243\243\243\243\243\243\243\243\243");
+	gotoxy(LINE1,1);  printf("HELP SCREEN");
+	gotoxy(LINE1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243");
 	gotoxy(LINE2,20); printf("Press any key to go back");
-	gotoxy(LINE3,5); printf("\022 F1 \222  This HELP screen");
-	gotoxy(LINE3,7); printf("\022 F3 \222  Switch PETSCII/ASCII");
-	gotoxy(LINE3,9); printf("\022 F7 \222  Exit BBS");
+	gotoxy(LINE3,5);  printf("\022 F1 \222  This HELP screen");
+	gotoxy(LINE3,7);  printf("\022 F3 \222  Switch PETSCII/ASCII");
+	gotoxy(LINE3,9);  printf("\022 F5 \222  Download with Punter");
+	gotoxy(LINE3,11); printf("\022 F7 \222  Exit BBS");
 
+	POKE(KEYBOARD_BUFFER,0);
+	cgetc();
+	POKE(KEYBOARD_BUFFER,0);
+	restore_screen();
+	cursor_on();
+}
+
+void download_punter(void) {
+	#ifdef __C128__
+	#define LINEP1 27 
+	#define LINEP2 27
+	#define LINEP3 27
+	#else
+	#define LINEP1 7
+	#define LINEP2 7
+	#define LINEP3 7
+	#endif
+	cursor_off();
+	save_screen();
+
+	putchar(CG_COLOR_WHITE);
+	clrscr();
+	putchar(14);
+	gotoxy(LINEP1,1);  printf("DOWNLOAD - PUNTER PROTOCOL");
+	gotoxy(LINEP1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
+							  "\243\243\243\243\243\243\243\243\243\243\243\243\243");
+	gotoxy(LINEP1,7);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
+							  "\243\243\243\243\243\243\243\243\243\243\243\243\243\243");
+	putchar(CG_COLOR_L_GRAY);
+	gotoxy(LINEP3,5);  printf("Work in progress, coming soon");
+	gotoxy(LINEP2,20); printf("Press any key to go back");
 	POKE(KEYBOARD_BUFFER,0);
 	cgetc();
 	POKE(KEYBOARD_BUFFER,0);

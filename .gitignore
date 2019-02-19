@@ -5,3 +5,6 @@ Thumbs.db
 **/Thumbs.db
 src/geouterm-res.h
 src/geouterm-res.s
+src/*.o
+sandbox/*.o
+target/*.o

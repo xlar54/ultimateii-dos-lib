@@ -1,6 +1,6 @@
 /*****************************************************************
 Ultimate II+ DOS Command Library
-Scott Hutter
+Scott Hutter, Francesco Sblendorio
 
 Based on ultimate_dos-1.1.docx and command interface.docx
 https://github.com/markusC64/1541ultimate2/tree/master/doc
@@ -36,6 +36,8 @@ Patches and pull requests are welcome
 //#define DEBUG
 #define DISPLAY_READ
 
+#define uii_tcpconnect_success() (uii_status[0] == '0' && uii_status[1] == '0')
+
 extern unsigned char uii_status[STATUS_QUEUE_SZ];
 extern unsigned char uii_data[DATA_QUEUE_SZ*2];
 
@@ -69,10 +71,11 @@ void uii_echo(void);
 
 void uii_getinterfacecount(void);
 void uii_getipaddress(void);
-void uii_tcpconnect(char* host, unsigned short port);
+unsigned char uii_tcpconnect(char* host, unsigned short port);
 void uii_tcpclose(unsigned char socketid);
-void uii_tcpsocketread(unsigned char socketid, unsigned short length);
+int uii_tcpsocketread(unsigned char socketid, unsigned short length);
 void uii_tcpsocketwrite(unsigned char socketid, char *data);
+void uii_tcpsocketwrite_ascii(unsigned char socketid, char *data);
 
 void uii_logtext(char *text);
 void uii_logstatusreg(void);
@@ -83,5 +86,9 @@ void uii_accept(void);
 void uii_abort(void);
 int uii_isdataavailable(void);
 int uii_isstatusdataavailable(void);
+
+char uii_tcp_nextchar(unsigned char socketid);
+int uii_tcp_nextline(unsigned char socketid, char*);
+int uii_tcp_nextline_ascii(unsigned char socketid, char*);
 
 #endif

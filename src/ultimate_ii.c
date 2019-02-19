@@ -1,6 +1,6 @@
 /*****************************************************************
 Ultimate II+ DOS Command Library
-Scott Hutter
+Scott Hutter, Francesco Sblendorio
 
 Based on ultimate_dos-1.1.docx and command interface.docx
 https://github.com/markusC64/1541ultimate2/tree/master/doc
@@ -22,6 +22,8 @@ static unsigned char *statusdatareg = (unsigned char *)STATUS_DATA_REG;
 
 unsigned char uii_status[STATUS_QUEUE_SZ];
 unsigned char uii_data[DATA_QUEUE_SZ*2];
+int uii_data_index;
+int uii_data_len;
 
 unsigned char uii_target = TARGET_DOS1;
 
@@ -456,6 +458,7 @@ void uii_abort(void)
 	uii_logtext("\nsending abort");
 	*controlreg |= 0x04;
 }
+
 int uii_readdata(void) 
 {
 	int count = 0;
@@ -527,7 +530,7 @@ void uii_getipaddress(void)
 	uii_target = tempTarget;
 }
 
-void uii_tcpconnect(char* host, unsigned short port)
+unsigned char uii_tcpconnect(char* host, unsigned short port)
 {
 	unsigned char tempTarget = uii_target;
 	unsigned char cmd[] = {0x00,0x07, 0x00, 0x00};
@@ -548,7 +551,6 @@ void uii_tcpconnect(char* host, unsigned short port)
 	//for(x=0;x < 4+strlen(host)+1; x++)
 	//	printf("\nbyte %d: %d", x, fullcmd[x]);
 	
-	
 	uii_settarget(TARGET_NETWORK);
 	uii_sendcommand(fullcmd, 4+strlen(host)+1);
 
@@ -557,6 +559,10 @@ void uii_tcpconnect(char* host, unsigned short port)
 	uii_accept();
 	
 	uii_target = tempTarget;
+
+	uii_data_index = 0;
+	uii_data_len = 0;
+	return uii_data[0];
 }
 
 void uii_tcpclose(unsigned char socketid)
@@ -575,7 +581,7 @@ void uii_tcpclose(unsigned char socketid)
 	uii_target = tempTarget;
 }
 
-void uii_tcpsocketread(unsigned char socketid, unsigned short length)
+int uii_tcpsocketread(unsigned char socketid, unsigned short length)
 {
 	unsigned char tempTarget = uii_target;
 	unsigned char cmd[] = {0x00,0x10, 0x00, 0x00, 0x00};
@@ -586,7 +592,6 @@ void uii_tcpsocketread(unsigned char socketid, unsigned short length)
 	cmd[3] = length & 0xff;
 	cmd[4] = (length>>8) & 0xff;
 	
-	
 	uii_settarget(TARGET_NETWORK);
 	uii_sendcommand(cmd, 0x05);
 
@@ -595,35 +600,92 @@ void uii_tcpsocketread(unsigned char socketid, unsigned short length)
 	uii_accept();
 	
 	uii_target = tempTarget;
+	return uii_data[0] | (uii_data[1]<<8);
 }
 
 
-void uii_tcpsocketwrite(unsigned char socketid, char *data)
+void uii_tcpsocketwrite_convert_parameter(unsigned char socketid, char *data, int ascii)
 {
 	unsigned char tempTarget = uii_target;
 	unsigned char cmd[] = {0x00,0x11, 0x00};
 	int x=0;
 	unsigned char* fullcmd;
+	char c;
 	
 	fullcmd = (unsigned char *)malloc(3 + strlen(data));
 	fullcmd[0] = cmd[0];
 	fullcmd[1] = cmd[1];
 	fullcmd[2] = socketid;
 	
-	for(x=0;x<strlen(data);x++)
-		fullcmd[x+3] = data[x];
+	for(x=0;x<strlen(data);x++){
+		c = data[x];
+		if (ascii) {
+			if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
+            else if (c>=65 && c<=90) c |= 32;
+            else if (c==13) c=10;
+		}
+		fullcmd[x+3] = c;
+	}
 	
 	fullcmd[3+strlen(data)+1] = 0;
 	
-	//for(x=0;x < 4+strlen(host)+1; x++)
-	//	printf("\nbyte %d: %d", x, fullcmd[x]);
-
 	uii_settarget(TARGET_NETWORK);
 	uii_sendcommand(fullcmd, 3+strlen(data));
 
 	uii_readdata();
 	uii_readstatus();
 	uii_accept();
-	
+
 	uii_target = tempTarget;
+	
+	uii_data_index = 0;
+	uii_data_len = 0;
+}
+
+void uii_tcpsocketwrite(unsigned char socketid, char *data) {
+	uii_tcpsocketwrite_convert_parameter(socketid, data, 0);
+}
+
+void uii_tcpsocketwrite_ascii(unsigned char socketid, char *data) {
+	uii_tcpsocketwrite_convert_parameter(socketid, data, 1);
+}
+
+char uii_tcp_nextchar(unsigned char socketid) {
+    char result;
+    if (uii_data_index < uii_data_len) {
+        result = uii_data[uii_data_index+2];
+        uii_data_index++;
+    } else {
+        do {
+            uii_data_len = uii_tcpsocketread(socketid, DATA_QUEUE_SZ-4);
+            if (uii_data_len == 0) return 0; // EOF
+        } while (uii_data_len == -1);
+        result = uii_data[2];
+        uii_data_index = 1;
+    }
+    return result;
+}
+
+int uii_tcp_nextline_convert_parameter(unsigned char socketid, char *result, int swapCase) {
+    int c, count = 0;
+    *result = 0;
+    while ((c = uii_tcp_nextchar(socketid)) != 0 && c != 0x0A) {
+    	if (c == 0x0D){
+    		continue;
+    	} else if (swapCase) {
+            if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
+            else if (c>=65 && c<=90) c |= 32;
+        }
+        result[count++] = c;
+    }
+    result[count] = 0;
+    return c != 0 || count > 0;
+}
+
+int uii_tcp_nextline(unsigned char socketid, char *result) {
+	return uii_tcp_nextline_convert_parameter(socketid, result, 0);
+}
+
+int uii_tcp_nextline_ascii(unsigned char socketid, char *result) {
+	return uii_tcp_nextline_convert_parameter(socketid, result, 1);
 }
