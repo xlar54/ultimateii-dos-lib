@@ -89,7 +89,6 @@ void load_phonebook(void);
 void save_phonebook(void);
 void help_screen(void);
 void quit(void);
-void download_punter(void);
 
 char *version = "1.61-next";
 char host[80];
@@ -562,8 +561,6 @@ void main(void)
 						help_screen();
 					else if (c == 134) // KEY F3: switch petscii/ascii
 						asciimode = !asciimode;
-					else if (c == 135) // KEY F5: download (punter protocol)
-						download_punter();
 					else if (c == 136) // KEY F7: close connection
 						break;
 					else
@@ -725,77 +722,8 @@ void help_screen(void) {
 	gotoxy(LINE2,20); printf("Press any key to go back");
 	gotoxy(LINE3,5);  printf("\022 F1 \222  This HELP screen");
 	gotoxy(LINE3,7);  printf("\022 F3 \222  Switch PETSCII/ASCII");
-	gotoxy(LINE3,9);  printf("\022 F5 \222  Download with Punter");
-	gotoxy(LINE3,11); printf("\022 F7 \222  Exit BBS");
+	gotoxy(LINE3,9);  printf("\022 F7 \222  Exit BBS");
 
-	POKE(KEYBOARD_BUFFER,0);
-	cgetc();
-	POKE(KEYBOARD_BUFFER,0);
-	restore_screen();
-	cursor_on();
-}
-
-void download_punter(void) {
-	#ifdef __C128__
-	#define LINEP1 27 
-	#define LINEP2 27
-	#define LINEP3 27
-	#else
-	#define LINEP1 7
-	#define LINEP2 7
-	#define LINEP3 7
-	#endif
-	char filename[80];
-	char buff[100];
-	char c;
-	int i;
-
-	cursor_off();
-	save_screen();
-
-	putchar(CG_COLOR_WHITE);
-	clrscr();
-	putchar(14);
-	gotoxy(LINEP1,1);  printf("DOWNLOAD - PUNTER PROTOCOL");
-	gotoxy(LINEP1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
-							  "\243\243\243\243\243\243\243\243\243\243\243\243\243");
-	gotoxy(LINEP1,7);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
-							  "\243\243\243\243\243\243\243\243\243\243\243\243\243\243");
-	putchar(CG_COLOR_L_GRAY);
-	gotoxy(LINEP3,5);  printf("Enter destination filename:");
-	gotoxy(LINEP3,6);  printf("                            ");
-	gotoxy(LINEP3,6);  term_getstring("", filename);
-	cursor_off();
-	if (!filename[0]) {
-		restore_screen();
-		cursor_on();
-		return;
-	}
-	// Start Punter transfer
-	cursor_off();
-	uii_tcpsocketwrite_ascii(socketnr, "GOO");
-	printf("SENT goo\n");
-	while (1) {
-		buff[0]=0;
-		i = 0;
-		while (i<3) {
-			c = uii_tcp_nextchar(socketnr);
-			if (c) {
-				buff[i++] = c;
-			} else goto endp;
-		}
-		buff[i]=0;
-
-		printf("RECEIVED: %s\n",  buff);
-		uii_tcpsocketwrite_ascii(socketnr, "ACK");
-		printf("SENT ack\n");
-		c = kbhit();
-		if (c) break;
-
-	}
-
-endp:
-	gotoxy(LINEP2,20); printf("Press any key to go back");
 	POKE(KEYBOARD_BUFFER,0);
 	cgetc();
 	POKE(KEYBOARD_BUFFER,0);
