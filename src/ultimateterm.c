@@ -25,7 +25,7 @@ Demo program does not alter any data
 #define RESET_MACHINE	asm("jmp $FF3D");
 #define SCREEN_WIDTH	80
 #define KEYBOARD_BUFFER 208
-#define DISPLAY_HEADER	printf("%cUltimateTerm 128 v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#define DISPLAY_HEADER	printf("%c%cUltimateTerm 128 v%s %c", 14, CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 void blank_vicII(void);
 #endif
 
@@ -34,7 +34,7 @@ void blank_vicII(void);
 #define RESET_MACHINE 	asm("jmp $FCE2");
 #define SCREEN_WIDTH	40
 #define KEYBOARD_BUFFER 198
-#define DISPLAY_HEADER	printf("%cUltimateTerm v%s %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#define DISPLAY_HEADER	printf("%c%cUltimateTerm v%s %c", 14, CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
 #include <conio.h>
