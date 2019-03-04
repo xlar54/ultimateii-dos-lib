@@ -717,7 +717,7 @@ void help_screen(void) {
 	putchar(CG_COLOR_WHITE);
 	clrscr();
 	putchar(14);
-	gotoxy(LINE1,1);  printf("HELP SCREEN");
+	gotoxy(LINE1,1);  printf("\222HELP SCREEN");
 	gotoxy(LINE1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243");
 	gotoxy(LINE2,20); printf("Press any key to go back");
 	gotoxy(LINE3,5);  printf("\022 F1 \222  This HELP screen");
