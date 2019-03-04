@@ -756,7 +756,7 @@ void download_punter(void) {
 	putchar(CG_COLOR_WHITE);
 	clrscr();
 	putchar(14);
-	gotoxy(LINEP1,1);  printf("DOWNLOAD - PUNTER PROTOCOL");
+	gotoxy(LINEP1,1);  printf("\222DOWNLOAD - PUNTER PROTOCOL");
 	gotoxy(LINEP1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
 							  "\243\243\243\243\243\243\243\243\243\243\243\243\243");
 	gotoxy(LINEP1,7);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
