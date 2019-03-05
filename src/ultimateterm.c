@@ -25,6 +25,7 @@ Demo program does not alter any data
 #define RESET_MACHINE	asm("jmp $FF3D");
 #define SCREEN_WIDTH	80
 #define KEYBOARD_BUFFER 208
+#define QUOTE_MODE      244
 #define DISPLAY_HEADER	printf("%c%cUltimateTerm 128 v%s %c", 14, CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 void blank_vicII(void);
 #endif
@@ -34,6 +35,7 @@ void blank_vicII(void);
 #define RESET_MACHINE 	asm("jmp $FCE2");
 #define SCREEN_WIDTH	40
 #define KEYBOARD_BUFFER 198
+#define QUOTE_MODE      212
 #define DISPLAY_HEADER	printf("%c%cUltimateTerm v%s %c", 14, CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
@@ -168,6 +170,7 @@ int term_getstring(char* def, char *buf) {
 						buf[x++] = c;
 						cursor_off();
 						putchar(c);
+						POKE(QUOTE_MODE, 0);
 						cursor_on();
 					}
 			}
@@ -721,9 +724,10 @@ void help_screen(void) {
 	#endif
 	cursor_off();
 	save_screen();
+	POKE(QUOTE_MODE, 0);
 
 	putchar(CG_COLOR_WHITE);
-	clrscr(); printf("\r\n"); clrscr();
+	clrscr();
 	putchar(14);
 	gotoxy(LINE1,1);  printf("\222HELP SCREEN");
 	gotoxy(LINE1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243");
@@ -766,9 +770,10 @@ void download_xmodem(void) {
 	blocknumber = 1;
 	cursor_off();
 	save_screen();
+	POKE(QUOTE_MODE, 0);
 
 	putchar(CG_COLOR_WHITE);
-	clrscr(); printf("\r\n"); clrscr();
+	clrscr();
 	putchar(14);
 	gotoxy(LINEP1,1);  printf("\222DOWNLOAD - XMODEM PROTOCOL");
 	gotoxy(LINEP1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
