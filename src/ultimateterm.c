@@ -70,6 +70,11 @@ void blank_vicII(void);
 
 #define PB_SIZE 1640
 
+#define SOH  ((char)1)     /* Start Of Header */
+#define EOT  ((char)4)     /* End Of Transmission */
+#define ACK  ((char)6)     /* ACKnowlege */
+#define NAK  ((char)0x15)  /* Negative AcKnowlege */
+
 void uii_data_print(void);
 int term_getstring(char* def, char *buf);
 void term_displayheader(void);
@@ -89,7 +94,7 @@ void load_phonebook(void);
 void save_phonebook(void);
 void help_screen(void);
 void quit(void);
-void download_punter(void);
+void download_xmodem(void);
 
 char *version = "1.61-next";
 char host[80];
@@ -562,8 +567,8 @@ void main(void)
 						help_screen();
 					else if (c == 134) // KEY F3: switch petscii/ascii
 						asciimode = !asciimode;
-					else if (c == 135) // KEY F5: download (punter protocol)
-						download_punter();
+					else if (c == 135) // KEY F5: download (xmodem protocol)
+						download_xmodem();
 					else if (c == 136) // KEY F7: close connection
 						break;
 					else
@@ -718,14 +723,14 @@ void help_screen(void) {
 	save_screen();
 
 	putchar(CG_COLOR_WHITE);
-	clrscr();
+	clrscr(); printf("\r\n"); clrscr();
 	putchar(14);
 	gotoxy(LINE1,1);  printf("\222HELP SCREEN");
 	gotoxy(LINE1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243");
 	gotoxy(LINE2,20); printf("Press any key to go back");
 	gotoxy(LINE3,5);  printf("\022 F1 \222  This HELP screen");
 	gotoxy(LINE3,7);  printf("\022 F3 \222  Switch PETSCII/ASCII");
-	gotoxy(LINE3,9);  printf("\022 F5 \222  Download with Punter");
+	gotoxy(LINE3,9);  printf("\022 F5 \222  Download with Xmodem");
 	gotoxy(LINE3,11); printf("\022 F7 \222  Exit BBS");
 
 	POKE(KEYBOARD_BUFFER,0);
@@ -735,7 +740,7 @@ void help_screen(void) {
 	cursor_on();
 }
 
-void download_punter(void) {
+void download_xmodem(void) {
 	#ifdef __C128__
 	#define LINEP1 27 
 	#define LINEP2 27
@@ -745,18 +750,27 @@ void download_punter(void) {
 	#define LINEP2 7
 	#define LINEP3 7
 	#endif
-	char filename[80];
-	char buff[100];
-	char c;
-	int i;
 
+	#define MAXERRORS 10
+	#define SECSIZE   128
+	char filename[80];
+	char c;
+	char not_c;
+	char blocknumber;
+	char checksum;
+	int i;
+	int errorcount;
+	char sector[SECSIZE];
+
+	errorcount = 0;
+	blocknumber = 1;
 	cursor_off();
 	save_screen();
 
 	putchar(CG_COLOR_WHITE);
-	clrscr();
+	clrscr(); printf("\r\n"); clrscr();
 	putchar(14);
-	gotoxy(LINEP1,1);  printf("\222DOWNLOAD - PUNTER PROTOCOL");
+	gotoxy(LINEP1,1);  printf("\222DOWNLOAD - XMODEM PROTOCOL");
 	gotoxy(LINEP1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
 							  "\243\243\243\243\243\243\243\243\243\243\243\243\243");
 	gotoxy(LINEP1,7);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
@@ -771,30 +785,54 @@ void download_punter(void) {
 		cursor_on();
 		return;
 	}
-	// Start Punter transfer
+	// Start Xmodem transfer
 	cursor_off();
-	uii_tcpsocketwrite_ascii(socketnr, "GOO");
-	printf("SENT goo\n");
-	while (1) {
-		buff[0]=0;
-		i = 0;
-		while (i<3) {
-			c = uii_tcp_nextchar(socketnr);
-			if (c) {
-				buff[i++] = c;
-			} else goto endp;
+	uii_tcpsocketwritechar(socketnr, NAK);
+	
+	do {
+		c = uii_tcp_nextchar(socketnr);
+		if (c != EOT) {
+			if (c != SOH) {
+				printf("ERRORE!!!!!: not SOH (but %d)\n", c);
+				if (++errorcount < MAXERRORS)
+					continue;
+				else {
+					printf("ERRORE!!!!!!!!\n");
+					break;
+				}
+				c = uii_tcp_nextchar(socketnr);
+				not_c = ~uii_tcp_nextchar(socketnr);
+				if (c != not_c) {
+					printf("ERRORE!!!!! Blockcounts not ~");
+					++errorcount;
+					continue;
+				}
+				if (c != blocknumber) {
+					printf("ERRORE!!!!! Wrong blocknumber");
+					++errorcount;
+					continue;
+				}
+				checksum = 0;
+				for (i=0; i<SECSIZE; ++i) {
+					sector[i] = uii_tcp_nextchar(socketnr);
+					checksum += sector[i];
+				}
+				if (checksum != uii_tcp_nextchar(socketnr)) {
+					printf("ERRORE!!!!! Bad checksum");
+					++errorcount;
+					continue;
+				}
+				uii_tcpsocketwritechar(socketnr, ACK);
+				++blocknumber;
+				// write(sector)
+				printf("BLOCK-OK ");
+
+				if (errorcount != 0)
+					uii_tcpsocketwritechar(socketnr, NAK);
+			}
 		}
-		buff[i]=0;
+	} while (c != EOT);
 
-		printf("RECEIVED: %s\n",  buff);
-		uii_tcpsocketwrite_ascii(socketnr, "ACK");
-		printf("SENT ack\n");
-		c = kbhit();
-		if (c) break;
-
-	}
-
-endp:
 	gotoxy(LINEP2,20); printf("Press any key to go back");
 	POKE(KEYBOARD_BUFFER,0);
 	cgetc();

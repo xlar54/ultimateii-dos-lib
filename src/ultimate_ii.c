@@ -22,6 +22,7 @@ static unsigned char *statusdatareg = (unsigned char *)STATUS_DATA_REG;
 
 unsigned char uii_status[STATUS_QUEUE_SZ];
 unsigned char uii_data[DATA_QUEUE_SZ*2];
+unsigned char temp_string_onechar[2];
 int uii_data_index;
 int uii_data_len;
 
@@ -640,6 +641,13 @@ void uii_tcpsocketwrite_convert_parameter(unsigned char socketid, char *data, in
 	
 	uii_data_index = 0;
 	uii_data_len = 0;
+}
+
+void uii_tcpsocketwritechar(unsigned char socketid, char one_char) {
+	temp_string_onechar[0] = one_char;
+	temp_string_onechar[1] = 0;
+
+	uii_tcpsocketwrite(socketid, temp_string_onechar);
 }
 
 void uii_tcpsocketwrite(unsigned char socketid, char *data) {
