@@ -844,10 +844,11 @@ void download_xmodem(void) {
 			if (errorcount != 0)
 				uii_tcpsocketwritechar(socketnr, NAK);
 
-		} else printf("\n\n\n\n\n\n\n\nFOUND EOT: $d\n", c);
+		} else printf("\n\n\n\n\n\n\n\nFOUND EOT: %d\n", c);
 	} while (c != EOT);
 
-	printf("\n\nUSCITO con c=%d\n",c);
+	if (c != EOT) printf("NotEOT-"); else printf("EOT-");
+	printf("\n\nEXIT WITH con c=%d\n",c);
 	//close file
 	uii_tcpsocketwritechar(socketnr, ACK);
 	uii_tcpsocketwritechar(socketnr, ACK);
