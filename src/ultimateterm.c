@@ -809,13 +809,12 @@ void download_xmodem(void) {
 				if (++errorcount < MAXERRORS)
 					continue;
 				else {
-					printf("ERRORE!!!!!!!!\n");
+					printf("\n\n\n\n\n\nERRORE!!!!!!!!\n");
 					break;
 				}
 			}
 			c = uii_tcp_nextchar(socketnr);
 			not_c = ~uii_tcp_nextchar(socketnr);
-			printf("CONTROLLO c=%d, not_c=%d\n", c, not_c);
 			if (c != not_c) {
 				printf("ERRORE!!!!! Blockcounts not ~");
 				++errorcount;
@@ -830,6 +829,7 @@ void download_xmodem(void) {
 			for (i=0; i<SECSIZE; ++i) {
 				sector[i] = uii_tcp_nextchar(socketnr);
 				checksum += sector[i];
+				POKE(QUOTE_MODE, 1); putchar(sector[i]);
 			}
 			if (checksum != uii_tcp_nextchar(socketnr)) {
 				printf("ERRORE!!!!! Bad checksum");
@@ -839,15 +839,22 @@ void download_xmodem(void) {
 			uii_tcpsocketwritechar(socketnr, ACK);
 			++blocknumber;
 			// write(sector)
-			printf("BLOCK-OK ");
+			printf(" BLOCK-OK\n");
 
 			if (errorcount != 0)
 				uii_tcpsocketwritechar(socketnr, NAK);
 
-		}
+		} else printf("\n\n\n\n\n\n\n\nFOUND EOT: $d\n", c);
 	} while (c != EOT);
 
-	gotoxy(LINEP2,20); printf("Press any key to go back");
+	printf("\n\nUSCITO con c=%d\n",c);
+	//close file
+	uii_tcpsocketwritechar(socketnr, ACK);
+	uii_tcpsocketwritechar(socketnr, ACK);
+	uii_tcpsocketwritechar(socketnr, ACK);
+
+	//gotoxy(LINEP2,20);
+	printf("Press any key to go back");
 	POKE(KEYBOARD_BUFFER,0);
 	cgetc();
 	POKE(KEYBOARD_BUFFER,0);

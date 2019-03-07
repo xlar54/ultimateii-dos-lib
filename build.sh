@@ -33,6 +33,10 @@ c1541 -attach UltimateTerm-and-demos.d64 -geoswrite ../src/cbm40.cvt
 c1541 -attach UltimateTerm-and-demos.d64 -geoswrite ../src/cbm80.cvt
 c1541 -attach UltimateTerm-and-demos.d64 -write ../src/u-term.seq u-term,s
 
+c1541 -format "term,sh" d64 term.d64
+c1541 -attach term.d64 -write u-term64.prg u-term64
+
+
 rm -f geouterm.cvt
 rm -f term-loader.prg
 
