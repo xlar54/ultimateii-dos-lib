@@ -793,7 +793,14 @@ void download_xmodem(void) {
 	// Start Xmodem transfer
 	cursor_off();
 	uii_tcpsocketwritechar(socketnr, NAK);
-	
+
+/*
+	for (i=0; i<30; ++i) {
+		c = uii_tcp_nextchar(socketnr);
+		printf("%d ", c);
+	}
+	printf("\n");
+*/
 	do {
 		c = uii_tcp_nextchar(socketnr);
 		if (c != EOT) {
@@ -805,36 +812,38 @@ void download_xmodem(void) {
 					printf("ERRORE!!!!!!!!\n");
 					break;
 				}
-				c = uii_tcp_nextchar(socketnr);
-				not_c = ~uii_tcp_nextchar(socketnr);
-				if (c != not_c) {
-					printf("ERRORE!!!!! Blockcounts not ~");
-					++errorcount;
-					continue;
-				}
-				if (c != blocknumber) {
-					printf("ERRORE!!!!! Wrong blocknumber");
-					++errorcount;
-					continue;
-				}
-				checksum = 0;
-				for (i=0; i<SECSIZE; ++i) {
-					sector[i] = uii_tcp_nextchar(socketnr);
-					checksum += sector[i];
-				}
-				if (checksum != uii_tcp_nextchar(socketnr)) {
-					printf("ERRORE!!!!! Bad checksum");
-					++errorcount;
-					continue;
-				}
-				uii_tcpsocketwritechar(socketnr, ACK);
-				++blocknumber;
-				// write(sector)
-				printf("BLOCK-OK ");
-
-				if (errorcount != 0)
-					uii_tcpsocketwritechar(socketnr, NAK);
 			}
+			c = uii_tcp_nextchar(socketnr);
+			not_c = ~uii_tcp_nextchar(socketnr);
+			printf("CONTROLLO c=%d, not_c=%d\n", c, not_c);
+			if (c != not_c) {
+				printf("ERRORE!!!!! Blockcounts not ~");
+				++errorcount;
+				continue;
+			}
+			if (c != blocknumber) {
+				printf("ERRORE!!!!! Wrong blocknumber");
+				++errorcount;
+				continue;
+			}
+			checksum = 0;
+			for (i=0; i<SECSIZE; ++i) {
+				sector[i] = uii_tcp_nextchar(socketnr);
+				checksum += sector[i];
+			}
+			if (checksum != uii_tcp_nextchar(socketnr)) {
+				printf("ERRORE!!!!! Bad checksum");
+				++errorcount;
+				continue;
+			}
+			uii_tcpsocketwritechar(socketnr, ACK);
+			++blocknumber;
+			// write(sector)
+			printf("BLOCK-OK ");
+
+			if (errorcount != 0)
+				uii_tcpsocketwritechar(socketnr, NAK);
+
 		}
 	} while (c != EOT);
 
