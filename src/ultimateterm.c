@@ -744,6 +744,21 @@ void help_screen(void) {
 	cursor_on();
 }
 
+void process_xmodem_sector(char sector[], char is_eot) {
+	int len = 128;
+	int i;
+
+	if (is_eot)
+		while (len > 0 && sector[len-1] == 26)
+			--len;
+
+	for (i=0; i<len; ++i) {
+		POKE(QUOTE_MODE, 1);
+		printf("%c",sector[i]);
+	}
+	printf(" LEN=%d\n",len);
+}
+
 void download_xmodem(void) {
 	#ifdef __C128__
 	#define LINEP1 27 
@@ -759,12 +774,14 @@ void download_xmodem(void) {
 	#define SECSIZE   128
 	char filename[80];
 	char c;
-	char not_c;
+	char b;
+	char not_b;
 	char blocknumber;
 	char checksum;
 	int i;
 	int errorcount;
 	char sector[SECSIZE];
+	char firstread;
 
 	errorcount = 0;
 	blocknumber = 1;
@@ -775,15 +792,20 @@ void download_xmodem(void) {
 	putchar(CG_COLOR_WHITE);
 	clrscr();
 	putchar(14);
-	gotoxy(LINEP1,1);  printf("\222DOWNLOAD - XMODEM PROTOCOL");
-	gotoxy(LINEP1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
+	gotoxy(LINEP1,1); printf("\222DOWNLOAD - XMODEM PROTOCOL");
+	gotoxy(LINEP1,2); printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
 							  "\243\243\243\243\243\243\243\243\243\243\243\243\243");
-	gotoxy(LINEP1,7);  printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
+	gotoxy(LINEP1,7); printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
 							  "\243\243\243\243\243\243\243\243\243\243\243\243\243\243");
 	putchar(CG_COLOR_L_GRAY);
-	gotoxy(LINEP3,5);  printf("Enter destination filename:");
-	gotoxy(LINEP3,6);  printf("                            ");
-	gotoxy(LINEP3,6);  term_getstring("", filename);
+	gotoxy(LINEP3,5); printf("Enter destination filename:");
+	gotoxy(LINEP3,6); printf("                            ");
+	gotoxy(LINEP3,6); term_getstring("", filename);
+	gotoxy(LINEP3,8); printf("\022P\222RG or \022S\222EQ? ");
+	POKE(KEYBOARD_BUFFER, 0);
+	c = cgetc();
+	POKE(KEYBOARD_BUFFER, 0);
+	printf("\nWAIT PLEASE...");
 	cursor_off();
 	if (!filename[0]) {
 		restore_screen();
@@ -794,15 +816,12 @@ void download_xmodem(void) {
 	cursor_off();
 	uii_tcpsocketwritechar(socketnr, NAK);
 
-/*
-	for (i=0; i<30; ++i) {
-		c = uii_tcp_nextchar(socketnr);
-		printf("%d ", c);
-	}
-	printf("\n");
-*/
+	firstread = 1;
 	do {
 		c = uii_tcp_nextchar(socketnr);
+		if (!firstread) {
+			process_xmodem_sector(sector, c == EOT);
+		}
 		if (c != EOT) {
 			if (c != SOH) {
 				printf("ERRORE!!!!!: not SOH (but %d)\n", c);
@@ -813,14 +832,18 @@ void download_xmodem(void) {
 					break;
 				}
 			}
-			c = uii_tcp_nextchar(socketnr);
-			not_c = ~uii_tcp_nextchar(socketnr);
-			if (c != not_c) {
+			b = uii_tcp_nextchar(socketnr);
+			not_b = ~uii_tcp_nextchar(socketnr);
+			if (b != not_b) {
 				printf("ERRORE!!!!! Blockcounts not ~");
 				++errorcount;
 				continue;
 			}
-			if (c != blocknumber) {
+
+			printf("BLOCK N.%d\n",b);
+
+
+			if (b != blocknumber) {
 				printf("ERRORE!!!!! Wrong blocknumber");
 				++errorcount;
 				continue;
@@ -829,7 +852,6 @@ void download_xmodem(void) {
 			for (i=0; i<SECSIZE; ++i) {
 				sector[i] = uii_tcp_nextchar(socketnr);
 				checksum += sector[i];
-				POKE(QUOTE_MODE, 1); putchar(sector[i]);
 			}
 			if (checksum != uii_tcp_nextchar(socketnr)) {
 				printf("ERRORE!!!!! Bad checksum");
@@ -844,7 +866,8 @@ void download_xmodem(void) {
 			if (errorcount != 0)
 				uii_tcpsocketwritechar(socketnr, NAK);
 
-		} else printf("\n\n\n\n\n\n\n\nFOUND EOT: %d\n", c);
+			firstread = 0;
+		}
 	} while (c != EOT);
 
 	if (c != EOT) printf("NotEOT-"); else printf("EOT-");
