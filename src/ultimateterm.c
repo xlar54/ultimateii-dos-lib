@@ -746,17 +746,14 @@ void help_screen(void) {
 
 void process_xmodem_sector(char sector[], char is_eot) {
 	int len = 128;
-	int i;
+	unsigned char status;
 
 	if (is_eot)
 		while (len > 0 && sector[len-1] == 26)
 			--len;
 
-	for (i=0; i<len; ++i) {
-		POKE(QUOTE_MODE, 1);
-		printf("%c",sector[i]);
-	}
-	printf(" LEN=%d\n",len);
+	if (len > 0)
+		status = cbm_write(2, sector, len);
 }
 
 void download_xmodem(void) {
@@ -773,12 +770,13 @@ void download_xmodem(void) {
 	#define MAXERRORS 10
 	#define SECSIZE   128
 	char filename[80];
+	char scratch_cmd[80];
 	char c;
 	char b;
 	char not_b;
 	char blocknumber;
 	char checksum;
-	int i;
+	int i, status;
 	int errorcount;
 	char sector[SECSIZE];
 	char firstread;
@@ -801,17 +799,44 @@ void download_xmodem(void) {
 	gotoxy(LINEP3,5); printf("Enter destination filename:");
 	gotoxy(LINEP3,6); printf("                            ");
 	gotoxy(LINEP3,6); term_getstring("", filename);
-	gotoxy(LINEP3,8); printf("\022P\222RG or \022S\222EQ? ");
-	POKE(KEYBOARD_BUFFER, 0);
-	c = cgetc();
-	POKE(KEYBOARD_BUFFER, 0);
-	printf("\nWAIT PLEASE...");
-	cursor_off();
-	if (!filename[0]) {
+	if (filename[0] == 0 || dev < 8) {
 		restore_screen();
 		cursor_on();
 		return;
 	}
+	for (i=0; i<strlen(filename); ++i) {
+		c = filename[i];
+		if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
+		filename[i] = c;
+	}
+	gotoxy(LINEP3,8); printf("\022P\222RG or \022S\222EQ? ");
+	POKE(KEYBOARD_BUFFER, 0);
+	cursor_on();
+	do {
+		c = cgetc();
+		if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
+	} while (c != 'p' && c !='s');
+	if (c == 'p') strcat(filename, ",p"); else strcat(filename, ",s");
+	strcpy(scratch_cmd, "s:");
+	strcat(scratch_cmd, filename);
+
+	cursor_off();
+	POKE(KEYBOARD_BUFFER, 0);
+	putchar(c);
+	gotoxy(0,10); printf("WAIT PLEASE.");
+	cursor_off();
+	// Open file in write mode
+	cbm_close(15); cbm_close(2);
+	cbm_open(15, dev, 15, scratch_cmd); cbm_close(15);
+	status = cbm_open(2, dev, CBM_WRITE, filename);
+	if (status) {
+		printf("\n\nI/O ERROR. Download aborted.");
+		cgetc();
+		restore_screen();
+		cursor_on();
+		return;
+	}
+
 	// Start Xmodem transfer
 	cursor_off();
 	uii_tcpsocketwritechar(socketnr, NAK);
@@ -820,31 +845,28 @@ void download_xmodem(void) {
 	do {
 		c = uii_tcp_nextchar(socketnr);
 		if (!firstread) {
+			putchar('.');
 			process_xmodem_sector(sector, c == EOT);
 		}
 		if (c != EOT) {
 			if (c != SOH) {
-				printf("ERRORE!!!!!: not SOH (but %d)\n", c);
+				printf("\nERROR: expected SOH, received: %d\n", c);
 				if (++errorcount < MAXERRORS)
 					continue;
 				else {
-					printf("\n\n\n\n\n\nERRORE!!!!!!!!\n");
+					printf("\nFATAL: too may errors\n");
 					break;
 				}
 			}
 			b = uii_tcp_nextchar(socketnr);
 			not_b = ~uii_tcp_nextchar(socketnr);
 			if (b != not_b) {
-				printf("ERRORE!!!!! Blockcounts not ~");
+				printf("\nERROR during checking blocknumber parity");
 				++errorcount;
 				continue;
 			}
-
-			printf("BLOCK N.%d\n",b);
-
-
 			if (b != blocknumber) {
-				printf("ERRORE!!!!! Wrong blocknumber");
+				printf("\nERROR: Wrong blocknumber");
 				++errorcount;
 				continue;
 			}
@@ -854,14 +876,12 @@ void download_xmodem(void) {
 				checksum += sector[i];
 			}
 			if (checksum != uii_tcp_nextchar(socketnr)) {
-				printf("ERRORE!!!!! Bad checksum");
+				printf("ERROR: bad checksum");
 				++errorcount;
 				continue;
 			}
 			uii_tcpsocketwritechar(socketnr, ACK);
 			++blocknumber;
-			// write(sector)
-			printf(" BLOCK-OK\n");
 
 			if (errorcount != 0)
 				uii_tcpsocketwritechar(socketnr, NAK);
@@ -870,15 +890,17 @@ void download_xmodem(void) {
 		}
 	} while (c != EOT);
 
-	if (c != EOT) printf("NotEOT-"); else printf("EOT-");
-	printf("\n\nEXIT WITH con c=%d\n",c);
 	//close file
+	cbm_close(2);
+	cbm_open(15, dev, 15, "");
+	cbm_read(15, pb_bytes, PB_SIZE);
+	cbm_close(15);
+
 	uii_tcpsocketwritechar(socketnr, ACK);
 	uii_tcpsocketwritechar(socketnr, ACK);
 	uii_tcpsocketwritechar(socketnr, ACK);
 
-	//gotoxy(LINEP2,20);
-	printf("Press any key to go back");
+	printf("\n\nDownload finished: press any key");
 	POKE(KEYBOARD_BUFFER,0);
 	cgetc();
 	POKE(KEYBOARD_BUFFER,0);
