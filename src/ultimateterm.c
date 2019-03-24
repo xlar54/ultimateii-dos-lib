@@ -98,7 +98,7 @@ void help_screen(void);
 void quit(void);
 void download_xmodem(void);
 
-char *version = "1.61-next";
+char *version = "2.0";
 char host[80];
 char portbuff[10];
 unsigned int port = 0;
