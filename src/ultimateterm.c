@@ -25,6 +25,7 @@ Demo program does not alter any data
 #define RESET_MACHINE	asm("jmp $FF3D");
 #define SCREEN_WIDTH	80
 #define KEYBOARD_BUFFER 208
+#define QUOTE_MODE      244
 #define DISPLAY_HEADER	printf("%c%cUltimateTerm 128 v%s %c", 14, CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 void blank_vicII(void);
 #endif
@@ -34,6 +35,7 @@ void blank_vicII(void);
 #define RESET_MACHINE 	asm("jmp $FCE2");
 #define SCREEN_WIDTH	40
 #define KEYBOARD_BUFFER 198
+#define QUOTE_MODE      212
 #define DISPLAY_HEADER	printf("%c%cUltimateTerm v%s %c", 14, CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
 
@@ -70,6 +72,11 @@ void blank_vicII(void);
 
 #define PB_SIZE 1640
 
+#define SOH  ((char)1)     /* Start Of Header */
+#define EOT  ((char)4)     /* End Of Transmission */
+#define ACK  ((char)6)     /* ACKnowlege */
+#define NAK  ((char)0x15)  /* Negative AcKnowlege */
+
 void uii_data_print(void);
 int term_getstring(char* def, char *buf);
 void term_displayheader(void);
@@ -89,8 +96,9 @@ void load_phonebook(void);
 void save_phonebook(void);
 void help_screen(void);
 void quit(void);
+void download_xmodem(void);
 
-char *version = "1.61-next";
+char *version = "2.0";
 char host[80];
 char portbuff[10];
 unsigned int port = 0;
@@ -162,6 +170,7 @@ int term_getstring(char* def, char *buf) {
 						buf[x++] = c;
 						cursor_off();
 						putchar(c);
+						POKE(QUOTE_MODE, 0);
 						cursor_on();
 					}
 			}
@@ -561,6 +570,8 @@ void main(void)
 						help_screen();
 					else if (c == 134) // KEY F3: switch petscii/ascii
 						asciimode = !asciimode;
+					else if (c == 135) // KEY F5: download (xmodem protocol)
+						download_xmodem();
 					else if (c == 136) // KEY F7: close connection
 						break;
 					else
@@ -713,6 +724,7 @@ void help_screen(void) {
 	#endif
 	cursor_off();
 	save_screen();
+	POKE(QUOTE_MODE, 0);
 
 	putchar(CG_COLOR_WHITE);
 	clrscr();
@@ -722,8 +734,173 @@ void help_screen(void) {
 	gotoxy(LINE2,20); printf("Press any key to go back");
 	gotoxy(LINE3,5);  printf("\022 F1 \222  This HELP screen");
 	gotoxy(LINE3,7);  printf("\022 F3 \222  Switch PETSCII/ASCII");
-	gotoxy(LINE3,9);  printf("\022 F7 \222  Exit BBS");
+	gotoxy(LINE3,9);  printf("\022 F5 \222  Download with Xmodem");
+	gotoxy(LINE3,11); printf("\022 F7 \222  Exit BBS");
 
+	POKE(KEYBOARD_BUFFER,0);
+	cgetc();
+	POKE(KEYBOARD_BUFFER,0);
+	restore_screen();
+	cursor_on();
+}
+
+void process_xmodem_sector(char sector[], char is_eot) {
+	int len = 128;
+	unsigned char status;
+
+	if (is_eot)
+		while (len > 0 && sector[len-1] == 26)
+			--len;
+
+	if (len > 0)
+		status = cbm_write(2, sector, len);
+}
+
+void download_xmodem(void) {
+	#ifdef __C128__
+	#define LINEP1 27 
+	#define LINEP2 27
+	#define LINEP3 27
+	#else
+	#define LINEP1 7
+	#define LINEP2 7
+	#define LINEP3 7
+	#endif
+
+	#define MAXERRORS 10
+	#define SECSIZE   128
+	char filename[80];
+	char scratch_cmd[80];
+	char c;
+	char b;
+	char not_b;
+	char blocknumber;
+	char checksum;
+	int i, status;
+	int errorcount;
+	char sector[SECSIZE];
+	char firstread;
+
+	errorcount = 0;
+	blocknumber = 1;
+	cursor_off();
+	save_screen();
+	POKE(QUOTE_MODE, 0);
+
+	putchar(CG_COLOR_WHITE);
+	clrscr();
+	putchar(14);
+	gotoxy(LINEP1,1); printf("\222DOWNLOAD - XMODEM PROTOCOL");
+	gotoxy(LINEP1,2); printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
+							  "\243\243\243\243\243\243\243\243\243\243\243\243\243");
+	gotoxy(LINEP1,7); printf("\243\243\243\243\243\243\243\243\243\243\243\243\243"
+							  "\243\243\243\243\243\243\243\243\243\243\243\243\243\243");
+	putchar(CG_COLOR_L_GRAY);
+	gotoxy(LINEP3,5); printf("Enter destination filename:");
+	gotoxy(LINEP3,6); printf("                            ");
+	gotoxy(LINEP3,6); term_getstring("", filename);
+	if (filename[0] == 0 || dev < 8) {
+		restore_screen();
+		cursor_on();
+		return;
+	}
+	for (i=0; i<strlen(filename); ++i) {
+		c = filename[i];
+		if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
+		filename[i] = c;
+	}
+	gotoxy(LINEP3,8); printf("\022P\222RG or \022S\222EQ? ");
+	POKE(KEYBOARD_BUFFER, 0);
+	cursor_on();
+	do {
+		c = cgetc();
+		if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
+	} while (c != 'p' && c !='s');
+	if (c == 'p') strcat(filename, ",p"); else strcat(filename, ",s");
+	strcpy(scratch_cmd, "s:");
+	strcat(scratch_cmd, filename);
+
+	cursor_off();
+	POKE(KEYBOARD_BUFFER, 0);
+	putchar(c);
+	gotoxy(0,10); printf("WAIT PLEASE.");
+	cursor_off();
+	// Open file in write mode
+	cbm_close(15); cbm_close(2);
+	cbm_open(15, dev, 15, scratch_cmd); cbm_close(15);
+	status = cbm_open(2, dev, CBM_WRITE, filename);
+	if (status) {
+		printf("\n\nI/O ERROR. Download aborted.");
+		cgetc();
+		restore_screen();
+		cursor_on();
+		return;
+	}
+
+	// Start Xmodem transfer
+	cursor_off();
+	uii_tcpsocketwritechar(socketnr, NAK);
+
+	firstread = 1;
+	do {
+		c = uii_tcp_nextchar(socketnr);
+		if (!firstread) {
+			putchar('.');
+			process_xmodem_sector(sector, c == EOT);
+		}
+		if (c != EOT) {
+			if (c != SOH) {
+				printf("\nERROR: expected SOH, received: %d\n", c);
+				if (++errorcount < MAXERRORS)
+					continue;
+				else {
+					printf("\nFATAL: too may errors\n");
+					break;
+				}
+			}
+			b = uii_tcp_nextchar(socketnr);
+			not_b = ~uii_tcp_nextchar(socketnr);
+			if (b != not_b) {
+				printf("\nERROR during checking blocknumber parity");
+				++errorcount;
+				continue;
+			}
+			if (b != blocknumber) {
+				printf("\nERROR: Wrong blocknumber");
+				++errorcount;
+				continue;
+			}
+			checksum = 0;
+			for (i=0; i<SECSIZE; ++i) {
+				sector[i] = uii_tcp_nextchar(socketnr);
+				checksum += sector[i];
+			}
+			if (checksum != uii_tcp_nextchar(socketnr)) {
+				printf("ERROR: bad checksum");
+				++errorcount;
+				continue;
+			}
+			uii_tcpsocketwritechar(socketnr, ACK);
+			++blocknumber;
+
+			if (errorcount != 0)
+				uii_tcpsocketwritechar(socketnr, NAK);
+
+			firstread = 0;
+		}
+	} while (c != EOT);
+
+	//close file
+	cbm_close(2);
+	cbm_open(15, dev, 15, "");
+	cbm_read(15, pb_bytes, PB_SIZE);
+	cbm_close(15);
+
+	uii_tcpsocketwritechar(socketnr, ACK);
+	uii_tcpsocketwritechar(socketnr, ACK);
+	uii_tcpsocketwritechar(socketnr, ACK);
+
+	printf("\n\nDownload finished: press any key");
 	POKE(KEYBOARD_BUFFER,0);
 	cgetc();
 	POKE(KEYBOARD_BUFFER,0);
