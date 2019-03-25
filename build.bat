@@ -28,9 +28,9 @@ c1541 -attach UltimateTerm-and-demos.d64 -write u-shell.prg u-shell
 c1541 -attach UltimateTerm-and-demos.d64 -write u-sample.prg u-sample
 c1541 -attach UltimateTerm-and-demos.d64 -write u-chat64.prg u-chat64
 c1541 -attach UltimateTerm-and-demos.d64 -write u-chat128.prg u-chat128
-c1541 -attach UltimateTerm-and-demos.d64 -geoswrite geouterm.cvt
-c1541 -attach UltimateTerm-and-demos.d64 -geoswrite ..\src\cbm40.cvt
-c1541 -attach UltimateTerm-and-demos.d64 -geoswrite ..\src\cbm80.cvt
+c1541 -attach UltimateTerm-and-demos.d64 -write geouterm.cvt geoterm.cvt
+c1541 -attach UltimateTerm-and-demos.d64 -write ..\src\cbm40.cvt cbm40.cvt
+c1541 -attach UltimateTerm-and-demos.d64 -write ..\src\cbm80.cvt cbm80.cvt
 c1541 -attach UltimateTerm-and-demos.d64 -write ..\src\u-term.seq u-term,s
 
 del /Q geouterm.cvt
