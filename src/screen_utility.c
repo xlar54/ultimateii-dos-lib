@@ -1,3 +1,13 @@
+/*****************************************************************
+Screen Utility for C64 (VIC-II) and C128 (VDC)
+Francesco Sblendorio
+
+Part of code (VDC memory save/restore) based on mirkosoft's work:
+http://commodore128.mirkosoft.sk/vdc.html
+http://archive.fo/0i6MI
+
+Patches and pull requests are welcome
+******************************************************************/
 #include <conio.h>
 #include <string.h>
 #include <peekpoke.h>
