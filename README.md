@@ -9,8 +9,8 @@ https://github.com/markusC64/1541ultimate2/tree/master/doc
 Patches and pull requests are welcome
 
 I have created a simple (dos) batch file to create the
-demo programs.  Please have c1541.exe in your execution
-path (c1541.exe comes with the VICE emulator).
+demo programs.  Please have c1541.exe and petcat.exe in your execution
+path (they both come with the VICE emulator).
 
 The build will automatically create the prg files as well
 as a D64 disk image consisting of the examples.

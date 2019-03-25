@@ -1,4 +1,4 @@
-.vscode/c_cpp_properties.json
+.vscode/*.*
 .DS_Store
 **/.DS_Store
 Thumbs.db
