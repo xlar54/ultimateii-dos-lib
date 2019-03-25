@@ -83,7 +83,6 @@ void term_displayheader(void);
 void putstring_ascii(char* str);
 void term_hostselect(void);
 void term_getconfig(void);
-unsigned char term_bell(void);
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
 void detect_uci(void);
 void exit_uci_error(void);
@@ -187,7 +186,9 @@ void term_displayheader(void) {
 
 void putstring_ascii(char *str) {
 	for (; *str; str++)
-		if (*str != LF) *str==BELL ? term_bell() : putchar(ascToPet[*str]);
+		if (*str != LF) {
+			putchar(ascToPet[*str]);
+		}
 }
 
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border) {
@@ -494,16 +495,6 @@ void term_getconfig(void) {
 	gotoxy(30,11); printf("\005D%cel  \005L%coad", CG_COLOR_CYAN, CG_COLOR_CYAN);
 	gotoxy(30,12); printf("\005E%cdit \005Q%cuit", CG_COLOR_CYAN, CG_COLOR_CYAN);
 	gotoxy(0,2);
-}
-
-unsigned char term_bell(void) {
-	POKE(0xD418, 15);
-	POKE(0xD401, 20);
-	POKE(0xD405, 0);
-	POKE(0xD406, 249);
-	POKE(0xD404, 17);
-	POKE(0xD404, 16);
-	return 7;
 }
 
 void main(void) 
