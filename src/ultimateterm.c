@@ -78,6 +78,7 @@ void blank_vicII(void);
 #define NAK  ((char)0x15)  /* Negative AcKnowlege */
 
 void uii_data_print(void);
+unsigned char term_bell(void);
 unsigned char term_getstring(char* def, char *buf);
 void term_displayheader(void);
 void putstring_ascii(char* str);
@@ -133,6 +134,16 @@ unsigned char ascToPet[] = {
 0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff
 };
 
+unsigned char term_bell(void) {
+	POKE(0xD418, 15);
+	POKE(0xD401, 20);
+	POKE(0xD405, 0);
+	POKE(0xD406, 249);
+	POKE(0xD404, 17);
+	POKE(0xD404, 16);
+	return 7;
+}
+
 unsigned char term_getstring(char* def, char *buf) {
 	unsigned char c,x;
 	
@@ -186,9 +197,7 @@ void term_displayheader(void) {
 
 void putstring_ascii(char *str) {
 	for (; *str; str++)
-		if (*str != LF) {
-			putchar(ascToPet[*str]);
-		}
+		if (*str != LF) *str==BELL ? term_bell() : putchar(ascToPet[*str]);
 }
 
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border) {
