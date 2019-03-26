@@ -672,18 +672,7 @@ loop:
 	// check for bell character and perform sound if so
 	asm("cmp #$07");
 	asm("bne %g", skipbell);
-	asm("lda #$0f");
-	asm("sta $d418");
-	asm("lda #$14");
-	asm("sta $d401");
-	asm("lda #$00");
-	asm("sta $d405");
-	asm("lda #$f9");
-	asm("sta $d406");
-	asm("lda #$11");
-	asm("sta $d404");
-	asm("lda #$10");
-	asm("sta $d404");
+	asm("jsr %v", term_bell);
 	asm("jmp %g", nextch);
 skipbell:
 	asm("jsr $ffd2");
