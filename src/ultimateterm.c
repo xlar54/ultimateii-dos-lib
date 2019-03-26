@@ -795,7 +795,7 @@ void download_xmodem(void) {
 	char blocknumber;
 	char checksum;
 	unsigned char i, status;
-	int errorcount;
+	unsigned char errorcount;
 	char sector[SECSIZE];
 	char firstread;
 
