@@ -78,12 +78,12 @@ void blank_vicII(void);
 #define NAK  ((char)0x15)  /* Negative AcKnowlege */
 
 void uii_data_print(void);
-int term_getstring(char* def, char *buf);
+unsigned char term_bell(void);
+unsigned char term_getstring(char* def, char *buf);
 void term_displayheader(void);
 void putstring_ascii(char* str);
 void term_hostselect(void);
 void term_getconfig(void);
-int term_bell(void);
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
 void detect_uci(void);
 void exit_uci_error(void);
@@ -134,7 +134,17 @@ unsigned char ascToPet[] = {
 0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff
 };
 
-int term_getstring(char* def, char *buf) {
+unsigned char term_bell(void) {
+	POKE(0xD418, 15);
+	POKE(0xD401, 20);
+	POKE(0xD405, 0);
+	POKE(0xD406, 249);
+	POKE(0xD404, 17);
+	POKE(0xD404, 16);
+	return 7;
+}
+
+unsigned char term_getstring(char* def, char *buf) {
 	unsigned char c,x;
 	
 	cursor_on();
@@ -496,16 +506,6 @@ void term_getconfig(void) {
 	gotoxy(0,2);
 }
 
-int term_bell(void) {
-	POKE(0xD418, 15);
-	POKE(0xD401, 20);
-	POKE(0xD405, 0);
-	POKE(0xD406, 249);
-	POKE(0xD404, 17);
-	POKE(0xD404, 16);
-	return 7;
-}
-
 void main(void) 
 {
 	int datacount;
@@ -669,10 +669,17 @@ loop:
 	asm("cmp #$0a");
 	asm("beq %g", skipline);
 #endif
+	// check for bell character and perform sound if so
+	asm("cmp #$07");
+	asm("bne %g", skipbell);
+	asm("jsr %v", term_bell);
+	asm("jmp %g", nextch);
+skipbell:
 	asm("jsr $ffd2");
 #ifdef __C128__
 skipline:
 #endif
+nextch:
 	asm("iny");
 	asm("bne %g", loop);
 	asm("inc $fc");
@@ -776,8 +783,8 @@ void download_xmodem(void) {
 	char not_b;
 	char blocknumber;
 	char checksum;
-	int i, status;
-	int errorcount;
+	unsigned char i, status;
+	unsigned char errorcount;
 	char sector[SECSIZE];
 	char firstread;
 
