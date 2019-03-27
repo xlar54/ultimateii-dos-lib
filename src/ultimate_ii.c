@@ -697,3 +697,14 @@ int uii_tcp_nextline(unsigned char socketid, char *result) {
 int uii_tcp_nextline_ascii(unsigned char socketid, char *result) {
 	return uii_tcp_nextline_convert_parameter(socketid, result, 1);
 }
+
+
+void uii_get_time(void)
+{
+	unsigned char cmd[] = {0x01, 0x26, 0x00};
+	uii_sendcommand(cmd, 3);
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+}
+

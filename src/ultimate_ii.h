@@ -92,4 +92,6 @@ char uii_tcp_nextchar(unsigned char socketid);
 int uii_tcp_nextline(unsigned char socketid, char*);
 int uii_tcp_nextline_ascii(unsigned char socketid, char*);
 
+void uii_get_time(void);
+
 #endif
