@@ -92,18 +92,12 @@ unsigned char rvs_vid = 0;
 
 unsigned char convertchar(unsigned char c)
 {
-	if(c > 64 && c < 91) 
-	{
+	if (c > 64 && c < 91) 
 		c += 32;
-	}
 	else if (c > 96 && c < 123)
-	{
 		c -= 32;
-	}
 	else if (c >192 && c < 219)
-	{
 		c -= 128;
-	}
 	return c;
 }
 
@@ -117,42 +111,32 @@ int getstring(char* def, char *buf)
 		
 	printf("%s%c", buf, CURSOR);
 	
-	while(1)
-	{
+	while(1) {
 		c = kbhit();
 		
-		if(c != 0)
-		{
+		if(c != 0) {
 			c = cgetc();
 			
-			switch(c) 
-			{
+			switch(c) {
 				case 0x0D:
-				{
 					buf[x] = 0;
 					printf("%c ", LEFT);
-				
 					for(x=0;x<strlen(buf);x++)
 						buf[x] = convertchar(buf[x]);
 									
 					return x;
-				}
+
 				case DELETE:
-				{
-					if(x > 0)
-					{
+					if(x > 0) {
 						x--;
 						printf("%c%c  %c%c%c",LEFT,LEFT,LEFT,LEFT,CURSOR);
-						
 					}
 					break;
-				}
+
 				default:
-				{
 					buf[x++] = c;
 					printf("%c %c%c%c",LEFT,LEFT,c,CURSOR);
 					break;
-				}
 			}
 		}
 	}
@@ -179,8 +163,7 @@ void irc_updateheader(char *chan)
 #ifdef __C128__
 	printf("%cUltimateChat 128 v%s                                                         %c",  CG_COLOR_WHITE, version, CG_COLOR_CYAN);
 #endif
-	for(i=strlen(chan); i>0; i--)
-	{
+	for(i=strlen(chan); i>0; i--) {
 		cputcxy((SCREEN_WIDTH-1)-t,0, chan[i-1]);
 		t++;
 	}
@@ -254,14 +237,11 @@ void irc_print(char *buf, int newlineflg)
 	
 	gotoxy(curx,21);
 	
-	for(x=0;x<strlen(buf);x++)
-	{	
-		if(curx == SCREEN_WIDTH || newlineflg == 1 || buf[x] == '\r' || buf[x] == '\n')
-		{
+	for(x=0;x<strlen(buf);x++) {	
+		if(curx == SCREEN_WIDTH || newlineflg == 1 || buf[x] == '\r' || buf[x] == '\n') {
 #ifdef __C64__
 			//Scroll up		
-			for(t=0;t<19;t++)
-			{				
+			for(t=0;t<19;t++) {				
 				memcpy((unsigned short*)(0x0450+SCREEN_WIDTH*t), (unsigned short*)(0x0450+SCREEN_WIDTH*(t+1)),SCREEN_WIDTH); // screen
 				memcpy((unsigned short*)(0xD850+SCREEN_WIDTH*t), (unsigned short*)(0xD850+SCREEN_WIDTH*(t+1)),SCREEN_WIDTH); // color
 			}
@@ -269,8 +249,7 @@ void irc_print(char *buf, int newlineflg)
 
 #ifdef __C128__
 			//Scroll up
-			for(t=3;t<22;t++)
-			{
+			for(t=3;t<22;t++) {
 				srcmem = 80 * t;
 				destmem = 80 * (t-1);
 				vdc_copyline(srcmem>>8, srcmem & 0xff, destmem>>8, destmem & 0xff);
@@ -296,28 +275,20 @@ void irc_print(char *buf, int newlineflg)
 			newlineflg = 0;
 		}
 		
-		if(buf[x] != '\r' && buf[x] != '\n')
-		{
-			if(buf[x] == 0x02 || buf[x] == 0x1D || buf[x] == 0x1F)
-			{
+		if(buf[x] != '\r' && buf[x] != '\n') {
+			if(buf[x] == 0x02 || buf[x] == 0x1D || buf[x] == 0x1F) {
 				// eat bold, italic and underline text
 				continue;
-			}
-			else if(buf[x] == 0x16)
-			{
-				if(rvs_vid == 0)
-				{
+			} else if(buf[x] == 0x16) {
+				if(rvs_vid == 0) {
 					printf("%c", 0x12);
 					rvs_vid = 1;
-				}
-				else
-				{
+				} else {
 					printf("%c", 0x92);
 					rvs_vid = 0;
 				}
 			}
-			else if(buf[x] == 0x03)
-			{
+			else if(buf[x] == 0x03) {
 				printf("%c", CG_COLOR_L_GREEN);
 				if(buf[x+1] == '0') { printf("%c", 0x05); x++; }
 				if(buf[x+1] == '1') { printf("%c", 0x90); x++; }
@@ -335,9 +306,7 @@ void irc_print(char *buf, int newlineflg)
 				if(buf[x+1] == '1' && buf[x+2] == '3') { printf("%c", 0x96); x+=2; }
 				if(buf[x+1] == '1' && buf[x+2] == '4') { printf("%c", 0x98); x+=2; }
 				if(buf[x+1] == '1' && buf[x+2] == '5') { printf("%c", 0x9B); x+=2; }
-			}
-			else
-			{
+			} else {
 				cputcxy(curx,cury, convertchar(buf[x]));
 				curx++;
 			}
@@ -347,8 +316,7 @@ void irc_print(char *buf, int newlineflg)
 	
 }
 
-void irc_pong(unsigned char *buf)
-{
+void irc_pong(unsigned char *buf) {
     buf[0] = 'p';
 	buf[1] = 'o';
 	buf[2] = 'n';
@@ -358,8 +326,7 @@ void irc_pong(unsigned char *buf)
 	uii_tcpsocketwrite(socketnr, "\r\n");
 }
 
-void irc_help()
-{
+void irc_help() {
 	printf("%c", CG_COLOR_WHITE);
 	irc_print("",1);
 	irc_print("cOMMANDS",1);
@@ -374,8 +341,7 @@ void irc_help()
 	printf("%c", CG_COLOR_CYAN);
 }
 
-void irc_handleinput(char *buf)
-{	
+void irc_handleinput(char *buf) {	
     char full_message[MAX_OUTBUFFER+80]; 
 	unsigned char x = 0;
 	unsigned char s = 0;
@@ -383,10 +349,8 @@ void irc_handleinput(char *buf)
 	if (strlen(buf) == 0)
 		return;
 	
-	if(strstr(buf,"/join") == buf)
-	{
-		if(channel[0] != 0)
-		{
+	if(strstr(buf,"/join") == buf) {
+		if(channel[0] != 0) {
 			irc_print("** yOU ARE ALREADY IN A CHANNEL.",1);
 			irc_print("** uSE /part TO LEAVE FIRST.",1);
 			return;
@@ -397,11 +361,8 @@ void irc_handleinput(char *buf)
 		
 		sprintf(full_message, "join %s\n", channel);
 		uii_tcpsocketwrite(socketnr, full_message);
-	}
-	else if(strstr(buf,"/part") == buf)
-	{
-		if(channel[0] == 0)
-		{
+	} else if(strstr(buf,"/part") == buf) {
+		if(channel[0] == 0) {
 			irc_print("** yOU ARE NOT IN A CHANNEL.",1);
 			return;
 		}
@@ -411,18 +372,12 @@ void irc_handleinput(char *buf)
 		sprintf(full_message, "part %s\n", channel); // Leave current channel
 		uii_tcpsocketwrite(socketnr, full_message);
 		channel[0] = 0;
-	}
-	else if(strstr(buf,"/quit") == buf)
-	{
+	} else if(strstr(buf,"/quit") == buf) {
 		uii_tcpclose(socketnr);
 		RESET_MACHINE
-	}
-	else if(strstr(buf,"/help") == buf)
-	{
+	} else if(strstr(buf,"/help") == buf) {
 		irc_help();
-	}
-	else if(strstr(buf,"/nick ") == buf)
-	{
+	} else if(strstr(buf,"/nick ") == buf) {
 		for(x=0;x<strlen(buf);x++)
 			buf[x] = convertchar(buf[x]);
 		
@@ -430,17 +385,13 @@ void irc_handleinput(char *buf)
 		
 		sprintf(full_message, "nick %s\n", nick);
 		uii_tcpsocketwrite(socketnr, full_message);
-	}
-	else
-	{
-		if(channel[0] == 0)
-		{
+	} else {
+		if(channel[0] == 0) {
 			irc_print("** yOU ARE NOT IN A CHANNEL.",1);
 			return;
 		}
 		
-		if(strstr(buf,"/me ") == buf)
-		{
+		if(strstr(buf,"/me ") == buf) {
 			buf = &buf[4];
 			
 			for(x=0;x<strlen(buf);x++)
@@ -455,9 +406,7 @@ void irc_handleinput(char *buf)
 			irc_print(" ",0);
 			irc_print(buf,0);
 			printf("%c", CG_COLOR_L_GRAY);
-		}
-		else
-		{
+		} else {
 			for(x=0;x<strlen(buf);x++)
 				buf[x] = convertchar(buf[x]);
 
@@ -488,8 +437,7 @@ void getconfig(void)
 	printf("\n   Netmask: %d.%d.%d.%d", uii_data[4], uii_data[5], uii_data[6], uii_data[7]);
 	printf("\n   Gateway: %d.%d.%d.%d", uii_data[8], uii_data[9], uii_data[10], uii_data[11]);
 	
-	if(uii_data[0] == 0)
-	{
+	if(uii_data[0] == 0) {
 		printf("\n\nUnable to access network interface.");
 		printf("\nPlease ensure the following:");
 		printf("\n - Command Interface is enabled");
@@ -499,8 +447,7 @@ void getconfig(void)
 		return;
 	}
 	
-	do
-	{
+	do {
 		gotoxy(0,9);
 		printf("                                      ");
 		printf("\n                                      ");
@@ -518,7 +465,7 @@ void getconfig(void)
 		if(channel[0] == 0) printf("\n\n* You must provide a channel!");
 		if(nick[0] == 0) printf("\n\n* You must provide a nickname!");
 	
-	}while(host[0] == 0 || portbuff[0] == 0 || channel[0] == 0 || nick[0] == 0);
+	} while(host[0] == 0 || portbuff[0] == 0 || channel[0] == 0 || nick[0] == 0);
 	
 }
 
@@ -564,48 +511,37 @@ void main(void)
 	
 	gotoxy(0,21);
 	
-	if (uii_status[0] == '0' && uii_status[1] == '0')
-	{
-		while(1)
-		{
+	if (uii_status[0] == '0' && uii_status[1] == '0') {
+		while(1) {
 			datacount = uii_tcpsocketread(socketnr, 400);
 
-			for(x=2;x<datacount+2;x++)
-			{
-				if(datacount > -1)
-				{	
+			for(x=2;x<datacount+2;x++) {
+				if(datacount > -1) {	
 					if (uii_data[x] == 10) 
 						continue;
 					
-					if (uii_data[x] == 13)
-					{
+					if (uii_data[x] == 13) {
 						inbuf[inbufptr] = 0;
 						msgptr = &inbuf[0];
 						newline = 1;
 						
-						if(strstr(inbuf, "ping") == inbuf)
-						{
+						if(strstr(inbuf, "ping") == inbuf) {
 							irc_pong(inbuf);
 							inbufptr = 0;
 							continue;
-						}
-						else if(inbuf[0] == ':')
-						{
-							if (strstr(inbuf, " privmsg ") != 0)
-							{
+						} else if(inbuf[0] == ':') {
+							if (strstr(inbuf, " privmsg ") != 0) {
 								sender = (unsigned char*) malloc(40 * sizeof(unsigned char));
 							
 								i = 1;
-								while(inbuf[i] != '!')
-								{
+								while(inbuf[i] != '!') {
 									sender[i-1] = inbuf[i];
 									i++;
 								}
 								sender[i-1] = 0;
 								
 								
-								if (strstr(inbuf, "action ") != 0)
-								{
+								if (strstr(inbuf, "action ") != 0) {
 									tmpPtr = (unsigned char*) malloc(80 * sizeof(unsigned char));
 									strcpy(tmpPtr," * ");
 									strcat(tmpPtr,sender);
@@ -614,12 +550,8 @@ void main(void)
 									
 									i = 0;
 									// strip the 0x01 
-									while (tmpPtr[i] != 0)
-									{
-										if(tmpPtr[i] == '\x01')
-										{
-											tmpPtr[i] = ' ';
-										}
+									while (tmpPtr[i] != 0) {
+										if(tmpPtr[i] == '\x01') tmpPtr[i] = ' ';
 										i++;
 									}
 									
@@ -631,9 +563,7 @@ void main(void)
 									free(tmpPtr);
 									free(sender);
 									continue;
-								}
-								else
-								{							
+								} else {							
 									printf("%c", CG_COLOR_CYAN);
 									irc_print("<",1);
 									printf("%c", CG_COLOR_L_GREEN);
@@ -645,9 +575,7 @@ void main(void)
 									newline = 0;
 									free(sender);
 								}
-							}
-							else if (strstr(inbuf, " join ") != 0)
-							{
+							} else if (strstr(inbuf, " join ") != 0) {
 								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
 								i = 1;
 								while(inbuf[i] != '!')
@@ -666,13 +594,10 @@ void main(void)
 								inbufptr = 0;
 								free(sender); 
 								continue;
-							} 
-							else if (strstr(inbuf, " part ") != 0)
-							{
+							} else if (strstr(inbuf, " part ") != 0) {
 								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
 								i = 1;
-								while(inbuf[i] != '!')
-								{
+								while(inbuf[i] != '!') {
 									sender[i-1] = inbuf[i];
 									i++;
 								}
@@ -687,9 +612,7 @@ void main(void)
 								inbufptr = 0;
 								free(sender); 
 								continue;
-							}
-							else if (strstr(inbuf, " quit ") != 0)
-							{
+							} else if (strstr(inbuf, " quit ") != 0) {
 								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
 								i = 1;
 								while(inbuf[i] != '!')
@@ -708,13 +631,10 @@ void main(void)
 								inbufptr = 0;
 								free(sender); 
 								continue;
-							}
-							else if (strstr(inbuf, " nick ") != 0)
-							{
+							} else if (strstr(inbuf, " nick ") != 0) {
 								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
 								i = 1;
-								while(inbuf[i] != '!')
-								{
+								while(inbuf[i] != '!') {
 									sender[i-1] = inbuf[i];
 									i++;
 								}
@@ -734,13 +654,10 @@ void main(void)
 								
 								inbufptr = 0;								
 								continue;
-							}
-							else if (strstr(inbuf, " quit ") != 0)
-							{
+							} else if (strstr(inbuf, " quit ") != 0) {
 								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
 								i = 1;
-								while(inbuf[i] != '!')
-								{
+								while(inbuf[i] != '!') {
 									sender[i-1] = inbuf[i];
 									i++;
 								}
@@ -759,10 +676,8 @@ void main(void)
 								free(sender);						
 								continue;
 							}
-							for(y=1;y<inbufptr;y++)
-							{
-								if(inbuf[y] == ':')
-								{
+							for(y=1;y<inbufptr;y++) {
+								if(inbuf[y] == ':') {
 									msgptr = &inbuf[y+1];
 									break;
 								}
@@ -772,15 +687,12 @@ void main(void)
 						irc_print(msgptr,newline);											
 						inbufptr = 0;
 						
-						if(connected == 0)
-						{
+						if(connected == 0) {
 							connected = 1;
 							sleep(20);
 							irc_login();
 						}
-					}
-					else
-					{
+					} else {
 						inbuf[inbufptr] = uii_data[x];
 						inbufptr++;
 					}					
@@ -790,12 +702,10 @@ void main(void)
 
 			c = kbhit();
 
-			if(c != 0)
-			{
+			if(c != 0) {
 				c = cgetc();
 
-				if(c == DELETE)
-				{
+				if(c == DELETE) {
 					if(outbufptr == 0)
 						continue;
 
@@ -804,15 +714,11 @@ void main(void)
 					
 					cputcxy(outx, outy, ' ');
 					
-					if (outx == 0 && outy == 24)
-					{
+					if (outx == 0 && outy == 24) {
 						outx = SCREEN_WIDTH-1;
 						outy--;
-					}
-					else
-					{
+					} else
 						outx--;
-					}
 					
 					printf("%c", CG_COLOR_WHITE);
 					cputcxy(outx, outy, CURSOR);
@@ -820,9 +726,7 @@ void main(void)
 					outbuf[outbufptr] = 0;
 					gotoxy(tempx, tempy);
 
-				}
-				else if(c == 13)
-				{
+				} else if(c == 13) {
 					irc_handleinput(outbuf);
 					
 					tempx = wherex();
@@ -844,19 +748,15 @@ void main(void)
 					gotoxy(tempx, tempy);
 					outbufptr = 0;
 					outbuf[outbufptr]=0;
-				}
-				else
-				{
-					if(outbufptr < MAX_OUTBUFFER)
-					{
+				} else {
+					if(outbufptr < MAX_OUTBUFFER) {
 						tempx = wherex();
 						tempy = wherey();
 						
 						printf("%c", CG_COLOR_WHITE);
 						cputcxy(outx++, outy, c);
 
-						if(outx > SCREEN_WIDTH-1)
-						{
+						if(outx > SCREEN_WIDTH-1) {
 							outx = 0;
 							outy++;
 						}
@@ -869,13 +769,9 @@ void main(void)
 						gotoxy(tempx, tempy);
 					}
 				}
-					
-
 			}
 		}
-	}
-	else
-	{
+	} else {
 		printf("\nConnect failed: %s", uii_status);
 	}
 
