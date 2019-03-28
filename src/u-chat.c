@@ -1,8 +1,8 @@
 /*****************************************************************
 Ultimate II+ TCP Network IRC Demo
-Scott Hutter
+Scott Hutter, Francesco Sblendorio
 
-Based on ultimate_dos-1.1.docx and command interface.docx
+Based on ultimate_dos-1.2.docx and command interface.docx
 https://github.com/markusC64/1541ultimate2/tree/master/doc
 
 Disclaimer:  Because of the nature of DOS commands, use this code
@@ -276,31 +276,31 @@ void irc_print(char *buf, int newlineflg) {
 				continue;
 			} else if(buf[x] == 0x16) {
 				if(rvs_vid == 0) {
-					printf("%c", 0x12);
+					putchar(0x12);
 					rvs_vid = 1;
 				} else {
-					printf("%c", 0x92);
+					putchar(0x92);
 					rvs_vid = 0;
 				}
 			}
 			else if(buf[x] == 0x03) {
-				printf("%c", CG_COLOR_L_GREEN);
-				if(buf[x+1] == '0') { printf("%c", 0x05); x++; }
-				if(buf[x+1] == '1') { printf("%c", 0x90); x++; }
-				if(buf[x+1] == '2') { printf("%c", 0x1F); x++; }
-				if(buf[x+1] == '3') { printf("%c", 0x1E); x++; }
-				if(buf[x+1] == '4') { printf("%c", 0x1C); x++; }
-				if(buf[x+1] == '5') { printf("%c", 0x95); x++; }
-				if(buf[x+1] == '6') { printf("%c", 0x9C); x++; }
-				if(buf[x+1] == '7') { printf("%c", 0x81); x++; }
-				if(buf[x+1] == '8') { printf("%c", 0x9E); x++; }
-				if(buf[x+1] == '9') { printf("%c", 0x99); x++; }
-				if(buf[x+1] == '1' && buf[x+2] == '0') { printf("%c", 0x9F); x+=2; }
-				if(buf[x+1] == '1' && buf[x+2] == '1') { printf("%c", 0x9F); x+=2; }
-				if(buf[x+1] == '1' && buf[x+2] == '2') { printf("%c", 0x9A); x+=2; }
-				if(buf[x+1] == '1' && buf[x+2] == '3') { printf("%c", 0x96); x+=2; }
-				if(buf[x+1] == '1' && buf[x+2] == '4') { printf("%c", 0x98); x+=2; }
-				if(buf[x+1] == '1' && buf[x+2] == '5') { printf("%c", 0x9B); x+=2; }
+				putchar(CG_COLOR_L_GREEN);
+				if(buf[x+1] == '0') { putchar(0x05); x++; }
+				if(buf[x+1] == '1') { putchar(0x90); x++; }
+				if(buf[x+1] == '2') { putchar(0x1F); x++; }
+				if(buf[x+1] == '3') { putchar(0x1E); x++; }
+				if(buf[x+1] == '4') { putchar(0x1C); x++; }
+				if(buf[x+1] == '5') { putchar(0x95); x++; }
+				if(buf[x+1] == '6') { putchar(0x9C); x++; }
+				if(buf[x+1] == '7') { putchar(0x81); x++; }
+				if(buf[x+1] == '8') { putchar(0x9E); x++; }
+				if(buf[x+1] == '9') { putchar(0x99); x++; }
+				if(buf[x+1] == '1' && buf[x+2] == '0') { putchar(0x9F); x+=2; }
+				if(buf[x+1] == '1' && buf[x+2] == '1') { putchar(0x9F); x+=2; }
+				if(buf[x+1] == '1' && buf[x+2] == '2') { putchar(0x9A); x+=2; }
+				if(buf[x+1] == '1' && buf[x+2] == '3') { putchar(0x96); x+=2; }
+				if(buf[x+1] == '1' && buf[x+2] == '4') { putchar(0x98); x+=2; }
+				if(buf[x+1] == '1' && buf[x+2] == '5') { putchar(0x9B); x+=2; }
 			} else {
 				cputcxy(curx,cury, convertchar(buf[x]));
 				curx++;
@@ -322,7 +322,7 @@ void irc_pong(unsigned char *buf) {
 }
 
 void irc_help() {
-	printf("%c", CG_COLOR_WHITE);
+	putchar(CG_COLOR_WHITE);
 	irc_print("",1);
 	irc_print("cOMMANDS",1);
 	
@@ -333,7 +333,7 @@ void irc_help() {
 	irc_print("/QUIT          - QUIT PROGRAM",1);
 	irc_print("/HELP          - THIS LIST",1);
 	irc_print("",1);
-	printf("%c", CG_COLOR_CYAN);
+	putchar(CG_COLOR_CYAN);
 }
 
 void irc_handleinput(char *buf) {	
@@ -395,12 +395,12 @@ void irc_handleinput(char *buf) {
 			sprintf(full_message, "privmsg %s :%caction %s%c\n", channel, 0x01, buf, 0x01);
 			uii_tcpsocketwrite(socketnr, full_message);
 			
-			printf("%c", CG_COLOR_YELLOW);
+			putchar(CG_COLOR_YELLOW);
 			irc_print(" * ",1);
 			irc_print(nick,0);
 			irc_print(" ",0);
 			irc_print(buf,0);
-			printf("%c", CG_COLOR_L_GRAY);
+			putchar(CG_COLOR_L_GRAY);
 		} else {
 			for(x=0;x<strlen(buf);x++)
 				buf[x] = convertchar(buf[x]);
@@ -408,13 +408,13 @@ void irc_handleinput(char *buf) {
 			sprintf(full_message, "privmsg %s :%s\n", channel, buf); // PRIVMSG <channel> :Message text
 			uii_tcpsocketwrite(socketnr, full_message);
 			
-			printf("%c", CG_COLOR_CYAN);
+			putchar(CG_COLOR_CYAN);
 			irc_print("<",1);
-			printf("%c", CG_COLOR_L_RED);
+			putchar(CG_COLOR_L_RED);
 			irc_print(nick,0);
-			printf("%c", CG_COLOR_CYAN);
+			putchar(CG_COLOR_CYAN);
 			irc_print("> ",0);
-			printf("%c", CG_COLOR_L_RED);
+			putchar(CG_COLOR_L_RED);
 			irc_print(buf,0);
 		}
 	}
@@ -548,22 +548,22 @@ void main(void) {
 										i++;
 									}
 									
-									printf("%c", CG_COLOR_YELLOW);
+									putchar(CG_COLOR_YELLOW);
 									irc_print(tmpPtr,1);
-									printf("%c", CG_COLOR_L_GRAY);									
+									putchar(CG_COLOR_L_GRAY);									
 									inbufptr = 0;
 									newline = 0;
 									free(tmpPtr);
 									free(sender);
 									continue;
 								} else {							
-									printf("%c", CG_COLOR_CYAN);
+									putchar(CG_COLOR_CYAN);
 									irc_print("<",1);
-									printf("%c", CG_COLOR_L_GREEN);
+									putchar(CG_COLOR_L_GREEN);
 									irc_print(sender,0);
-									printf("%c", CG_COLOR_CYAN);
+									putchar(CG_COLOR_CYAN);
 									irc_print("> ",0);
-									printf("%c", CG_COLOR_L_GREEN);
+									putchar(CG_COLOR_L_GREEN);
 
 									newline = 0;
 									free(sender);
@@ -578,11 +578,11 @@ void main(void) {
 								}
 								sender[i-1] = 0;
 								
-								printf("%c", CG_COLOR_YELLOW);
+								putchar(CG_COLOR_YELLOW);
 								irc_print(" * ",1);
 								irc_print(sender,0);
 								irc_print(" JOINED THE ROOM.",0);
-								printf("%c", CG_COLOR_L_GRAY);
+								putchar(CG_COLOR_L_GRAY);
 								
 								inbufptr = 0;
 								free(sender); 
@@ -596,11 +596,11 @@ void main(void) {
 								}
 								sender[i-1] = 0;
 								
-								printf("%c", CG_COLOR_YELLOW);
+								putchar(CG_COLOR_YELLOW);
 								irc_print(" * ",1);
 								irc_print(sender,0);
 								irc_print(" LEFT THE ROOM.",0);
-								printf("%c", CG_COLOR_L_GRAY);
+								putchar(CG_COLOR_L_GRAY);
 								
 								inbufptr = 0;
 								free(sender); 
@@ -615,11 +615,11 @@ void main(void) {
 								}
 								sender[i-1] = 0;
 								
-								printf("%c", CG_COLOR_YELLOW);
+								putchar(CG_COLOR_YELLOW);
 								irc_print(" * ",1);
 								irc_print(sender,0);
 								irc_print(" HAS QUIT IRC.",0);
-								printf("%c", CG_COLOR_L_GRAY);
+								putchar(CG_COLOR_L_GRAY);
 								
 								inbufptr = 0;
 								free(sender); 
@@ -633,7 +633,7 @@ void main(void) {
 								}
 								sender[i-1] = 0;
 								
-								printf("%c", CG_COLOR_YELLOW);
+								putchar(CG_COLOR_YELLOW);
 								irc_print(" * ",1);
 								irc_print(sender,0);
 								free(sender);
@@ -643,7 +643,7 @@ void main(void) {
 								sender = strstr(inbuf, " nick ") + 7;
 								
 								irc_print(sender,0);
-								printf("%c", CG_COLOR_L_GRAY);
+								putchar(CG_COLOR_L_GRAY);
 								
 								inbufptr = 0;								
 								continue;
@@ -656,14 +656,14 @@ void main(void) {
 								}
 								sender[i-1] = 0;
 								
-								printf("%c", CG_COLOR_YELLOW);
+								putchar(CG_COLOR_YELLOW);
 								irc_print(" * ",1);
 								irc_print(sender,0);
 								irc_print(" HAS QUIT IRC. ",0);
 								
 								irc_print(tmpPtr,0);
 								
-								printf("%c", CG_COLOR_L_GRAY);
+								putchar(CG_COLOR_L_GRAY);
 								
 								inbufptr = 0;
 								free(sender);						
@@ -712,7 +712,7 @@ void main(void) {
 					} else
 						outx--;
 					
-					printf("%c", CG_COLOR_WHITE);
+					putchar(CG_COLOR_WHITE);
 					cputcxy(outx, outy, CURSOR);
 					outbufptr--;
 					outbuf[outbufptr] = 0;
@@ -745,7 +745,7 @@ void main(void) {
 						tempx = wherex();
 						tempy = wherey();
 						
-						printf("%c", CG_COLOR_WHITE);
+						putchar(CG_COLOR_WHITE);
 						cputcxy(outx++, outy, c);
 
 						if(outx > SCREEN_WIDTH-1) {
