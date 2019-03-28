@@ -504,7 +504,7 @@ void main(void) {
 	
 	gotoxy(0,21);
 	
-	if (uii_status[0] == '0' && uii_status[1] == '0') {
+	if (uii_tcpconnect_success()) {
 		while(1) {
 			datacount = uii_tcpsocketread(socketnr, 400);
 
