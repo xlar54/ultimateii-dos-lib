@@ -140,8 +140,6 @@ int getstring(char* def, char *buf) {
 	}
 }
 
-
-
 void irc_updateheader(char *chan) {
 	unsigned char x = 0;
 	unsigned char y = 0;
@@ -186,7 +184,6 @@ void irc_login(void) {
 	irc_updateheader(channel);
 	free(chan);
 }
-
 
 void irc_refreshscreen(void) {
 	unsigned char curx = 0;
@@ -308,7 +305,6 @@ void irc_print(char *buf, int newlineflg) {
 
 		}
 	}
-	
 }
 
 void irc_pong(unsigned char *buf) {
@@ -418,7 +414,6 @@ void irc_handleinput(char *buf) {
 			irc_print(buf,0);
 		}
 	}
-	
     return;
 }
 
@@ -460,7 +455,6 @@ void getconfig(void) {
 		if(nick[0] == 0) printf("\n\n* You must provide a nickname!");
 	
 	} while(host[0] == 0 || portbuff[0] == 0 || channel[0] == 0 || nick[0] == 0);
-	
 }
 
 void main(void) {
@@ -479,10 +473,8 @@ void main(void) {
 	char *msgptr;
 	unsigned char* sender;
 	unsigned char* tmpPtr;
-	//unsigned char* tmpPtr2;
 
 	POKEW(0xD020,0);
-	POKEW(0xD021,0);
 	
 	clrscr();
 	irc_refreshscreen();
@@ -766,11 +758,9 @@ void main(void) {
 	} else {
 		printf("\nConnect failed: %s", uii_status);
 	}
-
 }
 
 #ifdef __C128__
-
 #pragma optimize (push,off)
 void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo)
 {
