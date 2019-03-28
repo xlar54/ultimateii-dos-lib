@@ -90,8 +90,7 @@ unsigned char tempy = 0;
 unsigned char rvs_vid = 0;
 
 
-unsigned char convertchar(unsigned char c)
-{
+unsigned char convertchar(unsigned char c) {
 	if (c > 64 && c < 91) 
 		c += 32;
 	else if (c > 96 && c < 123)
@@ -101,8 +100,7 @@ unsigned char convertchar(unsigned char c)
 	return c;
 }
 
-int getstring(char* def, char *buf)
-{
+int getstring(char* def, char *buf) {
 	unsigned char c = 0;
 	unsigned char x = 0;
 	
@@ -144,8 +142,7 @@ int getstring(char* def, char *buf)
 
 
 
-void irc_updateheader(char *chan)
-{
+void irc_updateheader(char *chan) {
 	unsigned char x = 0;
 	unsigned char y = 0;
 	unsigned char t = 0;
@@ -170,8 +167,8 @@ void irc_updateheader(char *chan)
 	gotoxy(x,y);
 }
 
-void irc_login(void) // Handle IRC login procedures
-{
+// Handle IRC login procedures
+void irc_login(void) {
     char NICK_STRING[64]; 
     char USER_STRING[128];
 	char *chan;
@@ -191,8 +188,7 @@ void irc_login(void) // Handle IRC login procedures
 }
 
 
-void irc_refreshscreen(void)
-{
+void irc_refreshscreen(void) {
 	unsigned char curx = 0;
 	unsigned char cury = 0;
 	
@@ -223,8 +219,7 @@ void irc_refreshscreen(void)
 	gotoxy(curx,cury);
 }
 
-void irc_print(char *buf, int newlineflg)
-{
+void irc_print(char *buf, int newlineflg) {
 	unsigned char x = 0;
 	unsigned char t = 0;
 	unsigned char curx = 0;
@@ -427,8 +422,7 @@ void irc_handleinput(char *buf) {
     return;
 }
 
-void getconfig(void)
-{
+void getconfig(void) {
 	uii_identify();
 	printf("\n\nNetwork Interface Status : %s", uii_status);
 
@@ -469,8 +463,7 @@ void getconfig(void)
 	
 }
 
-void main(void) 
-{
+void main(void) {
 	int count = 0;
 	int port = 0;
 	int datacount = 0;
@@ -696,7 +689,6 @@ void main(void)
 						inbuf[inbufptr] = uii_data[x];
 						inbufptr++;
 					}					
-
 				}
 			}
 

@@ -22,6 +22,16 @@ static unsigned char *statusdatareg = (unsigned char *)STATUS_DATA_REG;
 
 unsigned char uii_status[STATUS_QUEUE_SZ];
 unsigned char uii_data[DATA_QUEUE_SZ*2];
+char uii_date_str[11];
+char uii_time_str[9];
+int uii_year;
+int uii_month;
+int uii_day;
+int uii_hour;
+int uii_minute;
+int uii_second;
+
+
 unsigned char temp_string_onechar[2];
 int uii_data_index;
 int uii_data_len;
@@ -698,13 +708,27 @@ int uii_tcp_nextline_ascii(unsigned char socketid, char *result) {
 	return uii_tcp_nextline_convert_parameter(socketid, result, 1);
 }
 
-
 void uii_get_time(void)
 {
+	char tmp[5];
 	unsigned char cmd[] = {0x01, 0x26, 0x00};
 	uii_sendcommand(cmd, 3);
 	uii_readdata();
 	uii_readstatus();
 	uii_accept();
+	strncpy(uii_date_str, uii_data, 10); uii_date_str[10]=0;
+	strncpy(uii_time_str, uii_data+11, 8); uii_time_str[8]=0;
+	strncpy(tmp, uii_data, 4); tmp[4]=0;
+	uii_year = atoi(tmp);
+	strncpy(tmp, uii_data+5, 2); tmp[2]=0;
+	uii_month = atoi(tmp);
+	strncpy(tmp, uii_data+8, 2);
+	uii_day = atoi(tmp);
+	strncpy(tmp, uii_data+11, 2);
+	uii_hour = atoi(tmp);
+	strncpy(tmp, uii_data+14, 2);
+	uii_minute = atoi(tmp);
+	strncpy(tmp, uii_data+17, 2);
+	uii_second = atoi(tmp);
 }
 
