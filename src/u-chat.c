@@ -475,7 +475,6 @@ void main(void) {
 	unsigned char* tmpPtr;
 
 	POKEW(0xD020,0);
-	
 	clrscr();
 	irc_refreshscreen();
 		

@@ -41,6 +41,7 @@ Patches and pull requests are welcome
 extern unsigned char uii_status[STATUS_QUEUE_SZ];
 extern unsigned char uii_data[DATA_QUEUE_SZ*2];
 
+extern char uii_weekday[4];
 extern char uii_date_str[11];
 extern char uii_time_str[9];
 extern int uii_year;
