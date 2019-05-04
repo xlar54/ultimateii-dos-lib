@@ -1,5 +1,5 @@
 /*****************************************************************
-Ultimate II+ DOS Command Library
+Ultimate 64/II+ Command Library
 Scott Hutter, Francesco Sblendorio
 
 Based on ultimate_dos-1.1.docx and command interface.docx

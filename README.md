@@ -1,4 +1,4 @@
-# ultimateii-dos-lib
+# ultimate-lib
 cc65 library for accessing the DOS & network functions of the Ultimate 64 and II/+ cartridge
 
 The demo program does not alter any data, but as this is an early release, please use with caution.
