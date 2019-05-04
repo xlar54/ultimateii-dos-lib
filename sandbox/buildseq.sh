@@ -2,7 +2,7 @@
 
 rm -f seqdisk.d64
 rm -f seqdisk.prg
-cl65 -O -t c64 ultimate_ii.c seq.c -o seq.prg
+cl65 -O -t c64 ultimate_lib.c seq.c -o seq.prg
 
 rm -f *.o
 rm -f *.inf

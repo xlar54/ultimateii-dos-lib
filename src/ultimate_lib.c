@@ -11,7 +11,7 @@ soley at your own risk.
 Patches and pull requests are welcome
 ******************************************************************/
 #include <string.h>
-#include "ultimate_ii.h"
+#include "ultimate_lib.h"
 
 static unsigned char *cmddatareg = (unsigned char *)CMD_DATA_REG;
 static unsigned char *controlreg = (unsigned char *)CONTROL_REG;
@@ -64,7 +64,7 @@ void uii_freeze(void)
 
 void uii_identify(void)
 {
-	unsigned char cmd[] = {0x00,0x01};
+	unsigned char cmd[] = {0x00,DOS_CMD_IDENTIFY};
 	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
 	uii_readdata();
@@ -74,7 +74,7 @@ void uii_identify(void)
 
 void uii_get_path(void)
 {
-	unsigned char cmd[] = {0x00,0x12};	
+	unsigned char cmd[] = {0x00,DOS_CMD_GET_PATH};	
 	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
 	uii_readdata();
@@ -84,7 +84,7 @@ void uii_get_path(void)
 
 void uii_open_dir(void)
 {
-	unsigned char cmd[] = {0x00,0x13};
+	unsigned char cmd[] = {0x00,DOS_CMD_OPEN_DIR};
 	int len = 0;
 	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
@@ -94,7 +94,7 @@ void uii_open_dir(void)
 
 void uii_get_dir(void)
 {
-	unsigned char cmd[] = {0x00,0x14};
+	unsigned char cmd[] = {0x00,DOS_CMD_READ_DIR};
 	int count = 0;
 	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
@@ -102,7 +102,7 @@ void uii_get_dir(void)
 
 void uii_change_dir(char* directory)
 {
-	unsigned char cmd[] = {0x00,0x11};
+	unsigned char cmd[] = {0x00,DOS_CMD_CHANGE_DIR};
 	
 	int len = 0;
 	int x = 0;
@@ -126,7 +126,7 @@ void uii_change_dir(char* directory)
 
 void uii_create_dir(char *directory)
 {
-	unsigned char cmd[] = {0x00,0x16};
+	unsigned char cmd[] = {0x00,DOS_CMD_CREATE_DIR};
 	int len = 0;
 	int x = 0;
 	unsigned char* fullcmd;
@@ -150,7 +150,7 @@ void uii_create_dir(char *directory)
 
 void uii_change_dir_home(void)
 {
-	unsigned char cmd[] = {0x00,0x17};
+	unsigned char cmd[] = {0x00,DOS_CMD_COPY_HOME_PATH};
 	int count = 0;
 	
 	uii_settarget(TARGET_DOS1);
@@ -161,7 +161,7 @@ void uii_change_dir_home(void)
 
 void uii_mount_disk(unsigned char id, char *filename)
 {
-	unsigned char cmd[] = {0x00,0x23};
+	unsigned char cmd[] = {0x00,DOS_CMD_MOUNT_DISK};
 	int len = 0;
 	int x = 0;
 	unsigned char* fullcmd;
@@ -186,7 +186,7 @@ void uii_mount_disk(unsigned char id, char *filename)
 
 void uii_unmount_disk(unsigned char id)
 {
-	unsigned char cmd[] = {0x00,0x24, 0x00};
+	unsigned char cmd[] = {0x00,DOS_CMD_UMOUNT_DISK, 0x00};
 
 	cmd[2] = id;
 	
@@ -200,7 +200,7 @@ void uii_unmount_disk(unsigned char id)
 
 void uii_swap_disk(unsigned char id)
 {
-	unsigned char cmd[] = {0x00,0x25, 0x00};	
+	unsigned char cmd[] = {0x00,DOS_CMD_SWAP_DISK, 0x00};	
 	
 	cmd[2] = id;
 	
@@ -214,7 +214,7 @@ void uii_swap_disk(unsigned char id)
 
 void uii_open_file(unsigned char attrib, char *filename)
 {
-	unsigned char cmd[] = {0x00,0x02, 0x00};
+	unsigned char cmd[] = {0x00,DOS_CMD_OPEN_FILE, 0x00};
 	
 	int len = 0;
 	int x = 0;
@@ -246,7 +246,7 @@ void uii_open_file(unsigned char attrib, char *filename)
 
 void uii_close_file(void)
 {
-	unsigned char cmd[] = {0x00,0x03};
+	unsigned char cmd[] = {0x00,DOS_CMD_CLOSE_FILE};
 	
 	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
@@ -258,7 +258,7 @@ void uii_close_file(void)
 
 void uii_read_file(unsigned char length)
 {
-	unsigned char cmd[] = {0x00,0x04, 0x00, 0x00};
+	unsigned char cmd[] = {0x00,DOS_CMD_READ_DATA, 0x00, 0x00};
 	
 	cmd[2] = length & 0xFF;
 	cmd[3] = length >> 8;
@@ -274,7 +274,7 @@ void uii_read_file(unsigned char length)
 
 void uii_write_file(unsigned char* data, int length)
 {
-	unsigned char cmd[] = {0x00,0x05, 0x00, 0x00};
+	unsigned char cmd[] = {0x00,DOS_CMD_WRITE_DATA, 0x00, 0x00};
 	
 	unsigned char *fullcmd;
 	int x = 0;
@@ -298,7 +298,7 @@ void uii_write_file(unsigned char* data, int length)
 
 void uii_delete_file(char* filename)
 {
-	unsigned char cmd[] = {0x00,0x09};
+	unsigned char cmd[] = {0x00,DOS_CMD_DELETE_FILE};
 	
 	int len = 0;
 	int x = 0;
@@ -322,7 +322,7 @@ void uii_delete_file(char* filename)
 
 void uii_rename_file(char* filename, char* newname)
 {
-	unsigned char cmd[] = {0x00,0x0a};
+	unsigned char cmd[] = {0x00,DOS_CMD_RENAME_FILE};
 	int len = 0;
 	int x = 0;
 	int y = 0;
@@ -351,7 +351,7 @@ void uii_rename_file(char* filename, char* newname)
 
 void uii_copy_file(char* sourcefile, char* destfile)
 {
-	unsigned char cmd[] = {0x00,0x0b};
+	unsigned char cmd[] = {0x00,DOS_CMD_COPY_FILE};
 	int len = 0;
 	int x = 0;
 	int y = 0;
@@ -380,7 +380,7 @@ void uii_copy_file(char* sourcefile, char* destfile)
 
 void uii_echo(void)
 {
-	unsigned char cmd[] = {0x00,0xf0};
+	unsigned char cmd[] = {0x00,DOS_CMD_ECHO};
 	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
 
@@ -391,7 +391,7 @@ void uii_echo(void)
 
 void uii_enable_drive_a(void)
 {
-	unsigned char cmd[] = {0x00,DOS_CMD_ENABLE_DISK_A};
+	unsigned char cmd[] = {0x00,CTRL_CMD_ENABLE_DISK_A};
 
 	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);
@@ -403,7 +403,8 @@ void uii_enable_drive_a(void)
 
 void uii_disable_drive_a(void)
 {
-	unsigned char cmd[] = {0x00,DOS_CMD_DISABLE_DISK_A};
+#define CTRL_CMD_DISABLE_DISK_A	0x31
+	unsigned char cmd[] = {0x00,CTRL_CMD_DISABLE_DISK_A};
 
 	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);
@@ -415,7 +416,7 @@ void uii_disable_drive_a(void)
 
 void uii_enable_drive_b(void)
 {
-	unsigned char cmd[] = {0x00,DOS_CMD_ENABLE_DISK_B};
+	unsigned char cmd[] = {0x00,CTRL_CMD_ENABLE_DISK_B};
 
 	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);
@@ -427,7 +428,7 @@ void uii_enable_drive_b(void)
 
 void uii_disable_drive_b(void)
 {
-	unsigned char cmd[] = {0x00,DOS_CMD_DISABLE_DISK_B};
+	unsigned char cmd[] = {0x00,CTRL_CMD_DISABLE_DISK_B};
 
 	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);
@@ -439,7 +440,7 @@ void uii_disable_drive_b(void)
 
 void uii_get_drive_a_power(void) 
 {
-	unsigned char cmd[] = {0x00,DOS_CMD_DRIVE_A_POWER};
+	unsigned char cmd[] = {0x00,CTRL_CMD_DRIVE_A_POWER};
 
 	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);
@@ -451,7 +452,7 @@ void uii_get_drive_a_power(void)
 
 void uii_get_drive_b_power(void) 
 {
-	unsigned char cmd[] = {0x00,DOS_CMD_DRIVE_B_POWER};
+	unsigned char cmd[] = {0x00,CTRL_CMD_DRIVE_B_POWER};
 	
 	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);

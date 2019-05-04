@@ -17,7 +17,7 @@ Demo program does not alter any data
 #include <conio.h>
 #include <stdlib.h>
 #include <peekpoke.h>
-#include "ultimate_ii.h"
+#include "ultimate_lib.h"
 #include "geouterm-res.h"
 
 //#define TESTING

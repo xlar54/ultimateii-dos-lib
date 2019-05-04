@@ -1,5 +1,5 @@
 /*****************************************************************
-Ultimate II+ DOS Command Library
+Ultimate 64/II+ Command Library
 Scott Hutter, Francesco Sblendorio
 
 Based on ultimate_dos-1.1.docx and command interface.docx
@@ -11,8 +11,8 @@ soley at your own risk.
 Patches and pull requests are welcome
 ******************************************************************/
 
-#ifndef _ULTIMATE_II_DOS_H_
-#define _ULTIMATE_II_DOS_H_
+#ifndef _ULTIMATE_LIB_DOS_H_
+#define _ULTIMATE_LIB_DOS_H_
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -58,12 +58,12 @@ Patches and pull requests are welcome
 #define DOS_CMD_SWAP_DISK		0x25
 #define DOS_CMD_GET_TIME		0x26
 #define DOS_CMD_SET_TIME		0x27
-#define DOS_CMD_ENABLE_DISK_A	0x30
-#define DOS_CMD_DISABLE_DISK_A	0x31
-#define DOS_CMD_ENABLE_DISK_B	0x32
-#define DOS_CMD_DISABLE_DISK_B	0x33
-#define DOS_CMD_DRIVE_A_POWER 	0x34
-#define DOS_CMD_DRIVE_B_POWER	0x35
+#define CTRL_CMD_ENABLE_DISK_A	0x30
+#define CTRL_CMD_DISABLE_DISK_A	0x31
+#define CTRL_CMD_ENABLE_DISK_B	0x32
+#define CTRL_CMD_DISABLE_DISK_B	0x33
+#define CTRL_CMD_DRIVE_A_POWER 	0x34
+#define CTRL_CMD_DRIVE_B_POWER	0x35
 #define DOS_CMD_ECHO			0xf0
 
 

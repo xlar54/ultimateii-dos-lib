@@ -3,7 +3,7 @@
 #include <string.h>
 #include <c64.h>
 #include <conio.h>
-#include "ultimate_ii.h"
+#include "ultimate_lib.h"
 
 #define MAXINPUT 	160
 #define MAXPARAM_SZ	20
