@@ -65,7 +65,7 @@ void uii_freeze(void)
 void uii_identify(void)
 {
 	unsigned char cmd[] = {0x00,0x01};
-
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
 	uii_readdata();
 	uii_readstatus();
@@ -75,7 +75,7 @@ void uii_identify(void)
 void uii_get_path(void)
 {
 	unsigned char cmd[] = {0x00,0x12};	
-	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
 	uii_readdata();
 	uii_readstatus();
@@ -86,7 +86,7 @@ void uii_open_dir(void)
 {
 	unsigned char cmd[] = {0x00,0x13};
 	int len = 0;
-	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
 	uii_readstatus();
 	uii_accept();
@@ -96,7 +96,7 @@ void uii_get_dir(void)
 {
 	unsigned char cmd[] = {0x00,0x14};
 	int count = 0;
-	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
 }
 
@@ -114,7 +114,8 @@ void uii_change_dir(char* directory)
 	
 	for(x=0;x<strlen(directory);x++)
 		fullcmd[x+2] = directory[x];
-	
+
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(fullcmd, strlen(directory)+2);
 	
 	free(fullcmd);
@@ -137,6 +138,7 @@ void uii_create_dir(char *directory)
 	for(x=0;x<strlen(directory);x++)
 		fullcmd[x+2] = directory[x];
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(fullcmd, strlen(directory)+2);
 	
 	free(fullcmd);
@@ -151,6 +153,7 @@ void uii_change_dir_home(void)
 	unsigned char cmd[] = {0x00,0x17};
 	int count = 0;
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
 	uii_readstatus();
 	uii_accept();
@@ -171,6 +174,7 @@ void uii_mount_disk(unsigned char id, char *filename)
 	for(x=0;x<strlen(filename);x++)
 		fullcmd[x+3] = filename[x];
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(fullcmd, strlen(filename)+3);
 	
 	free(fullcmd);
@@ -186,6 +190,7 @@ void uii_unmount_disk(unsigned char id)
 
 	cmd[2] = id;
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 3);
 
 	uii_readdata();
@@ -199,6 +204,7 @@ void uii_swap_disk(unsigned char id)
 	
 	cmd[2] = id;
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 3);
 
 	uii_readdata();
@@ -228,6 +234,7 @@ void uii_open_file(unsigned char attrib, char *filename)
 	for(x=0;x<strlen(filename);x++)
 		fullcmd[x+3] = filename[x];
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(fullcmd, strlen(filename)+3);
 	
 	free(fullcmd);
@@ -241,6 +248,7 @@ void uii_close_file(void)
 {
 	unsigned char cmd[] = {0x00,0x03};
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
 	
 	uii_readdata();
@@ -255,6 +263,7 @@ void uii_read_file(unsigned char length)
 	cmd[2] = length & 0xFF;
 	cmd[3] = length >> 8;
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
 	
 	// As with _get_dir(), read this in a loop, and _accept() the data
@@ -279,6 +288,7 @@ void uii_write_file(unsigned char* data, int length)
 	for(x=0;x<length;x++)
 		fullcmd[x+4] = data[x];
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(fullcmd, length+4);
 	
 	uii_readdata();
@@ -301,6 +311,7 @@ void uii_delete_file(char* filename)
 	for(x=0;x<strlen(filename);x++)
 		fullcmd[x+2] = filename[x];
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(fullcmd, strlen(filename)+2);
 	
 	free(fullcmd);
@@ -329,6 +340,7 @@ void uii_rename_file(char* filename, char* newname)
 	for(;x<strlen(newname);x++)
 		fullcmd[x] = newname[y++];
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(fullcmd, strlen(filename)+ 3 + strlen(newname));
 	
 	free(fullcmd);
@@ -357,6 +369,7 @@ void uii_copy_file(char* sourcefile, char* destfile)
 	for(;x<strlen(destfile);x++)
 		fullcmd[x] = destfile[y++];
 	
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(fullcmd, strlen(sourcefile)+ 3 + strlen(destfile));
 	
 	free(fullcmd);
@@ -368,6 +381,7 @@ void uii_copy_file(char* sourcefile, char* destfile)
 void uii_echo(void)
 {
 	unsigned char cmd[] = {0x00,0xf0};
+	uii_settarget(TARGET_DOS1);
 	uii_sendcommand(cmd, 2);
 
 	uii_readdata();
@@ -378,6 +392,8 @@ void uii_echo(void)
 void uii_enable_drive_a(void)
 {
 	unsigned char cmd[] = {0x00,DOS_CMD_ENABLE_DISK_A};
+
+	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);
 
 	uii_readdata();
@@ -388,6 +404,8 @@ void uii_enable_drive_a(void)
 void uii_disable_drive_a(void)
 {
 	unsigned char cmd[] = {0x00,DOS_CMD_DISABLE_DISK_A};
+
+	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);
 
 	uii_readdata();
@@ -398,6 +416,8 @@ void uii_disable_drive_a(void)
 void uii_enable_drive_b(void)
 {
 	unsigned char cmd[] = {0x00,DOS_CMD_ENABLE_DISK_B};
+
+	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);
 
 	uii_readdata();
@@ -408,6 +428,8 @@ void uii_enable_drive_b(void)
 void uii_disable_drive_b(void)
 {
 	unsigned char cmd[] = {0x00,DOS_CMD_DISABLE_DISK_B};
+
+	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);
 
 	uii_readdata();
@@ -418,6 +440,8 @@ void uii_disable_drive_b(void)
 void uii_get_drive_a_power(void) 
 {
 	unsigned char cmd[] = {0x00,DOS_CMD_DRIVE_A_POWER};
+
+	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);
 
 	uii_readdata();
@@ -428,6 +452,8 @@ void uii_get_drive_a_power(void)
 void uii_get_drive_b_power(void) 
 {
 	unsigned char cmd[] = {0x00,DOS_CMD_DRIVE_B_POWER};
+	
+	uii_settarget(TARGET_CONTROL);
 	uii_sendcommand(cmd, 2);
 
 	uii_readdata();
