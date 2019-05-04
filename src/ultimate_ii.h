@@ -33,6 +33,40 @@ Patches and pull requests are welcome
 #define TARGET_NETWORK	0x03
 #define TARGET_CONTROL	0x04
 
+#define DOS_CMD_IDENTIFY		0x01
+#define DOS_CMD_OPEN_FILE		0x02
+#define DOS_CMD_CLOSE_FILE		0x03
+#define DOS_CMD_READ_DATA		0x04
+#define DOS_CMD_WRITE_DATA		0x05
+#define DOS_CMD_FILE_SEEK		0x06
+#define DOS_CMD_FILE_INFO		0x07
+#define DOS_CMD_FILE_STAT		0x08
+#define DOS_CMD_DELETE_FILE		0x09
+#define DOS_CMD_RENAME_FILE		0x0a
+#define DOS_CMD_COPY_FILE		0x0b
+#define DOS_CMD_CHANGE_DIR		0x11
+#define DOS_CMD_GET_PATH		0x12
+#define DOS_CMD_OPEN_DIR		0x13
+#define DOS_CMD_READ_DIR		0x14
+#define DOS_CMD_COPY_UI_PATH	0x15
+#define DOS_CMD_CREATE_DIR		0x16
+#define DOS_CMD_COPY_HOME_PATH	0x17
+#define DOS_CMD_LOAD_REU		0x21
+#define DOS_CMD_SAVE_REU		0x22
+#define DOS_CMD_MOUNT_DISK		0x23
+#define DOS_CMD_UMOUNT_DISK		0x24
+#define DOS_CMD_SWAP_DISK		0x25
+#define DOS_CMD_GET_TIME		0x26
+#define DOS_CMD_SET_TIME		0x27
+#define DOS_CMD_ENABLE_DISK_A	0x30
+#define DOS_CMD_DISABLE_DISK_A	0x31
+#define DOS_CMD_ENABLE_DISK_B	0x32
+#define DOS_CMD_DISABLE_DISK_B	0x33
+#define DOS_CMD_DRIVE_A_POWER 	0x34
+#define DOS_CMD_DRIVE_B_POWER	0x35
+#define DOS_CMD_ECHO			0xf0
+
+
 //#define DEBUG
 #define DISPLAY_READ
 
@@ -91,5 +125,12 @@ int uii_isstatusdataavailable(void);
 char uii_tcp_nextchar(unsigned char socketid);
 int uii_tcp_nextline(unsigned char socketid, char*);
 int uii_tcp_nextline_ascii(unsigned char socketid, char*);
+
+void uii_enable_drive_a(void);
+void uii_disable_drive_a(void);
+void uii_enable_drive_b(void);
+void uii_disable_drive_b(void);
+void uii_get_drive_a_power(void);
+void uii_get_drive_b_power(void);
 
 #endif

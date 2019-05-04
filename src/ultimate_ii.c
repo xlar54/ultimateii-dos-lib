@@ -375,6 +375,66 @@ void uii_echo(void)
 	uii_accept();
 }
 
+void uii_enable_drive_a(void)
+{
+	unsigned char cmd[] = {0x00,DOS_CMD_ENABLE_DISK_A};
+	uii_sendcommand(cmd, 2);
+
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+}
+
+void uii_disable_drive_a(void)
+{
+	unsigned char cmd[] = {0x00,DOS_CMD_DISABLE_DISK_A};
+	uii_sendcommand(cmd, 2);
+
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+}
+
+void uii_enable_drive_b(void)
+{
+	unsigned char cmd[] = {0x00,DOS_CMD_ENABLE_DISK_B};
+	uii_sendcommand(cmd, 2);
+
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+}
+
+void uii_disable_drive_b(void)
+{
+	unsigned char cmd[] = {0x00,DOS_CMD_DISABLE_DISK_B};
+	uii_sendcommand(cmd, 2);
+
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+}
+
+void uii_get_drive_a_power(void) 
+{
+	unsigned char cmd[] = {0x00,DOS_CMD_DRIVE_A_POWER};
+	uii_sendcommand(cmd, 2);
+
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+}
+
+void uii_get_drive_b_power(void) 
+{
+	unsigned char cmd[] = {0x00,DOS_CMD_DRIVE_B_POWER};
+	uii_sendcommand(cmd, 2);
+
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+}
+
 void uii_sendcommand(unsigned char *bytes, int count)
 {
 	int x =0;

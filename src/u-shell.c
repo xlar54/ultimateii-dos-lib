@@ -75,10 +75,28 @@ void docmd()
 		printf("\nmount <d64 file> - to drive 8");
 		printf("\nunmount          - what it says");
 		printf("\nmore <file>      - read a file");
+		printf("\ndriveoff         - disable drive 8");
+		printf("\ndriveon          - enable drive 8");
+		printf("\ndrivestat        - drive power status");
 	}
 	else if(strcmp(params[0],"exit") == 0)
 	{
 		running = 0;
+	}
+	else if(strcmp(params[0],"driveoff") == 0)
+	{
+		uii_disable_drive_a();
+		printf("\nDrive 8 disabled.");
+	}
+	else if(strcmp(params[0],"driveon") == 0)
+	{
+		uii_enable_drive_a();
+		printf("\nDrive 8 enabled.");
+	}
+	else if(strcmp(params[0],"drivestat") == 0)
+	{
+		uii_get_drive_a_power();
+		printf("\nDrive A power:%s", uii_data);
 	}
 	else if(strcmp(params[0],"id") == 0)
 	{
