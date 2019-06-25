@@ -98,7 +98,7 @@ void help_screen(void);
 void quit(void);
 void download_xmodem(void);
 
-char *version = "2.0";
+char *version = "2.01";
 char host[80];
 char portbuff[10];
 unsigned int port = 0;
@@ -904,8 +904,10 @@ void download_xmodem(void) {
 	cbm_close(15);
 
 	uii_tcpsocketwritechar(socketnr, ACK);
-	uii_tcpsocketwritechar(socketnr, ACK);
-	uii_tcpsocketwritechar(socketnr, ACK);
+	//uii_tcpsocketwritechar(socketnr, ACK);
+	//uii_tcpsocketwritechar(socketnr, ACK);
+
+	uii_reset_uiidata();
 
 	printf("\n\nDownload finished: press any key");
 	POKE(KEYBOARD_BUFFER,0);

@@ -784,3 +784,14 @@ int uii_tcp_nextline(unsigned char socketid, char *result) {
 int uii_tcp_nextline_ascii(unsigned char socketid, char *result) {
 	return uii_tcp_nextline_convert_parameter(socketid, result, 1);
 }
+
+void uii_reset_uiidata() {
+	uii_data_len = 0;
+	uii_data_index = 0;
+	memset(uii_data, 0, DATA_QUEUE_SZ*2);
+	memset(uii_status, 0, STATUS_QUEUE_SZ);
+}
+
+void uii_tcp_emptybuffer() {
+	uii_data_index = 0;
+}

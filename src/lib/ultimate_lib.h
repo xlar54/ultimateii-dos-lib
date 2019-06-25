@@ -71,6 +71,7 @@ Patches and pull requests are welcome
 #define DISPLAY_READ
 
 #define uii_tcpconnect_success() (uii_status[0] == '0' && uii_status[1] == '0')
+#define uii_success() (uii_status[0] == '0' && uii_status[1] == '0')
 
 extern unsigned char uii_status[STATUS_QUEUE_SZ];
 extern unsigned char uii_data[DATA_QUEUE_SZ*2];
@@ -125,6 +126,8 @@ int uii_isstatusdataavailable(void);
 char uii_tcp_nextchar(unsigned char socketid);
 int uii_tcp_nextline(unsigned char socketid, char*);
 int uii_tcp_nextline_ascii(unsigned char socketid, char*);
+void uii_tcp_emptybuffer(void);
+void uii_reset_uiidata(void);
 
 void uii_enable_drive_a(void);
 void uii_disable_drive_a(void);
