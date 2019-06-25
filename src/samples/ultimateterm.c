@@ -42,7 +42,7 @@ void blank_vicII(void);
 #include <conio.h>
 #include <peekpoke.h>
 #include <unistd.h>
-#include "..\lib\ultimate_lib.h"
+#include "../lib/ultimate_lib.h"
 #include "screen_utility.h"
 
 #define RVS_ON			0x12
