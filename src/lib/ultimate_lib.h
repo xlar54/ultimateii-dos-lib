@@ -112,6 +112,11 @@ void uii_tcpsocketwrite(unsigned char socketid, char *data);
 void uii_tcpsocketwritechar(unsigned char socketid, char one_char);
 void uii_tcpsocketwrite_ascii(unsigned char socketid, char *data);
 
+int uii_tcplistenstart(void);
+int uii_tcplistenstop(void);
+int uii_tcpgetlistenstate(void);
+unsigned char uii_tcpgetlistensocket(void);
+
 void uii_logtext(char *text);
 void uii_logstatusreg(void);
 void uii_sendcommand(unsigned char *bytes, int count);

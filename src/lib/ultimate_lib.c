@@ -691,6 +691,69 @@ int uii_tcpsocketread(unsigned char socketid, unsigned short length)
 	return uii_data[0] | (uii_data[1]<<8);
 }
 
+int uii_tcplistenstart()
+{
+	unsigned char tempTarget = uii_target;
+	unsigned char cmd[] = {0x00,0x12};
+	
+	uii_settarget(TARGET_NETWORK);
+	uii_sendcommand(cmd, 0x02);
+
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+	
+	uii_target = tempTarget;
+	return uii_data[0] | (uii_data[1]<<8);
+}
+
+int uii_tcplistenstop()
+{
+	unsigned char tempTarget = uii_target;
+	unsigned char cmd[] = {0x00,0x13};
+	
+	uii_settarget(TARGET_NETWORK);
+	uii_sendcommand(cmd, 0x02);
+
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+	
+	uii_target = tempTarget;
+	return uii_data[0] | (uii_data[1]<<8);
+}
+
+int uii_tcpgetlistenstate()
+{
+	unsigned char tempTarget = uii_target;
+	unsigned char cmd[] = {0x00,0x14};
+	
+	uii_settarget(TARGET_NETWORK);
+	uii_sendcommand(cmd, 0x02);
+
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+	
+	uii_target = tempTarget;
+	return uii_data[0] | (uii_data[1]<<8);
+}
+
+unsigned char uii_tcpgetlistensocket()
+{
+	unsigned char tempTarget = uii_target;
+	unsigned char cmd[] = {0x00,0x15};
+	
+	uii_settarget(TARGET_NETWORK);
+	uii_sendcommand(cmd, 0x02);
+
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+	
+	uii_target = tempTarget;
+	return uii_data[0] | (uii_data[1]<<8);
+}
 
 void uii_tcpsocketwrite_convert_parameter(unsigned char socketid, char *data, int ascii)
 {
