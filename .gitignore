@@ -2,9 +2,10 @@
 **/.DS_Store
 Thumbs.db
 **/Thumbs.db
-src/geouterm-res.h
-src/geouterm-res.s
-src/*.o
+src/samples/geouterm-res.h
+src/samples/geouterm-res.s
+src/samples/*.o
+src/lib/*.o
 sandbox/*.o
 target/*.o
 .vscode/

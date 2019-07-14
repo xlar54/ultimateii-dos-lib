@@ -17,7 +17,7 @@ Demo program does not alter any data
 #include <conio.h>
 #include <stdlib.h>
 #include <peekpoke.h>
-#include "..\lib\ultimate_lib.h"
+#include "../lib/ultimate_lib.h"
 #include "geouterm-res.h"
 
 //#define TESTING
@@ -485,7 +485,7 @@ void main(void)
 #ifndef TESTING	
 	socketnr = uii_data[0];
 	
-	if (uii_tcpconnect_success())
+	if (uii_success())
 	{
 #endif
 		hook_into_system();

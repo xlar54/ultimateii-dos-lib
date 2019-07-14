@@ -16,7 +16,7 @@ Demo program does not alter any data
 #include <stdlib.h>
 #include <stdio.h>
 #include <c64.h>
-#include "..\lib\ultimate_lib.h"
+#include "../lib/ultimate_lib.h"
 
 void main(void) 
 {

@@ -16,7 +16,7 @@ Demo program does not alter any data
 #include <stdlib.h>
 #include <stdio.h>
 #include <c64.h>
-#include "..\lib\ultimate_lib.h"
+#include "../lib/ultimate_lib.h"
 
 void main(void) 
 {
@@ -81,7 +81,7 @@ void main(void)
 	
 	printf("\n\nReading data...\n");
 	
-	while(uii_tcpconnect_success())
+	while(uii_success())
 	{
 		datacount = uii_tcpsocketread(socketnr, 1);
 		printf("%c", uii_data[2]);	// data byte

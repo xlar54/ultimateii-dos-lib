@@ -30,7 +30,7 @@ Demo program does not alter any data
 #include <conio.h>
 #include <peekpoke.h>
 #include <unistd.h>
-#include "..\lib\ultimate_lib.h"
+#include "../lib/ultimate_lib.h"
 
 #define RVS_ON			0x12
 #define RVS_OFF			0x92

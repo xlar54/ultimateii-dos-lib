@@ -29,7 +29,7 @@ Demo program does not alter any data
 #include <conio.h>
 #include <peekpoke.h>
 #include <unistd.h>
-#include "..\lib\ultimate_lib.h"
+#include "../lib/ultimate_lib.h"
 
 void main(void) 
 {

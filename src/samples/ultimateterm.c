@@ -42,7 +42,7 @@ void blank_vicII(void);
 #include <conio.h>
 #include <peekpoke.h>
 #include <unistd.h>
-#include "..\lib\ultimate_lib.h"
+#include "../lib/ultimate_lib.h"
 #include "screen_utility.h"
 
 #define RVS_ON			0x12
@@ -98,7 +98,7 @@ void help_screen(void);
 void quit(void);
 void download_xmodem(void);
 
-char *version = "2.0";
+char *version = "2.01";
 char host[80];
 char portbuff[10];
 unsigned int port = 0;
@@ -510,7 +510,7 @@ void main(void)
 {
 	int datacount;
 	unsigned char c = 0;
-	char buff[2] = {0,0};
+	char buff[2];
 	int x = 0;
 
 	detect_uci();
@@ -548,7 +548,7 @@ void main(void)
 		
 		socketnr = uii_tcpconnect(host, port);
 		
-		if (uii_tcpconnect_success()) {
+		if (uii_success()) {
 			putchar(CG_COLOR_CYAN);
 			cursor_on();
 			while(1) {
@@ -566,6 +566,7 @@ void main(void)
 				if(c != 0) {
 					c = cgetc();
 					buff[0] = c;
+					buff[1] = 0;
 					if (c == 133) // KEY F1: HELP
 						help_screen();
 					else if (c == 134) // KEY F3: switch petscii/ascii
@@ -904,8 +905,8 @@ void download_xmodem(void) {
 	cbm_close(15);
 
 	uii_tcpsocketwritechar(socketnr, ACK);
-	uii_tcpsocketwritechar(socketnr, ACK);
-	uii_tcpsocketwritechar(socketnr, ACK);
+
+	uii_reset_uiidata();
 
 	printf("\n\nDownload finished: press any key");
 	POKE(KEYBOARD_BUFFER,0);
