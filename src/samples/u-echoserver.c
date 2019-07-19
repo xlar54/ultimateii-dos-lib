@@ -31,53 +31,105 @@ Demo program does not alter any data
 #include <unistd.h>
 #include "../lib/ultimate_lib.h"
 
+void waitforconnection(void);
+
 void main(void) 
 {
-    unsigned char state = 0;
+    int port = 6400;
+    char *end;
+    char buf[40];
+        
+    printf("Demo chat server (incoming connections)\n");
+    printf("Port # for listenr:");
+
+    do {
+        if (!fgets(buf, sizeof buf, stdin))
+            break;
+
+        // remove \n
+        buf[strlen(buf) - 1] = 0;
+        port = strtol(buf, &end, 10);
+
+    } while (end != buf + strlen(buf));
+
+    uii_tcplistenstart(port);
+
+    printf("Listener on port %d status:%s\n", port, uii_status);
+    
+    if(uii_success())
+        waitforconnection();
+}
+
+void waitforconnection(void)
+{
     unsigned char c = 0;
     unsigned char socketnr = 0;
     int datacount = 0;
     char buff[2] = {0,0};
-    
-    printf("Demo echo server (incoming connections)\n");
-    printf("Port 6400\n");
-    printf("Waiting...\n");
+    unsigned char state = 0;
 
-    uii_tcplistenstart();
+    printf("Waiting...\n");
 
     do
     {
         state = uii_tcpgetlistenstate();
 
-    } while(state != 2);
-
-    socketnr =  uii_tcpgetlistensocket();
-
-    if(socketnr != 0)
-    {
-        printf("Connected!\n\n");
-        
-        do 
+        if(state != NET_LISTENER_STATE_LISTENING && state != NET_LISTENER_STATE_CONNECTED)
         {
-            datacount = uii_tcpsocketread(socketnr, 892);
+            printf("Listener error: %d", state);
+            abort();
+        }
 
-            if(datacount == 0)
-            {
-                printf("\n\nConnection closed.");
-                break;
-            }
-                
-            if(datacount > 0)
-            {
-	            printf("%c", uii_data[2]);
-            }
+    } while(state != NET_LISTENER_STATE_CONNECTED);
 
-            c = kbhit();
-            if(c != 0) {
-                c = cgetc();
-                buff[0] = c;
-                uii_tcpsocketwrite(socketnr, buff);
-            }
-        } while(1);      
-    }
+    printf("Listener status:%s\n", uii_status);
+    
+    if(uii_success())
+    {
+        socketnr =  uii_tcpgetlistensocket();
+        uii_tcplistenstop();
+
+        if(socketnr != 0)
+        {
+            printf("=[Remote Connected - F1 : Exit]======\n");
+            
+            do 
+            {
+                datacount = uii_tcpsocketread(socketnr, 892);
+
+                if(datacount == 0)
+                {
+                    uii_tcpclose(socketnr);
+                    printf("\n\nConnection closed.");
+                    break;
+                }
+                    
+                if(datacount > 0)
+                {
+                    printf("%c", uii_data[2]);
+                }
+
+                c = kbhit();
+
+                if(c != 0) {
+                    c = cgetc();
+
+                    if(c == 133)
+                    {
+                        uii_tcpclose(socketnr);
+                        printf("\n\nConnection closed.");
+                        break;
+                    }
+
+                    buff[0] = c;
+                    uii_tcpsocketwrite(socketnr, buff);
+                    printf("%c", c);
+                }
+
+            } while(1);      
+        }
+    } 
+
+    uii_tcplistenstop();
+       
 }

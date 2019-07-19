@@ -66,6 +66,22 @@ Patches and pull requests are welcome
 #define CTRL_CMD_DRIVE_B_POWER	0x35
 #define DOS_CMD_ECHO			0xf0
 
+#define NET_CMD_GET_INTERFACE_COUNT	0x02
+#define NET_CMD_GET_IP_ADDRESS		0x05
+#define NET_CMD_TCP_SOCKET_CONNECT	0x07
+#define NET_CMD_TCP_SOCKET_CLOSE	0x09
+#define NET_CMD_TCP_SOCKET_READ		0x10
+#define NET_CMD_TCP_SOCKET_WRITE	0x11
+#define NET_CMD_TCP_LISTENER_START	0x12
+#define NET_CMD_TCP_LISTENER_STOP	0x13
+#define NET_CMD_GET_LISTENER_STATE	0x14
+#define NET_CMD_GET_LISTENER_SOCKET	0x15
+
+#define NET_LISTENER_STATE_NOT_LISTENEING	0x00
+#define NET_LISTENER_STATE_LISTENING		0x01
+#define NET_LISTENER_STATE_CONNECTED		0x02
+#define NET_LISTENER_STATE_BIND_ERROR		0x03
+#define NET_LISTENER_STATE_PORT_IN_USE		0x04
 
 //#define DEBUG
 #define DISPLAY_READ
@@ -112,7 +128,7 @@ void uii_tcpsocketwrite(unsigned char socketid, char *data);
 void uii_tcpsocketwritechar(unsigned char socketid, char one_char);
 void uii_tcpsocketwrite_ascii(unsigned char socketid, char *data);
 
-int uii_tcplistenstart(void);
+int uii_tcplistenstart(unsigned short port);
 int uii_tcplistenstop(void);
 int uii_tcpgetlistenstate(void);
 unsigned char uii_tcpgetlistensocket(void);
