@@ -3,6 +3,7 @@
 Thumbs.db
 **/Thumbs.db
 src/samples/geouterm-res.h
+src/samples/geouterm.h
 src/samples/geouterm-res.s
 src/samples/*.o
 src/lib/*.o
