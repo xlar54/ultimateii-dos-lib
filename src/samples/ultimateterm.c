@@ -98,7 +98,7 @@ void help_screen(void);
 void quit(void);
 void download_xmodem(void);
 
-char *version = "2.01";
+char *version = "2.2";
 char host[80];
 char portbuff[10];
 unsigned int port = 0;
@@ -108,12 +108,15 @@ unsigned char pb_loaded = 0;
 unsigned char phonebookctr = 0;
 unsigned char phonebook[20][80];
 unsigned char dev = 0;
+unsigned char cur_dev = 0;
 unsigned char pbtopidx = 0;
 unsigned char pbselectedidx = 0;
 unsigned char pb_bytes[PB_SIZE+1];
 unsigned char hst[80];
 unsigned file_index;
 unsigned char y = 0;
+unsigned char px = 0;
+unsigned char py = 0;
 
 unsigned char ascToPet[] = {
 0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x14,0x20,0x0a,0x11,0x93,0x0d,0x0e,0x0f,
@@ -148,7 +151,7 @@ unsigned char term_getstring(char* def, char *buf) {
 	unsigned char c,x;
 	
 	cursor_on();
-	for(x=0;x<strlen(def);x++) {
+	for (x=0;x<strlen(def);x++) {
 		buf[x] = def[x];
 		putchar(def[x]);
 	}
@@ -156,7 +159,7 @@ unsigned char term_getstring(char* def, char *buf) {
 	POKE(KEYBOARD_BUFFER,0);
 	while(1) {
 		c = kbhit();
-		if(c != 0) {
+		if (c != 0) {
 			c = cgetc();
 			switch(c) {
 				case CR:
@@ -165,7 +168,7 @@ unsigned char term_getstring(char* def, char *buf) {
 					return x;
 
 				case DELETE:
-					if(x > 0) {
+					if (x > 0) {
 						x--;
 						cursor_off();
 						putchar(LEFT);
@@ -176,7 +179,7 @@ unsigned char term_getstring(char* def, char *buf) {
 					break;
 
 				default:
-					if(c > 32 && c < 91) {
+					if (c > 32 && c < 91) {
 						buf[x++] = c;
 						cursor_off();
 						putchar(c);
@@ -205,7 +208,7 @@ void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned
 	char *spaces="                                        ";
 
 	spaces[width-2] = 0;
-	for(i=y+1;i<y+height;i++)
+	for (i=y+1;i<y+height;i++)
 		cputsxy(x+1,i,spaces);
 	if (!border) return;
 
@@ -219,7 +222,7 @@ void delete_phonebook_entry(void) {
 	unsigned char ch, ctr, x;
 	if (!pbselectedidx || phonebookctr<=0) return;
 
-	for(ctr=pbselectedidx; ctr<phonebookctr; ++ctr)
+	for (ctr=pbselectedidx; ctr<phonebookctr; ++ctr)
 		strcpy(phonebook[ctr], phonebook[ctr+1]);
 	--phonebookctr;
 	if (pbtopidx>0 && pbselectedidx>phonebookctr && pbtopidx==pbselectedidx) {
@@ -230,7 +233,7 @@ void delete_phonebook_entry(void) {
 		--pbselectedidx;
 	}
 	x = 15;
-	for(ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr+1; ++ctr) {
+	for (ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr+1; ++ctr) {
 		gotoxy(1,x++); 
 		ch = (ctr == pbselectedidx) ? '>' : ' ';
 		printf(ctr<=phonebookctr ? "%c %-36s" : SPACE38,ch,phonebook[ctr]);
@@ -244,7 +247,7 @@ void add_phonebook_entry(void) {
 
 	putchar(CG_COLOR_CYAN);
 	cputsxy(8,14,"[Add entry to phonebook]");
-	if(read_host_and_port("", "")) {
+	if (read_host_and_port("", "")) {
 		sprintf(hst,"%s %u",host,port);
 		++phonebookctr;
 		for (ctr=phonebookctr-1; ctr>=pbselectedidx+1; --ctr)
@@ -264,17 +267,17 @@ void edit_phonebook_entry() {
 	cputsxy(7,14,"[Edit entry of phonebook]");
 	ctr = 0;
 	len = strlen(phonebook[pbselectedidx]);
-	for(x=0; x<len && phonebook[pbselectedidx][x]!=' '; x++)
+	for (x=0; x<len && phonebook[pbselectedidx][x]!=' '; x++)
 		host[ctr++] = phonebook[pbselectedidx][x];
 	host[ctr] = 0;
 	
 	++x;
 	ctr = 0;
-	for(; x<len; x++)
+	for (; x<len; x++)
 		portbuff[ctr++] = phonebook[pbselectedidx][x];
 	portbuff[ctr] = 0;
 
-	if(read_host_and_port(host, portbuff)) {
+	if (read_host_and_port(host, portbuff)) {
 		sprintf(hst,"%s %u",host,port);
 		strcpy(phonebook[pbselectedidx],hst);
 	}
@@ -293,7 +296,7 @@ void save_phonebook(void) {
 	cputsxy(9,18,"SAVING: PLEASE WAIT...");
 
 	pb_bytes[0] = 0;
-	for(ctr=1; ctr<=phonebookctr; ++ctr) {
+	for (ctr=1; ctr<=phonebookctr; ++ctr) {
 		strcat(pb_bytes, phonebook[ctr]);
 		strcat(pb_bytes, "\n");
 	}
@@ -302,7 +305,7 @@ void save_phonebook(void) {
 	status1 = cbm_open(2, dev, CBM_WRITE,"u-term,s");
 	status2 = cbm_write(2, pb_bytes, strlen(pb_bytes));
 	cbm_close(2);
-	if(!status1 && status2==-1) {
+	if (!status1 && status2==-1) {
 		cbm_open(15, dev, 15, "");
 		cbm_read(15, pb_bytes, PB_SIZE);
 		cbm_close(15);
@@ -338,12 +341,12 @@ void load_phonebook(void) {
 	cbm_close(2);
 	cbm_close(15);
 
-	if(dev>=8) {
+	if (dev>=8) {
 		c = cbm_open(2, dev, CBM_READ, file);
 		bytesRead = c ? 0 : cbm_read(2, pb_bytes, PB_SIZE);
 	}
 	strcpy(phonebook[0], "MANUAL ENTRY");
-	if(dev < 8 || bytesRead <= 0) { // No drive or no file
+	if (dev < 8 || bytesRead <= 0) { // No drive or no file
 		// Default phonebook
 		strcpy(phonebook[1], "afterlife.dynu.com 6400");
 		strcpy(phonebook[2], "bbs.jammingsignal.com 23");
@@ -354,8 +357,8 @@ void load_phonebook(void) {
 		strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
 		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
 		phonebookctr = 8;
-		if(dev >= 8) {
-			if(!c && !cbm_open(15, dev, 15, "")) cbm_read(15, pb_bytes, PB_SIZE);
+		if (dev >= 8) {
+			if (!c && !cbm_open(15, dev, 15, "")) cbm_read(15, pb_bytes, PB_SIZE);
 			cbm_close(15);
 		}
 	} else {
@@ -377,7 +380,7 @@ void load_phonebook(void) {
 				hst[++ctr] = 0;
 
 				// hostname too big
-				if(ctr == 78) break;
+				if (ctr == 78) break;
 			}
 		}
 		cbm_close(2);
@@ -410,70 +413,89 @@ startover:
 	POKE(KEYBOARD_BUFFER,0);
 	while(1) {
 		c = kbhit();
-		if(c != 0) {
+		if (c != 0) {
 			c = cgetc();
 			if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95; // c to lowercase
 
-			if(c == 'd') 
+			if (c == 'd') 
 				delete_phonebook_entry();
 
-			else if(c == 'a')
+			else if (c == 'a')
 				add_phonebook_entry();
 
-			else if(c == 'e')
+			else if (c == 'e')
 				edit_phonebook_entry();
 
-			else if(c == 'l') 
+			else if (c == 'l') 
 				load_phonebook();
 
-			else if(c == 's')
+			else if (c == 's')
 				save_phonebook();
 
-			else if(c == 'q')
+			else if (c == 'q')
 				quit();
 
-			else if(c == DOWN && wherey() < 23 && (pbselectedidx + 1 <= phonebookctr)) {
+			else if (c == 133) { // KEY F1
+				help_screen();
+				cursor_off();
+			}
+
+			else if (c == '+') {
+				px = wherex(); py = wherey();
+				if (cur_dev < 15) ++cur_dev;
+				gotoxy(37, 9); printf("%c%2d%c", CG_COLOR_YELLOW, cur_dev, CG_COLOR_CYAN);
+				gotoxy(px, py);
+			}
+
+			else if (c == '-') {
+				px = wherex(); py = wherey();
+				if (cur_dev > 8) --cur_dev;
+				gotoxy(37, 9); printf("%c%2d%c", CG_COLOR_YELLOW, cur_dev, CG_COLOR_CYAN);
+				gotoxy(px, py);
+			}
+
+			else if (c == DOWN && wherey() < 23 && (pbselectedidx + 1 <= phonebookctr)) {
 				cputcxy(1,y++,' ');
 				cputcxy(1,y,'>');
 				pbselectedidx++;
 			}
 
-			else if(c == DOWN && wherey() == 23 && (pbselectedidx + 1 <= phonebookctr)) {
-				if(phonebookctr >= pbtopidx+8) {
+			else if (c == DOWN && wherey() == 23 && (pbselectedidx + 1 <= phonebookctr)) {
+				if (phonebookctr >= pbtopidx+8) {
 					pbtopidx++;
 					update_phonebook(23);
 					pbselectedidx++;
 				}
 			}
 
-			else if(c == UP && wherey() > 15) {
+			else if (c == UP && wherey() > 15) {
 				cputcxy(1,y--,' ');
 				cputcxy(1,y,'>');
 				pbselectedidx--;
 			}
 
-			else if(c == UP && wherey() == 15) {
-				if(pbtopidx > 0) {
+			else if (c == UP && wherey() == 15) {
+				if (pbtopidx > 0) {
 					pbtopidx--;
 					update_phonebook(15);
 					pbselectedidx--;
 				}
 			}
 
-			else if(c == CR) {
-				if(pbselectedidx == 0) {
+			else if (c == CR) {
+				if (pbselectedidx == 0) {
 					// MANUAL ENTRY
-					if(read_host_and_port("", "")) return;
+					if (read_host_and_port("", "")) return;
 					goto startover;
 				} else {
 					ctr = 0;
 					len = strlen(phonebook[pbselectedidx]);
-					for(x=0; x<len && phonebook[pbselectedidx][x]!=' '; x++)
+					for (x=0; x<len && phonebook[pbselectedidx][x]!=' '; x++)
 						host[ctr++] = phonebook[pbselectedidx][x];
 					host[ctr] = 0;
 					
 					ctr = 0;
-					for(; x<len; x++)
+					for (; x<len; x++)
 						portbuff[ctr++] = phonebook[pbselectedidx][x];
 					portbuff[ctr] = 0;
 
@@ -486,7 +508,7 @@ startover:
 }
 
 void term_getconfig(void) {
-	printf("Bug reports to: scott.hutter@gmail.com");
+	printf("%cby %cScott Hutter%c & %cFrancesco Sblendorio%c", CG_COLOR_CYAN, CG_COLOR_WHITE, CG_COLOR_CYAN, CG_COLOR_WHITE, CG_COLOR_CYAN);
 	printf("\n\n%cPlease ensure the following:%c",CG_COLOR_YELLOW,CG_COLOR_CYAN);
 	printf("\n - Network link is in 'Link Up' state");
 	printf("\n - Disable any emulated cartridges");
@@ -500,9 +522,10 @@ void term_getconfig(void) {
 	printf("\n   Netmask: %c%d.%d.%d.%d%c", CG_COLOR_WHITE,uii_data[4], uii_data[5], uii_data[6], uii_data[7],CG_COLOR_CYAN);
 	printf("\n   Gateway: %c%d.%d.%d.%d%c", CG_COLOR_WHITE,uii_data[8], uii_data[9], uii_data[10], uii_data[11],CG_COLOR_CYAN);
 
-	gotoxy(30,10); printf("\005A%cdd  \005S%cave", CG_COLOR_CYAN, CG_COLOR_CYAN);
-	gotoxy(30,11); printf("\005D%cel  \005L%coad", CG_COLOR_CYAN, CG_COLOR_CYAN);
-	gotoxy(30,12); printf("\005E%cdit \005Q%cuit", CG_COLOR_CYAN, CG_COLOR_CYAN);
+	gotoxy(29, 9); printf("\005+-%c Drive%c%2d", CG_COLOR_CYAN, CG_COLOR_YELLOW, cur_dev);
+	gotoxy(29,10); printf("\005A%cdd   \005S%cave", CG_COLOR_CYAN, CG_COLOR_CYAN);
+	gotoxy(29,11); printf("\005D%cel   \005L%coad", CG_COLOR_CYAN, CG_COLOR_CYAN);
+	gotoxy(29,12); printf("\005E%cdit  \005Q%cuit", CG_COLOR_CYAN, CG_COLOR_CYAN);
 	gotoxy(0,2);
 }
 
@@ -515,6 +538,7 @@ void main(void)
 
 	detect_uci();
 	dev = getcurrentdevice();
+	cur_dev = (dev < 8 ? 8 : dev);
 
 #ifdef __C128__
 	videomode(VIDEOMODE_80COL);
@@ -563,7 +587,7 @@ void main(void)
 				} // datacount == -1 means "wait state"
 
 				c = kbhit();
-				if(c != 0) {
+				if (c != 0) {
 					c = cgetc();
 					buff[0] = c;
 					buff[1] = 0;
@@ -579,12 +603,17 @@ void main(void)
 						uii_tcpsocketwrite(socketnr, buff);
 				}
 			}
-			printf("%c\nClosing connection", 14);
 			uii_tcpclose(socketnr);
 			cursor_off();
+			if (c != 136) { // NOT KEY F7
+				printf("\n\n%cconnection closed, hit any key", CG_COLOR_WHITE);
+				c = 0; while(c==0) c=kbhit();
+			}
+			putchar(14);
 		}
 		else
 		{
+			cursor_off();
 			printf("\n%c * Connect failed:\n   %s", CG_COLOR_L_RED, uii_status);
 			printf("\n\n * Press any key");
 			
@@ -597,7 +626,7 @@ void main(void)
 void update_phonebook(unsigned char new_y) {
 	unsigned char ctr;
 	y = 15;
-	for(ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr; ++ctr) {
+	for (ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr; ++ctr) {
 		gotoxy(3,y++);
 		cprintf("%-36s",phonebook[ctr]);
 	}
@@ -609,7 +638,7 @@ void display_phonebook(void) {
 	unsigned char ctr, x = 15;
 	putchar(CG_COLOR_CYAN);
 	term_window(0, 14, 40, 10, 0);
-	for(ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr; ++ctr)
+	for (ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr; ++ctr)
 		cputsxy(3,x++,phonebook[ctr]);
 	cputcxy(1,y,'>');
 }
@@ -739,12 +768,15 @@ void help_screen(void) {
 	putchar(14);
 	gotoxy(LINE1,1);  printf("\222HELP SCREEN");
 	gotoxy(LINE1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243");
-	gotoxy(LINE2,20); printf("Press any key to go back");
+	gotoxy(LINE2,14); printf("Press any key to go back");
 	gotoxy(LINE3,5);  printf("\022 F1 \222  This HELP screen");
 	gotoxy(LINE3,7);  printf("\022 F3 \222  Switch PETSCII/ASCII");
 	gotoxy(LINE3,9);  printf("\022 F5 \222  Download with Xmodem");
 	gotoxy(LINE3,11); printf("\022 F7 \222  Exit BBS");
-
+	gotoxy(LINE3,21); printf("%c         Please report issues:", CG_COLOR_L_GRAY);
+	gotoxy(LINE3,22); printf("%c         https://git.io/fjyUe", CG_COLOR_L_GRAY);
+	gotoxy(LINE3,23); printf("%c         \243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243", CG_COLOR_WHITE);
+	putchar(CG_COLOR_WHITE);
 	POKE(KEYBOARD_BUFFER,0);
 	cgetc();
 	POKE(KEYBOARD_BUFFER,0);
@@ -807,7 +839,7 @@ void download_xmodem(void) {
 	gotoxy(LINEP3,5); printf("Enter destination filename:");
 	gotoxy(LINEP3,6); printf("                            ");
 	gotoxy(LINEP3,6); term_getstring("", filename);
-	if (filename[0] == 0 || dev < 8) {
+	if (filename[0] == 0 || cur_dev < 8) {
 		restore_screen();
 		cursor_on();
 		return;
@@ -831,12 +863,12 @@ void download_xmodem(void) {
 	cursor_off();
 	POKE(KEYBOARD_BUFFER, 0);
 	putchar(c);
-	gotoxy(0,10); printf("WAIT PLEASE.");
+	gotoxy(0,10); printf("PLEASE WAIT.");
 	cursor_off();
 	// Open file in write mode
 	cbm_close(15); cbm_close(2);
-	cbm_open(15, dev, 15, scratch_cmd); cbm_close(15);
-	status = cbm_open(2, dev, CBM_WRITE, filename);
+	cbm_open(15, cur_dev, 15, scratch_cmd); cbm_close(15);
+	status = cbm_open(2, cur_dev, CBM_WRITE, filename);
 	if (status) {
 		printf("\n\nI/O ERROR. Download aborted.");
 		cgetc();
@@ -900,7 +932,7 @@ void download_xmodem(void) {
 
 	//close file
 	cbm_close(2);
-	cbm_open(15, dev, 15, "");
+	cbm_open(15, cur_dev, 15, "");
 	cbm_read(15, pb_bytes, PB_SIZE);
 	cbm_close(15);
 
