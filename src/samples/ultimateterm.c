@@ -79,7 +79,7 @@ void blank_vicII(void);
 
 void uii_data_print(void);
 unsigned char term_bell(void);
-unsigned char term_getstring(char* def, char *buf);
+unsigned char term_gethostname(char* def, char *buf, unsigned char lbound, unsigned char ubound);
 void term_displayheader(void);
 void putstring_ascii(char* str);
 void term_hostselect(void);
@@ -147,7 +147,10 @@ unsigned char term_bell(void) {
 	return 7;
 }
 
-unsigned char term_getstring(char* def, char *buf) {
+#define term_gethostname(def, buf) (term_getstring(def, buf, 33, 90))
+#define term_getfilename(def, buf) (term_getstring(def, buf, 32, 255))
+
+unsigned char term_getstring(char* def, char *buf, unsigned char lbound, unsigned char ubound) {
 	unsigned char c,x;
 	
 	cursor_on();
@@ -179,7 +182,10 @@ unsigned char term_getstring(char* def, char *buf) {
 					break;
 
 				default:
-					if (c > 32 && c < 91) {
+					if (
+						((c >= 32 && c <= 127) || (c >= 160)) &&
+						(c >= lbound && c <= ubound)
+					) {
 						buf[x++] = c;
 						cursor_off();
 						putchar(c);
@@ -320,7 +326,7 @@ void quit(void) {
 	term_window(0, 14, 40, 10, 0);
 	gotoxy(9,18); printf("ARE YOU SURE (Y/N)? ");
 	cursor_on();
-	term_getstring("", hst);
+	term_gethostname("", hst);
 	cursor_off();
 	if (hst[0]=='y' || hst[0]=='Y')
 		RESET_MACHINE;
@@ -648,12 +654,12 @@ unsigned char read_host_and_port(char *prompt_host, char *prompt_port) {
 	term_window(0, 14, 40, 10, 0);
 	gotoxy(5,16);
 	printf("%cHost: %c", CG_COLOR_CYAN, CG_COLOR_WHITE);
-	term_getstring(prompt_host, host);
+	term_gethostname(prompt_host, host);
 	putchar(CG_COLOR_CYAN);
 	if (host[0]==0) return 0;
 	gotoxy(5,18);
 	printf("%cPort: %c", CG_COLOR_CYAN, CG_COLOR_WHITE); 
-	term_getstring(prompt_port, portbuff);
+	term_gethostname(prompt_port, portbuff);
 	putchar(CG_COLOR_CYAN);
 	if (portbuff[0] == 0) return 0;
 	port = atoi(portbuff);
@@ -809,6 +815,7 @@ void download_xmodem(void) {
 
 	#define MAXERRORS 10
 	#define SECSIZE   128
+
 	char filename[80];
 	char scratch_cmd[80];
 	char c;
@@ -838,7 +845,7 @@ void download_xmodem(void) {
 	putchar(CG_COLOR_L_GRAY);
 	gotoxy(LINEP3,5); printf("Enter destination filename:");
 	gotoxy(LINEP3,6); printf("                            ");
-	gotoxy(LINEP3,6); term_getstring("", filename);
+	gotoxy(LINEP3,6); term_getfilename("", filename);
 	if (filename[0] == 0 || cur_dev < 8) {
 		restore_screen();
 		cursor_on();
@@ -851,9 +858,14 @@ void download_xmodem(void) {
 	}
 	gotoxy(LINEP3,8); printf("\022P\222RG or \022S\222EQ? ");
 	POKE(KEYBOARD_BUFFER, 0);
-	cursor_on();
+	cursor_off();
 	do {
 		c = cgetc();
+		if (c == 3 || c == 95) {
+			restore_screen();
+			cursor_on();
+			return;
+		}
 		if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
 	} while (c != 'p' && c !='s');
 	if (c == 'p') strcat(filename, ",p"); else strcat(filename, ",s");

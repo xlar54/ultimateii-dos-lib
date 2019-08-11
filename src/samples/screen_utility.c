@@ -2,7 +2,7 @@
 Screen Utility for C64 (VIC-II) and C128 (VDC)
 Francesco Sblendorio
 
-Part of code (VDC memory save/restore) based on mirkosoft's work:
+Portions of code (VDC memory save/restore) based on mirkosoft's work:
 http://commodore128.mirkosoft.sk/vdc.html
 http://archive.fo/0i6MI
 
@@ -48,13 +48,16 @@ void restore_screen() {
 #else
 #pragma optimize (push,off)
 
-// C128 version (VDC 80 col) of these functions:
-// - vdc_prepare
-// - save_screen
-// - restore_screen
-// are an adaption of the code from this site:
-// http://commodore128.mirkosoft.sk/vdc.html
-// http://archive.fo/0i6MI
+/*****************************************************************
+C128 version (VDC 80 col) of these functions:
+- vdc_prepare
+- save_screen
+- restore_screen
+are based on mirkosoft's work:
+
+http://commodore128.mirkosoft.sk/vdc.html
+http://archive.fo/0i6MI
+******************************************************************/
 void vdc_prepare(void) {
 	asm("lda #$12");
 	asm("sta $d600");
