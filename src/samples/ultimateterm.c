@@ -97,10 +97,14 @@ void save_phonebook(void);
 void help_screen(void);
 void quit(void);
 void download_xmodem(void);
+void dos_commands(void);
+void showdir(char *);
+void send_dos(char *);
 
-char *version = "2.2";
+char *version = "2.3";
 char host[80];
 char portbuff[10];
+char strbuff[520];
 unsigned int port = 0;
 unsigned char socketnr = 0;
 unsigned char asciimode;
@@ -117,6 +121,10 @@ unsigned file_index;
 unsigned char y = 0;
 unsigned char px = 0;
 unsigned char py = 0;
+int intbuff = 0;
+
+int len_diskbuff, idiskbuff;
+int nextchar(void);
 
 unsigned char ascToPet[] = {
 0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x14,0x20,0x0a,0x11,0x93,0x0d,0x0e,0x0f,
@@ -446,6 +454,14 @@ startover:
 				cursor_off();
 			}
 
+			else if (c == 139) { // KEY F6
+				px = wherex(); py = wherey();
+				dos_commands();
+				cursor_off();
+				gotoxy(37, 9); printf("%c%2d%c", CG_COLOR_YELLOW, cur_dev, CG_COLOR_CYAN);
+				gotoxy(px, py);
+			}
+
 			else if (c == '+') {
 				px = wherex(); py = wherey();
 				if (cur_dev < 15) ++cur_dev;
@@ -603,6 +619,8 @@ void main(void)
 						asciimode = !asciimode;
 					else if (c == 135) // KEY F5: download (xmodem protocol)
 						download_xmodem();
+					else if (c == 139) // KEY F6: send DOS commands to disk
+						dos_commands();
 					else if (c == 136) // KEY F7: close connection
 						break;
 					else
@@ -760,10 +778,12 @@ void help_screen(void) {
 	#define LINE1 34 
 	#define LINE2 28
 	#define LINE3 27
+	#define LINE4 58
 	#else
 	#define LINE1 15
 	#define LINE2 8
 	#define LINE3 7
+	#define LINE4 16
 	#endif
 	cursor_off();
 	save_screen();
@@ -774,14 +794,15 @@ void help_screen(void) {
 	putchar(14);
 	gotoxy(LINE1,1);  printf("\222HELP SCREEN");
 	gotoxy(LINE1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243");
-	gotoxy(LINE2,14); printf("Press any key to go back");
+	gotoxy(LINE2,16); printf("Press any key to go back");
 	gotoxy(LINE3,5);  printf("\022 F1 \222  This HELP screen");
 	gotoxy(LINE3,7);  printf("\022 F3 \222  Switch PETSCII/ASCII");
 	gotoxy(LINE3,9);  printf("\022 F5 \222  Download with Xmodem");
-	gotoxy(LINE3,11); printf("\022 F7 \222  Exit BBS");
-	gotoxy(LINE3,21); printf("%c         Please report issues:", CG_COLOR_L_GRAY);
-	gotoxy(LINE3,22); printf("%c         https://git.io/fjyUe", CG_COLOR_L_GRAY);
-	gotoxy(LINE3,23); printf("%c         \243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243", CG_COLOR_WHITE);
+	gotoxy(LINE3,11); printf("\022 F6 \222  DOS commands to disk");
+	gotoxy(LINE3,13); printf("\022 F7 \222  Exit BBS");
+	gotoxy(LINE4,21); printf("%cPlease report issues:", CG_COLOR_L_GRAY);
+	gotoxy(LINE4,22); printf("%chttps://git.io/fjyUe", CG_COLOR_L_GRAY);
+	gotoxy(LINE4,23); printf("%c\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243", CG_COLOR_WHITE);
 	putchar(CG_COLOR_WHITE);
 	POKE(KEYBOARD_BUFFER,0);
 	cgetc();
@@ -801,6 +822,148 @@ void process_xmodem_sector(char sector[], char is_eot) {
 	if (len > 0)
 		status = cbm_write(2, sector, len);
 }
+
+void dos_commands(void) {
+	cursor_off();
+	save_screen();
+	POKE(QUOTE_MODE, 0);
+	putchar(CG_COLOR_WHITE);
+	clrscr();
+	putchar(14);
+
+	printf("Enter a DOS command, or:\n"
+	       "\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\n"
+	       "%c$ %c to get directory\n"
+	       "%c#8%c to set drive number to 8\n"
+	       "%c#9%c to set drive number to 9\n"
+	       "%c@ %c to read status\n"
+	       "%c. %c to go back\n\n"
+	       , CG_COLOR_WHITE, CG_COLOR_L_GRAY
+	       , CG_COLOR_WHITE, CG_COLOR_L_GRAY
+	       , CG_COLOR_WHITE, CG_COLOR_L_GRAY
+	       , CG_COLOR_WHITE, CG_COLOR_L_GRAY
+	       , CG_COLOR_WHITE, CG_COLOR_L_GRAY
+	       );
+	putchar(CG_COLOR_WHITE);
+
+	for (;;)  {
+		printf("#%d> ", cur_dev);
+		term_getfilename("", strbuff);
+		putchar('\n');
+		if (!strbuff[0] || !strcmp(".", strbuff))
+			break;
+
+		if (strbuff[0] == '#') {
+			intbuff = atoi(strbuff+1);
+			if (intbuff >= 8 && intbuff <= 15) cur_dev = intbuff;
+		} else if (strbuff[0] == '$') {
+			showdir(strbuff);
+		} else if (strbuff[0] == '@') {
+			send_dos(strbuff+1);
+		} else {
+			send_dos(strbuff);
+		}
+	}
+	
+	POKE(KEYBOARD_BUFFER,0);
+	restore_screen();
+	cursor_on();
+}
+
+void send_dos(char *s) {
+	cbm_close(15);
+	intbuff = cbm_open(15, cur_dev, 15, s);
+	if (intbuff) {
+		cbm_close(15);
+		printf("I/O error\n");
+		return;
+	}
+	pb_bytes[0] = 0;
+	intbuff = cbm_read(15, pb_bytes, PB_SIZE);
+	if (intbuff > 0)
+		pb_bytes[intbuff] = 0;
+	else {
+		cbm_close(15);
+		printf("I/O error\n");
+		return;
+	}
+	cbm_close(15);
+	printf("%s\n", pb_bytes);
+}
+
+void showdir(char *s) {
+	int a,b;
+	cbm_close(2); cbm_close(15);
+	intbuff = cbm_open(2, cur_dev, 0, s);
+	if (intbuff) {
+		cbm_close(2); cbm_close(15);
+		printf("I/O error\n");
+		return;
+	}
+
+	pb_bytes[0] = 0;
+	cbm_open(15, cur_dev, 15, "");
+	intbuff = cbm_read(15, pb_bytes, PB_SIZE);
+	if (intbuff > 0)
+		pb_bytes[intbuff] = 0;
+	else {
+		cbm_close(2); cbm_close(15);
+		printf("I/O error\n");
+		return;
+	}
+	if (atoi(pb_bytes)) {
+		cbm_close(2); cbm_close(15);
+		printf("%s\n", pb_bytes);
+		return;
+	}
+	
+	len_diskbuff = 0; idiskbuff = 0;
+	
+	nextchar();
+	nextchar();
+
+	for (;;) {
+		a = nextchar();
+		b = nextchar();
+		if ((!a && !b) || a<0 || b<0) break;
+		a = nextchar();
+		b = nextchar();
+		if (a<0 || b<0) break;
+		printf("%d ", b*256 + a);
+		do {
+			if (kbhit()) {
+				b = cgetc();
+				if (b == 3 || b == 95) { 
+					cbm_close(2); cbm_close(15); 
+					putchar('\n'); 
+					return;
+				}
+			}
+			a = nextchar();
+			putchar(a > 0 ? a : '\n');
+		} while (a > 0);
+		if (a < 0) break;
+	}
+	putchar('\n');
+	cbm_close(2);
+	cbm_close(15);
+}
+
+int nextchar(void) {
+    char result;
+    if (idiskbuff < len_diskbuff) {
+        result = strbuff[idiskbuff++];
+    } else {
+        do {
+            len_diskbuff = cbm_read(2, strbuff, 512);
+            if (len_diskbuff == 0) return -1; /// if len = -1 o 0 ?
+        } while (len_diskbuff == 0);
+        result = strbuff[0];
+        idiskbuff = 1;
+    }
+    return result;
+}
+
 
 void download_xmodem(void) {
 	#ifdef __C128__

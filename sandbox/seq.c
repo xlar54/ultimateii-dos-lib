@@ -40,7 +40,7 @@ char nextchar(void) {
         result = buff[ibuff++];
     } else {
         do {
-            len_buff = cbm_read(2, buff, 15);
+            len_buff = cbm_read(2, buff, 1024);
             if (len_buff == 0) return 0; /// if len = -1 o 0 ?
         } while (len_buff == 0);
         result = buff[0];
