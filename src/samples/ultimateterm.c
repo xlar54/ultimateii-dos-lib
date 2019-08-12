@@ -79,7 +79,7 @@ void blank_vicII(void);
 
 void uii_data_print(void);
 unsigned char term_bell(void);
-unsigned char term_gethostname(char* def, char *buf, unsigned char lbound, unsigned char ubound);
+unsigned char term_getchars(char* def, char *buf, unsigned char lbound, unsigned char ubound);
 void term_displayheader(void);
 void putstring_ascii(char* str);
 void term_hostselect(void);
@@ -155,10 +155,10 @@ unsigned char term_bell(void) {
 	return 7;
 }
 
-#define term_gethostname(def, buf) (term_getstring(def, buf, 33, 90))
-#define term_getfilename(def, buf) (term_getstring(def, buf, 32, 255))
+#define term_gethostname(def, buf) (term_getchars(def, buf, 33, 90))
+#define term_getstring(def, buf) (term_getchars(def, buf, 32, 255))
 
-unsigned char term_getstring(char* def, char *buf, unsigned char lbound, unsigned char ubound) {
+unsigned char term_getchars(char* def, char *buf, unsigned char lbound, unsigned char ubound) {
 	unsigned char c,x;
 	
 	cursor_on();
@@ -848,7 +848,7 @@ void dos_commands(void) {
 
 	for (;;)  {
 		printf("#%d> ", cur_dev);
-		term_getfilename("", strbuff);
+		term_getstring("", strbuff);
 		putchar('\n');
 		if (!strbuff[0] || !strcmp(".", strbuff))
 			break;
@@ -1008,7 +1008,7 @@ void download_xmodem(void) {
 	putchar(CG_COLOR_L_GRAY);
 	gotoxy(LINEP3,5); printf("Enter destination filename:");
 	gotoxy(LINEP3,6); printf("                            ");
-	gotoxy(LINEP3,6); term_getfilename("", filename);
+	gotoxy(LINEP3,6); term_getstring("", filename);
 	if (filename[0] == 0 || cur_dev < 8) {
 		restore_screen();
 		cursor_on();
