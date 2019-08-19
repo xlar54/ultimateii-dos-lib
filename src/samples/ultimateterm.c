@@ -2,7 +2,7 @@
 Ultimate II+ UltimateTerm 64 and 128
 Scott Hutter, Francesco Sblendorio
 
-Based on ultimate_dos-1.1.docx and command interface.docx
+Based on ultimate_dos-1.2.docx and command interface.docx
 https://github.com/markusC64/1541ultimate2/tree/master/doc
 
 Disclaimer:  Because of the nature of DOS commands, use this code
@@ -75,6 +75,7 @@ void blank_vicII(void);
 #define SOH  ((char)1)     /* Start Of Header */
 #define EOT  ((char)4)     /* End Of Transmission */
 #define ACK  ((char)6)     /* ACKnowlege */
+#define CAN  ((char)0x18)    /* CANcel */
 #define NAK  ((char)0x15)  /* Negative AcKnowlege */
 
 void uii_data_print(void);
@@ -105,6 +106,7 @@ char *version = "2.3";
 char host[80];
 char portbuff[10];
 char strbuff[520];
+char chr;
 unsigned int port = 0;
 unsigned char socketnr = 0;
 unsigned char asciimode;
@@ -811,18 +813,6 @@ void help_screen(void) {
 	cursor_on();
 }
 
-void process_xmodem_sector(char sector[], char is_eot) {
-	int len = 128;
-	unsigned char status;
-
-	if (is_eot)
-		while (len > 0 && sector[len-1] == 26)
-			--len;
-
-	if (len > 0)
-		status = cbm_write(2, sector, len);
-}
-
 void dos_commands(void) {
 	cursor_off();
 	save_screen();
@@ -956,7 +946,7 @@ int nextchar(void) {
     } else {
         do {
             len_diskbuff = cbm_read(2, strbuff, 512);
-            if (len_diskbuff == 0) return -1; /// if len = -1 o 0 ?
+            if (len_diskbuff == 0) return -1;
         } while (len_diskbuff == 0);
         result = strbuff[0];
         idiskbuff = 1;
@@ -964,6 +954,19 @@ int nextchar(void) {
     return result;
 }
 
+void process_xmodem_sector(char sector[], char is_eot) {
+	int len = 128;
+	unsigned char status;
+
+	if (is_eot) {
+		chr = sector[len-1];
+		while (len > 0 && sector[len-1] == chr)
+			--len;
+	}
+
+	if (len > 0)
+		status = cbm_write(2, sector, len);
+}
 
 void download_xmodem(void) {
 	#ifdef __C128__
@@ -987,7 +990,7 @@ void download_xmodem(void) {
 	char blocknumber;
 	char checksum;
 	unsigned char i, status;
-	unsigned char errorcount;
+	unsigned char errorcount, errorfound;
 	char sector[SECSIZE];
 	char firstread;
 
@@ -1038,8 +1041,9 @@ void download_xmodem(void) {
 	cursor_off();
 	POKE(KEYBOARD_BUFFER, 0);
 	putchar(c);
-	gotoxy(0,10); printf("PLEASE WAIT.");
+	gotoxy(0,10); printf("PLEASE WAIT (RUN/STOP to abort).");
 	cursor_off();
+
 	// Open file in write mode
 	cbm_close(15); cbm_close(2);
 	cbm_open(15, cur_dev, 15, scratch_cmd); cbm_close(15);
@@ -1054,10 +1058,12 @@ void download_xmodem(void) {
 
 	// Start Xmodem transfer
 	cursor_off();
+	uii_reset_uiidata();
 	uii_tcpsocketwritechar(socketnr, NAK);
 
 	firstread = 1;
 	do {
+		errorfound = 0;
 		c = uii_tcp_nextchar(socketnr);
 		if (!firstread) {
 			putchar('.');
@@ -1066,9 +1072,10 @@ void download_xmodem(void) {
 		if (c != EOT) {
 			if (c != SOH) {
 				printf("\nERROR: expected SOH, received: %d\n", c);
-				if (++errorcount < MAXERRORS)
+				if (++errorcount < MAXERRORS) {
+					errorfound = 1;
 					continue;
-				else {
+				} else {
 					printf("\nFATAL: too may errors\n");
 					break;
 				}
@@ -1077,11 +1084,13 @@ void download_xmodem(void) {
 			not_b = ~uii_tcp_nextchar(socketnr);
 			if (b != not_b) {
 				printf("\nERROR during checking blocknumber parity");
+				errorfound = 1;
 				++errorcount;
 				continue;
 			}
 			if (b != blocknumber) {
 				printf("\nERROR: Wrong blocknumber");
+				errorfound = 1;
 				++errorcount;
 				continue;
 			}
@@ -1092,14 +1101,36 @@ void download_xmodem(void) {
 			}
 			if (checksum != uii_tcp_nextchar(socketnr)) {
 				printf("ERROR: bad checksum");
+				errorfound = 1;
 				++errorcount;
-				continue;
 			}
-			uii_tcpsocketwritechar(socketnr, ACK);
-			++blocknumber;
 
-			if (errorcount != 0)
+			if (kbhit()) {
+				i = cgetc();
+				if (i == 3 || i == 95) {
+					uii_tcpsocketwritechar(socketnr, CAN);
+					printf("\nCanceling download...\n");
+					cbm_close(2);
+					uii_reset_uiidata();
+					cbm_open(15, cur_dev, 15, scratch_cmd);
+					cbm_read(15, pb_bytes, PB_SIZE);
+					cbm_close(15);
+					printf("\nBREAK: press any key");
+					POKE(KEYBOARD_BUFFER,0);
+					cgetc();
+					POKE(KEYBOARD_BUFFER,0);
+					restore_screen();
+					cursor_on();
+					return;
+				}
+			}
+
+			if (errorfound != 0) {
 				uii_tcpsocketwritechar(socketnr, NAK);
+			} else {
+				uii_tcpsocketwritechar(socketnr, ACK);
+				++blocknumber;
+			}
 
 			firstread = 0;
 		}
