@@ -21,7 +21,7 @@ Patches and pull requests are welcome
 
 #ifdef __C64__
 #define CHARCOLOR 646
-unsigned char vic_chars[1000], vic_color[1000], scr_saved_lowcase;
+unsigned char vic_chars[1000], vic_color[1000], scr_saved_lowcase, scr_revmode;
 #else
 #define CHARCOLOR 241
 unsigned char vdc_hi, vdc_lo, vdc_x_w, vdc_y_w, vdc_x_r, vdc_y_r, vdc_temp;
@@ -30,6 +30,7 @@ unsigned char scr_saved_x, scr_saved_y, scr_saved_c;
 
 #ifdef __C64__
 void save_screen() {
+	scr_revmode = PEEK(199);
 	scr_saved_x = wherex();
 	scr_saved_y = wherey();
 	scr_saved_c = PEEK(CHARCOLOR);
@@ -44,6 +45,7 @@ void restore_screen() {
 	memcpy((void*)0x0400, vic_chars, 1000);
 	gotoxy(scr_saved_x, scr_saved_y);
 	POKE(CHARCOLOR, scr_saved_c);
+	POKE(199, scr_revmode);
 }
 #else
 #pragma optimize (push,off)
