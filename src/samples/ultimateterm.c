@@ -7,7 +7,6 @@ https://github.com/markusC64/1541ultimate2/tree/master/doc
 
 Disclaimer:  Because of the nature of DOS commands, use this code
 soley at your own risk.
-
 Patches and pull requests are welcome
 
 Demo program does not alter any data
@@ -1020,9 +1019,18 @@ void download_xmodem(void) {
 	for (i=0; i<strlen(filename); ++i) {
 		c = filename[i];
 		if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
+		switch (c) {
+			case ':':
+			case ',':
+			case '?':
+			case '*':
+			case '@':
+			case '$':
+				c = '.';
+		}
 		filename[i] = c;
 	}
-	gotoxy(LINEP3,8); printf("\022P\222RG or \022S\222EQ? ");
+	gotoxy(LINEP3,8); printf("\022P\222RG, \022S\222EQ or \022U\222SR? ");
 	POKE(KEYBOARD_BUFFER, 0);
 	cursor_off();
 	do {
@@ -1033,10 +1041,12 @@ void download_xmodem(void) {
 			return;
 		}
 		if ((c>=97 && c<=122) || (c>=193 && c<=218)) c &= 95;
-	} while (c != 'p' && c !='s');
-	if (c == 'p') strcat(filename, ",p"); else strcat(filename, ",s");
+	} while (c != 'p' && c !='s' && c != 'u');
 	strcpy(scratch_cmd, "s:");
 	strcat(scratch_cmd, filename);
+	if (c == 'p') strcat(filename, ",p");
+		else if (c == 's') strcat(filename, ",s");
+		else strcat(filename, ",u");
 
 	cursor_off();
 	POKE(KEYBOARD_BUFFER, 0);
