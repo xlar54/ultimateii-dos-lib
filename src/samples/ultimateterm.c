@@ -534,8 +534,8 @@ void term_getconfig(void) {
 	printf("%cby %cScott Hutter%c & %cFrancesco Sblendorio%c", CG_COLOR_CYAN, CG_COLOR_WHITE, CG_COLOR_CYAN, CG_COLOR_WHITE, CG_COLOR_CYAN);
 	printf("\n\n%cPlease ensure the following:%c",CG_COLOR_YELLOW,CG_COLOR_CYAN);
 	printf("\n - Network link is in 'Link Up' state");
-	printf("\n - Disable any emulated cartridges");
 	printf("\n - %cPress F1%c to get help in session", CG_COLOR_WHITE, CG_COLOR_CYAN);
+	printf("\n - %cPress F6%c to send DOS commands", CG_COLOR_WHITE, CG_COLOR_CYAN);
 
 	uii_identify();
 	printf("\n\nNIC Status: %c%s%c", CG_COLOR_WHITE, uii_status, CG_COLOR_CYAN);
@@ -959,7 +959,7 @@ void process_xmodem_sector(char sector[], char is_eot) {
 
 	if (is_eot) {
 		chr = sector[len-1];
-		while (len > 0 && sector[len-1] == chr)
+		while (len > 0 && sector[len-1] == 26)
 			--len;
 	}
 
