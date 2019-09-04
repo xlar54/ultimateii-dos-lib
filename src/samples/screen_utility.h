@@ -2,7 +2,7 @@
 Screen Utility for C64 (VIC-II) and C128 (VDC)
 Francesco Sblendorio
 
-Part of code (VDC memory save/restore) based on mirkosoft's work:
+Portions of code (VDC memory save/restore) based on mirkosoft's work:
 http://commodore128.mirkosoft.sk/vdc.html
 http://archive.fo/0i6MI
 
