@@ -113,7 +113,6 @@ unsigned char pb_loaded = 0;
 unsigned char phonebookctr = 0;
 unsigned char phonebook[20][80];
 unsigned char dev = 0;
-unsigned char cur_dev = 0;
 unsigned char pbtopidx = 0;
 unsigned char pbselectedidx = 0;
 unsigned char pb_bytes[PB_SIZE+1];
@@ -123,6 +122,7 @@ unsigned char y = 0;
 unsigned char px = 0;
 unsigned char py = 0;
 int intbuff = 0;
+int datacount;
 
 int len_diskbuff, idiskbuff;
 int nextchar(void);
@@ -214,7 +214,7 @@ void term_displayheader(void) {
 }
 
 void putstring_ascii(char *str) {
-	for (; *str; str++)
+	for (; datacount > 0; ++str, --datacount)
 		if (*str != LF) *str==BELL ? term_bell() : putchar(ascToPet[*str]);
 }
 
@@ -459,21 +459,21 @@ startover:
 				px = wherex(); py = wherey();
 				dos_commands();
 				cursor_off();
-				gotoxy(37, 9); printf("%c%2d%c", CG_COLOR_YELLOW, cur_dev, CG_COLOR_CYAN);
+				gotoxy(37, 9); printf("%c%2d%c", CG_COLOR_YELLOW, dev, CG_COLOR_CYAN);
 				gotoxy(px, py);
 			}
 
 			else if (c == '+') {
 				px = wherex(); py = wherey();
-				if (cur_dev < 15) ++cur_dev;
-				gotoxy(37, 9); printf("%c%2d%c", CG_COLOR_YELLOW, cur_dev, CG_COLOR_CYAN);
+				if (dev < 15) ++dev;
+				gotoxy(37, 9); printf("%c%2d%c", CG_COLOR_YELLOW, dev, CG_COLOR_CYAN);
 				gotoxy(px, py);
 			}
 
 			else if (c == '-') {
 				px = wherex(); py = wherey();
-				if (cur_dev > 8) --cur_dev;
-				gotoxy(37, 9); printf("%c%2d%c", CG_COLOR_YELLOW, cur_dev, CG_COLOR_CYAN);
+				if (dev > 8) --dev;
+				gotoxy(37, 9); printf("%c%2d%c", CG_COLOR_YELLOW, dev, CG_COLOR_CYAN);
 				gotoxy(px, py);
 			}
 
@@ -545,7 +545,7 @@ void term_getconfig(void) {
 	printf("\n   Netmask: %c%d.%d.%d.%d%c", CG_COLOR_WHITE,uii_data[4], uii_data[5], uii_data[6], uii_data[7],CG_COLOR_CYAN);
 	printf("\n   Gateway: %c%d.%d.%d.%d%c", CG_COLOR_WHITE,uii_data[8], uii_data[9], uii_data[10], uii_data[11],CG_COLOR_CYAN);
 
-	gotoxy(29, 9); printf("\005+-%c Drive%c%2d", CG_COLOR_CYAN, CG_COLOR_YELLOW, cur_dev);
+	gotoxy(29, 9); printf("\005+-%c Drive%c%2d", CG_COLOR_CYAN, CG_COLOR_YELLOW, dev);
 	gotoxy(29,10); printf("\005A%cdd   \005S%cave", CG_COLOR_CYAN, CG_COLOR_CYAN);
 	gotoxy(29,11); printf("\005D%cel   \005L%coad", CG_COLOR_CYAN, CG_COLOR_CYAN);
 	gotoxy(29,12); printf("\005E%cdit  \005Q%cuit", CG_COLOR_CYAN, CG_COLOR_CYAN);
@@ -554,14 +554,13 @@ void term_getconfig(void) {
 
 void main(void) 
 {
-	int datacount;
 	unsigned char c = 0;
 	char buff[2];
 	int x = 0;
 
 	detect_uci();
 	dev = getcurrentdevice();
-	cur_dev = (dev < 8 ? 8 : dev);
+	dev = (dev < 8 ? 8 : dev);
 
 #ifdef __C128__
 	videomode(VIDEOMODE_80COL);
@@ -631,7 +630,7 @@ void main(void)
 			uii_tcpclose(socketnr);
 			cursor_off();
 			if (c != 136) { // NOT KEY F7
-				printf("\n\n%cconnection closed, hit any key", CG_COLOR_WHITE);
+				printf("\n%cconnection closed, hit any key", CG_COLOR_WHITE);
 				c = 0; while(c==0) c=kbhit();
 			}
 			putchar(14);
@@ -716,10 +715,12 @@ void uii_data_print(void) {
 	asm("lda %v+1", string_ptr);
 	asm("adc #$00");
 	asm("sta $fc");
+	asm("lda #$00");
+	asm("sta $fd"); // keeps track of hibyte of number of chars printed
+
 	asm("ldy #$00");
 loop:
 	asm("lda ($fb),y");
-	asm("beq %g", done);
 #ifdef __C128__
 	asm("cmp #$0a");
 	asm("beq %g", skipline);
@@ -736,11 +737,15 @@ skipline:
 #endif
 nextch:
 	asm("iny");
-	asm("bne %g", loop);
+	asm("bne %g", skp);
 	asm("inc $fc");
-	asm("jmp %g", loop);
-done:
-	asm("rts");
+	asm("inc $fd");
+skp:
+	asm("cpy %v", datacount);
+	asm("bne %g", loop);
+	asm("lda $fd");
+	asm("cmp %v+1", datacount);
+	asm("bne %g", loop);
 }
 #pragma optimize (pop)
 
@@ -836,7 +841,7 @@ void dos_commands(void) {
 	putchar(CG_COLOR_WHITE);
 
 	for (;;)  {
-		printf("#%d> ", cur_dev);
+		printf("#%d> ", dev);
 		term_getstring("", strbuff);
 		putchar('\n');
 		if (!strbuff[0] || !strcmp(".", strbuff))
@@ -844,7 +849,7 @@ void dos_commands(void) {
 
 		if (strbuff[0] == '#') {
 			intbuff = atoi(strbuff+1);
-			if (intbuff >= 8 && intbuff <= 15) cur_dev = intbuff;
+			if (intbuff >= 8 && intbuff <= 15) dev = intbuff;
 		} else if (strbuff[0] == '$') {
 			showdir(strbuff);
 		} else if (strbuff[0] == '@') {
@@ -861,7 +866,7 @@ void dos_commands(void) {
 
 void send_dos(char *s) {
 	cbm_close(15);
-	intbuff = cbm_open(15, cur_dev, 15, s);
+	intbuff = cbm_open(15, dev, 15, s);
 	if (intbuff) {
 		cbm_close(15);
 		printf("I/O error\n");
@@ -883,7 +888,7 @@ void send_dos(char *s) {
 void showdir(char *s) {
 	int a,b;
 	cbm_close(2); cbm_close(15);
-	intbuff = cbm_open(2, cur_dev, 0, s);
+	intbuff = cbm_open(2, dev, 0, s);
 	if (intbuff) {
 		cbm_close(2); cbm_close(15);
 		printf("I/O error\n");
@@ -891,7 +896,7 @@ void showdir(char *s) {
 	}
 
 	pb_bytes[0] = 0;
-	cbm_open(15, cur_dev, 15, "");
+	cbm_open(15, dev, 15, "");
 	intbuff = cbm_read(15, pb_bytes, PB_SIZE);
 	if (intbuff > 0)
 		pb_bytes[intbuff] = 0;
@@ -1011,7 +1016,7 @@ void download_xmodem(void) {
 	gotoxy(LINEP3,5); printf("Enter destination filename:");
 	gotoxy(LINEP3,6); printf("                            ");
 	gotoxy(LINEP3,6); term_getstring("", filename);
-	if (filename[0] == 0 || cur_dev < 8) {
+	if (filename[0] == 0 || dev < 8) {
 		restore_screen();
 		cursor_on();
 		return;
@@ -1056,8 +1061,8 @@ void download_xmodem(void) {
 
 	// Open file in write mode
 	cbm_close(15); cbm_close(2);
-	cbm_open(15, cur_dev, 15, scratch_cmd); cbm_close(15);
-	status = cbm_open(2, cur_dev, CBM_WRITE, filename);
+	cbm_open(15, dev, 15, scratch_cmd); cbm_close(15);
+	status = cbm_open(2, dev, CBM_WRITE, filename);
 	if (status) {
 		printf("\n\nI/O ERROR. Download aborted.");
 		cgetc();
@@ -1122,7 +1127,7 @@ void download_xmodem(void) {
 					printf("\nCanceling download...\n");
 					cbm_close(2);
 					uii_reset_uiidata();
-					cbm_open(15, cur_dev, 15, scratch_cmd);
+					cbm_open(15, dev, 15, scratch_cmd);
 					cbm_read(15, pb_bytes, PB_SIZE);
 					cbm_close(15);
 					printf("\nBREAK: press any key");
@@ -1148,7 +1153,7 @@ void download_xmodem(void) {
 
 	//close file
 	cbm_close(2);
-	cbm_open(15, cur_dev, 15, "");
+	cbm_open(15, dev, 15, "");
 	cbm_read(15, pb_bytes, PB_SIZE);
 	cbm_close(15);
 
