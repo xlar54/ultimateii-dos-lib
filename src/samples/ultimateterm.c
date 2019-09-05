@@ -69,7 +69,7 @@ void blank_vicII(void);
 #define CG_COLOR_L_GRAY  	0x9B
 #define SPACE38				"                                      "
 
-#define PB_SIZE 1640
+#define PB_SIZE 1680
 
 #define SOH  ((char)1)     /* Start Of Header */
 #define EOT  ((char)4)     /* End Of Transmission */
@@ -111,7 +111,7 @@ unsigned char socketnr = 0;
 unsigned char asciimode;
 unsigned char pb_loaded = 0;
 unsigned char phonebookctr = 0;
-unsigned char phonebook[20][80];
+unsigned char phonebook[21][80];
 unsigned char dev = 0;
 unsigned char pbtopidx = 0;
 unsigned char pbselectedidx = 0;
