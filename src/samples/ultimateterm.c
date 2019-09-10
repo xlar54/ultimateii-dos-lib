@@ -450,12 +450,12 @@ startover:
 			else if (c == 'q')
 				quit();
 
-			else if (c == 133) { // KEY F1
+			else if (c == 133) { // KEY F1: help
 				help_screen();
 				cursor_off();
 			}
 
-			else if (c == 139) { // KEY F6
+			else if (c == 135) { // KEY F5: send DOS command
 				px = wherex(); py = wherey();
 				dos_commands();
 				cursor_off();
@@ -535,7 +535,7 @@ void term_getconfig(void) {
 	printf("\n\n%cPlease ensure the following:%c",CG_COLOR_YELLOW,CG_COLOR_CYAN);
 	printf("\n - Network link is in 'Link Up' state");
 	printf("\n - %cPress F1%c to get help in session", CG_COLOR_WHITE, CG_COLOR_CYAN);
-	printf("\n - %cPress F6%c to send DOS commands", CG_COLOR_WHITE, CG_COLOR_CYAN);
+	printf("\n - %cPress F5%c to send DOS commands", CG_COLOR_WHITE, CG_COLOR_CYAN);
 
 	uii_identify();
 	printf("\n\nNIC Status: %c%s%c", CG_COLOR_WHITE, uii_status, CG_COLOR_CYAN);
@@ -615,12 +615,12 @@ void main(void)
 					buff[1] = 0;
 					if (c == 133) // KEY F1: HELP
 						help_screen();
-					else if (c == 134) // KEY F3: switch petscii/ascii
-						asciimode = !asciimode;
-					else if (c == 135) // KEY F5: download (xmodem protocol)
+					else if (c == 134) // KEY F3: download (xmodem protocol)
 						download_xmodem();
-					else if (c == 139) // KEY F6: send DOS commands to disk
+					else if (c == 135) // KEY F5: send DOS commands to disk
 						dos_commands();
+					else if (c == 139)  // KEY F6: switch petscii/ascii
+						asciimode = !asciimode;
 					else if (c == 136) // KEY F7: close connection
 						break;
 					else
@@ -802,9 +802,9 @@ void help_screen(void) {
 	gotoxy(LINE1,2);  printf("\243\243\243\243\243\243\243\243\243\243\243");
 	gotoxy(LINE2,16); printf("Press any key to go back");
 	gotoxy(LINE3,5);  printf("\022 F1 \222  This HELP screen");
-	gotoxy(LINE3,7);  printf("\022 F3 \222  Switch PETSCII/ASCII");
-	gotoxy(LINE3,9);  printf("\022 F5 \222  Download with Xmodem");
-	gotoxy(LINE3,11); printf("\022 F6 \222  DOS commands to disk");
+	gotoxy(LINE3,7);  printf("\022 F3 \222  Download with Xmodem");
+	gotoxy(LINE3,9);  printf("\022 F5 \222  DOS commands to disk");
+	gotoxy(LINE3,11); printf("\022 F6 \222  Switch PETSCII/ASCII");
 	gotoxy(LINE3,13); printf("\022 F7 \222  Exit BBS");
 	gotoxy(LINE4,21); printf("%cPlease report issues:", CG_COLOR_L_GRAY);
 	gotoxy(LINE4,22); printf("%chttps://git.io/fjyUe", CG_COLOR_L_GRAY);
