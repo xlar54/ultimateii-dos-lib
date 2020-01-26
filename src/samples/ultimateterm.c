@@ -84,7 +84,7 @@ void term_displayheader(void);
 void putstring_ascii(char* str);
 void term_hostselect(void);
 void term_getconfig(void);
-void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
+void term_window(char border);
 void detect_uci(void);
 void exit_uci_error(void);
 unsigned char read_host_and_port(char *prompt_host, char *prompt_port);
@@ -218,19 +218,26 @@ void putstring_ascii(char *str) {
 		if (*str != LF) *str==BELL ? term_bell() : putchar(ascToPet[*str]);
 }
 
-void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border) {
-	unsigned char i;
-	char *spaces="                                        ";
+#define WIN_X 0
+#define WIN_Y 14
+#define WIN_H 10
 
-	spaces[width-2] = 0;
-	for (i=y+1;i<y+height;i++)
-		cputsxy(x+1,i,spaces);
+void term_window(char border) {
+	unsigned char i;
+#ifdef __C128__
+	char *spaces = "                                                                                ";
+#else
+	char* spaces = "                                        ";
+#endif
+	spaces[SCREEN_WIDTH-2] = 0;
+	for (i=WIN_Y+1;i<WIN_Y+WIN_H;i++)
+		cputsxy(WIN_X+1,i,spaces);
 	if (!border) return;
 
-	chlinexy(x+1,y,width-2);chlinexy(x+1,y+height,width-2);
-	cvlinexy(x,y+1,height-1);cvlinexy(x+width-1,y+1,height-1);
-	cputcxy(x,y,176);cputcxy(width-1,y,174);
-	cputcxy(x,y+height,173);cputcxy(x+width-1,y+height,189);
+	chlinexy(WIN_X+1,WIN_Y,SCREEN_WIDTH-2);chlinexy(WIN_X+1,WIN_Y+WIN_H,SCREEN_WIDTH-2);
+	cvlinexy(WIN_X,WIN_Y+1,WIN_H-1);cvlinexy(WIN_X+SCREEN_WIDTH-1,WIN_Y+1,WIN_H-1);
+	cputcxy(WIN_X,WIN_Y,176);cputcxy(SCREEN_WIDTH-1,WIN_Y,174);
+	cputcxy(WIN_X,WIN_Y+WIN_H,173);cputcxy(WIN_X+SCREEN_WIDTH-1,WIN_Y+WIN_H,189);
 }
 
 void delete_phonebook_entry(void) {
@@ -307,7 +314,7 @@ void save_phonebook(void) {
 
 	if (dev < 8) return;
 	putchar(CG_COLOR_WHITE);
-	term_window(0, 14, 40, 10, 0);
+	term_window(0);
 	cputsxy(9,18,"SAVING: PLEASE WAIT...");
 
 	pb_bytes[0] = 0;
@@ -332,7 +339,7 @@ void quit(void) {
 	putchar(CG_COLOR_CYAN);
 	cputsxy(7,14,"[Reset and back to BASIC]");
 	putchar(CG_COLOR_WHITE);
-	term_window(0, 14, 40, 10, 0);
+	term_window(0);
 	gotoxy(9,18); printf("ARE YOU SURE (Y/N)? ");
 	cursor_on();
 	term_gethostname("", hst);
@@ -351,7 +358,7 @@ void load_phonebook(void) {
 	pbtopidx = 0;
 	pbselectedidx = 0;
 
-	term_window(0, 14, 40, 10, 0);
+	term_window(0);
 	cputsxy(8,14,"[ Loading Phonebook... ]");
 	cbm_close(2);
 	cbm_close(15);
@@ -416,7 +423,7 @@ void term_hostselect(void) {
 	
 startover:
 	POKE(KEYBOARD_BUFFER,0);
-	term_window(0, 14, 40, 10, 1);
+	term_window(1);
 	if (pb_loaded == 0)
 		load_phonebook();
 	else {
@@ -661,7 +668,7 @@ void update_phonebook(unsigned char new_y) {
 void display_phonebook(void) {
 	unsigned char ctr, x = 15;
 	putchar(CG_COLOR_CYAN);
-	term_window(0, 14, 40, 10, 0);
+	term_window(0);
 	for (ctr=pbtopidx; ctr<=pbtopidx+8 && ctr<=phonebookctr; ++ctr)
 		cputsxy(3,x++,phonebook[ctr]);
 	cputcxy(1,y,'>');
@@ -669,7 +676,7 @@ void display_phonebook(void) {
 
 unsigned char read_host_and_port(char *prompt_host, char *prompt_port) {
 	putchar(CG_COLOR_WHITE);
-	term_window(0, 14, 40, 10, 0);
+	term_window(0);
 	gotoxy(5,16);
 	printf("%cHost: %c", CG_COLOR_CYAN, CG_COLOR_WHITE);
 	term_gethostname(prompt_host, host);
