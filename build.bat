@@ -1,5 +1,6 @@
 @echo off
 del /S/Q target
+rd target
 md target
 
 cd src\samples
