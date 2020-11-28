@@ -220,7 +220,7 @@ loop:
 	asm("ldy $cf");
 	asm("bne %g", loop);
 exitloop:
-	asm("ldy $ff");
+	asm("ldy #$ff");
 	asm("sty $cc");
 #else
 	asm("ldx #$0a");

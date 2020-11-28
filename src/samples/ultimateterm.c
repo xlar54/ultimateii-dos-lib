@@ -364,13 +364,13 @@ void load_phonebook(void) {
 	if (dev < 8 || bytesRead <= 0) { // No drive or no file
 		// Default phonebook
 		strcpy(phonebook[1], "afterlife.dynu.com 6400");
-		strcpy(phonebook[2], "bbs.jammingsignal.com 23");
+		strcpy(phonebook[2], "bbs.retrocampus.com 6510");
 		strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
 		strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
 		strcpy(phonebook[5], "eagleman.bounceme.net 6464");
 		strcpy(phonebook[6], "hurricanebbs.dynu.net 6401");
 		strcpy(phonebook[7], "particlesbbs.dyndns.org 6400");
-		strcpy(phonebook[8], "bbs.retroacademy.it 6510");
+		strcpy(phonebook[8], "bbs.retroacademy.com 6510");
 		phonebookctr = 8;
 		if (dev >= 8) {
 			if (!c && !cbm_open(15, dev, 15, "")) cbm_read(15, pb_bytes, PB_SIZE);
