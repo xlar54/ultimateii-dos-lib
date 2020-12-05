@@ -406,7 +406,6 @@ void load_phonebook(void) {
 	display_phonebook();
 	cputcxy(1,y,'>');
 	pb_loaded = 1;
-        POKE(0xd020,5);
 }
 
 void term_hostselect(void) {
