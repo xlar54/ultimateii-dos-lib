@@ -523,6 +523,10 @@ void uii_accept(void)
 	uii_logstatusreg();
 	uii_logtext("\nsending ack");
 	*controlreg |= 0x02;
+	while ( !(*statusreg & 2) == 0 )  {
+		uii_logtext("\nwaiting for ack...");
+		uii_logstatusreg();
+	};
 }
 
 int uii_isdataavailable(void)
