@@ -101,7 +101,7 @@ void dos_commands(void);
 void showdir(char *);
 void send_dos(char *);
 
-char *version = "2.3";
+char *version = "2.4";
 char host[80];
 char portbuff[10];
 char strbuff[520];
