@@ -688,7 +688,7 @@ unsigned char read_host_and_port(char *prompt_host, char *prompt_port) {
 #pragma optimize (push,off)
 void blank_vicII(void) {
 	asm("lda $d011");
-	asm("and #$ef");
+	asm("and #$6f");        /* make sure to mask bit 7 else we may end up waiting for a non existing rasterline! */
 	asm("sta $d011");
 }
 #pragma optimize (pop)
