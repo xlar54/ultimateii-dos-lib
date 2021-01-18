@@ -464,6 +464,17 @@ void uii_get_drive_b_power(void)
 	uii_accept();
 }
 
+void uii_get_time(void) 
+{
+	unsigned char cmd[] = {0x00,DOS_CMD_GET_TIME};
+	uii_settarget(TARGET_DOS1);
+	uii_sendcommand(cmd, 2);
+
+	uii_readdata();
+	uii_readstatus();
+	uii_accept();
+}
+
 void uii_sendcommand(unsigned char *bytes, int count)
 {
 	int x =0;
@@ -555,11 +566,8 @@ void uii_abort(void)
 
 int uii_readdata(void) 
 {
-	int count = 0;
 	int z = 0;
-	
 	uii_data[0] = 0;
-	
 	uii_logtext("\n\nreading data...");
 	uii_logstatusreg();
 
@@ -568,10 +576,9 @@ int uii_readdata(void)
 	{
 		uii_data[z] = *respdatareg;
 		z++;
-		count++;		
 	}
 	uii_data[z] = 0;
-	return count;
+	return z;
 }
 
 int uii_readstatus(void) 
@@ -624,10 +631,9 @@ void uii_getipaddress(void)
 	uii_target = tempTarget;
 }
 
-unsigned char uii_tcpconnect(char* host, unsigned short port)
+unsigned char uii_connect(char* host, unsigned short port, char* cmd)
 {
 	unsigned char tempTarget = uii_target;
-	unsigned char cmd[] = {0x00,NET_CMD_TCP_SOCKET_CONNECT, 0x00, 0x00};
 	int x=0;
 	unsigned char* fullcmd;
 	
@@ -656,6 +662,18 @@ unsigned char uii_tcpconnect(char* host, unsigned short port)
 	uii_data_index = 0;
 	uii_data_len = 0;
 	return uii_data[0];
+}
+
+unsigned char uii_tcpconnect(char* host, unsigned short port)
+{
+	unsigned char cmd[] = {0x00, NET_CMD_TCP_SOCKET_CONNECT, 0x00, 0x00};
+	return uii_connect(host, port, cmd);
+}
+
+unsigned char uii_udpconnect(char* host, unsigned short port)
+{
+	unsigned char cmd[] = {0x00, NET_CMD_UDP_SOCKET_CONNECT, 0x00, 0x00};
+	return uii_connect(host, port, cmd);
 }
 
 void uii_tcpclose(unsigned char socketid)
