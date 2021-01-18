@@ -199,9 +199,9 @@ void irc_login(void) // Handle IRC login procedures
     sprintf(USER_STRING, "user %s * 0 :%s\r\n", nick, strlen(realname) == 0 ? nick : realname); // USER user * 0 :Real name
 	sprintf(chan, "join %s\n", channel);
 	
-	uii_tcpsocketwrite(socketnr, NICK_STRING);
-	uii_tcpsocketwrite(socketnr, USER_STRING);
-	uii_tcpsocketwrite(socketnr, chan);
+	uii_socketwrite(socketnr, NICK_STRING);
+	uii_socketwrite(socketnr, USER_STRING);
+	uii_socketwrite(socketnr, chan);
 	
 	irc_updateheader(channel);
 	free(chan);
@@ -354,8 +354,8 @@ void irc_pong(unsigned char *buf)
 	buf[2] = 'n';
 	buf[3] = 'g';
 
-	uii_tcpsocketwrite(socketnr, buf);
-	uii_tcpsocketwrite(socketnr, "\r\n");
+	uii_socketwrite(socketnr, buf);
+	uii_socketwrite(socketnr, "\r\n");
 }
 
 void irc_help()
@@ -396,7 +396,7 @@ void irc_handleinput(char *buf)
 		irc_updateheader(channel);
 		
 		sprintf(full_message, "join %s\n", channel);
-		uii_tcpsocketwrite(socketnr, full_message);
+		uii_socketwrite(socketnr, full_message);
 	}
 	else if(strstr(buf,"/part") == buf)
 	{
@@ -409,12 +409,12 @@ void irc_handleinput(char *buf)
 		irc_updateheader(nochan);
 		
 		sprintf(full_message, "part %s\n", channel); // Leave current channel
-		uii_tcpsocketwrite(socketnr, full_message);
+		uii_socketwrite(socketnr, full_message);
 		channel[0] = 0;
 	}
 	else if(strstr(buf,"/quit") == buf)
 	{
-		uii_tcpclose(socketnr);
+		uii_socketclose(socketnr);
 		RESET_MACHINE
 	}
 	else if(strstr(buf,"/help") == buf)
@@ -429,7 +429,7 @@ void irc_handleinput(char *buf)
 		strcpy(nick, &buf[6]);
 		
 		sprintf(full_message, "nick %s\n", nick);
-		uii_tcpsocketwrite(socketnr, full_message);
+		uii_socketwrite(socketnr, full_message);
 	}
 	else
 	{
@@ -447,7 +447,7 @@ void irc_handleinput(char *buf)
 				buf[x] = convertchar(buf[x]);
 
 			sprintf(full_message, "privmsg %s :%caction %s%c\n", channel, 0x01, buf, 0x01);
-			uii_tcpsocketwrite(socketnr, full_message);
+			uii_socketwrite(socketnr, full_message);
 			
 			printf("%c", CG_COLOR_YELLOW);
 			irc_print(" * ",1);
@@ -462,7 +462,7 @@ void irc_handleinput(char *buf)
 				buf[x] = convertchar(buf[x]);
 
 			sprintf(full_message, "privmsg %s :%s\n", channel, buf); // PRIVMSG <channel> :Message text
-			uii_tcpsocketwrite(socketnr, full_message);
+			uii_socketwrite(socketnr, full_message);
 			
 			printf("%c", CG_COLOR_CYAN);
 			irc_print("<",1);
@@ -568,7 +568,7 @@ void main(void)
 	{
 		while(1)
 		{
-			datacount = uii_tcpsocketread(socketnr, 400);
+			datacount = uii_socketread(socketnr, 400);
 
 			for(x=2;x<datacount+2;x++)
 			{

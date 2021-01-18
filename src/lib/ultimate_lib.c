@@ -676,10 +676,10 @@ unsigned char uii_udpconnect(char* host, unsigned short port)
 	return uii_connect(host, port, cmd);
 }
 
-void uii_tcpclose(unsigned char socketid)
+void uii_socketclose(unsigned char socketid)
 {
 	unsigned char tempTarget = uii_target;
-	unsigned char cmd[] = {0x00,NET_CMD_TCP_SOCKET_CLOSE, 0x00};
+	unsigned char cmd[] = {0x00,NET_CMD_SOCKET_CLOSE, 0x00};
 	cmd[2] = socketid;
 	
 	uii_settarget(TARGET_NETWORK);
@@ -692,10 +692,10 @@ void uii_tcpclose(unsigned char socketid)
 	uii_target = tempTarget;
 }
 
-int uii_tcpsocketread(unsigned char socketid, unsigned short length)
+int uii_socketread(unsigned char socketid, unsigned short length)
 {
 	unsigned char tempTarget = uii_target;
-	unsigned char cmd[] = {0x00,NET_CMD_TCP_SOCKET_READ, 0x00, 0x00, 0x00};
+	unsigned char cmd[] = {0x00,NET_CMD_SOCKET_READ, 0x00, 0x00, 0x00};
 
 	cmd[0] = cmd[0];
 	cmd[1] = cmd[1];
@@ -780,10 +780,10 @@ unsigned char uii_tcpgetlistensocket()
 	return uii_data[0] | (uii_data[1]<<8);
 }
 
-void uii_tcpsocketwrite_convert_parameter(unsigned char socketid, char *data, int ascii)
+void uii_socketwrite_convert_parameter(unsigned char socketid, char *data, int ascii)
 {
 	unsigned char tempTarget = uii_target;
-	unsigned char cmd[] = {0x00,NET_CMD_TCP_SOCKET_WRITE, 0x00};
+	unsigned char cmd[] = {0x00,NET_CMD_SOCKET_WRITE, 0x00};
 	int x=0;
 	unsigned char* fullcmd;
 	char c;
@@ -820,19 +820,19 @@ void uii_tcpsocketwrite_convert_parameter(unsigned char socketid, char *data, in
 	uii_data_len = 0;
 }
 
-void uii_tcpsocketwritechar(unsigned char socketid, char one_char) {
+void uii_socketwritechar(unsigned char socketid, char one_char) {
 	temp_string_onechar[0] = one_char;
 	temp_string_onechar[1] = 0;
 
-	uii_tcpsocketwrite(socketid, temp_string_onechar);
+	uii_socketwrite(socketid, temp_string_onechar);
 }
 
-void uii_tcpsocketwrite(unsigned char socketid, char *data) {
-	uii_tcpsocketwrite_convert_parameter(socketid, data, 0);
+void uii_socketwrite(unsigned char socketid, char *data) {
+	uii_socketwrite_convert_parameter(socketid, data, 0);
 }
 
-void uii_tcpsocketwrite_ascii(unsigned char socketid, char *data) {
-	uii_tcpsocketwrite_convert_parameter(socketid, data, 1);
+void uii_socketwrite_ascii(unsigned char socketid, char *data) {
+	uii_socketwrite_convert_parameter(socketid, data, 1);
 }
 
 char uii_tcp_nextchar(unsigned char socketid) {
@@ -842,7 +842,7 @@ char uii_tcp_nextchar(unsigned char socketid) {
         uii_data_index++;
     } else {
         do {
-            uii_data_len = uii_tcpsocketread(socketid, DATA_QUEUE_SZ-4);
+            uii_data_len = uii_socketread(socketid, DATA_QUEUE_SZ-4);
             if (uii_data_len == 0) return 0; // EOF
         } while (uii_data_len == -1);
         result = uii_data[2];

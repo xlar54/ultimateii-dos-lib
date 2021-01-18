@@ -226,7 +226,7 @@ void handle_io(void)
 	#endif
 
 	InitForIO();
-	uii_tcpsocketread(socketnr, 255);	
+	uii_socketread(socketnr, 255);	
 	DoneWithIO();
 	
 	buf[0] = uii_status[0];
@@ -309,7 +309,7 @@ void handle_key(void)
 			cursor(0);
 
 			InitForIO();
-			uii_tcpclose(socketnr);
+			uii_socketclose(socketnr);
 			DoneWithIO();
 		}
 		else
@@ -318,7 +318,7 @@ void handle_key(void)
 			buff[1] = 0;
 
 			InitForIO();
-			uii_tcpsocketwrite(socketnr, buff);
+			uii_socketwrite(socketnr, buff);
 			DoneWithIO();
 		}
 	

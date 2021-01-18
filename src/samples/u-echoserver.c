@@ -95,11 +95,11 @@ void waitforconnection(void)
             
             do 
             {
-                datacount = uii_tcpsocketread(socketnr, 892);
+                datacount = uii_socketread(socketnr, 892);
 
                 if(datacount == 0)
                 {
-                    uii_tcpclose(socketnr);
+                    uii_socketclose(socketnr);
                     printf("\n\nConnection closed.");
                     break;
                 }
@@ -116,13 +116,13 @@ void waitforconnection(void)
 
                     if(c == 133)
                     {
-                        uii_tcpclose(socketnr);
+                        uii_socketclose(socketnr);
                         printf("\n\nConnection closed.");
                         break;
                     }
 
                     buff[0] = c;
-                    uii_tcpsocketwrite(socketnr, buff);
+                    uii_socketwrite(socketnr, buff);
                     printf("%c", c);
                 }
 

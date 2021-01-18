@@ -83,18 +83,18 @@ void main(void)
 	
 	while(uii_success())
 	{
-		datacount = uii_tcpsocketread(socketnr, 1);
+		datacount = uii_socketread(socketnr, 1);
 		printf("%c", uii_data[2]);	// data byte
 	}
 	printf("\n    Status: %s", uii_status);
 	
 	
 	printf("\n\nWriting data...\n");
-	uii_tcpsocketwrite(socketnr, "hello ultimate 64 / uii plus!");
+	uii_socketwrite(socketnr, "hello ultimate 64 / uii plus!");
 	printf("\n    Status: %s", uii_status);
 	
 	printf("\n\nClosing connection");
-	uii_tcpclose(socketnr);
+	uii_socketclose(socketnr);
 	printf("\n    Status: %s", uii_status);
 	
 	// -----------------------------------------------------------

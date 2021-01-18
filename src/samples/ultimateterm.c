@@ -598,7 +598,7 @@ void main(void)
 			putchar(CG_COLOR_CYAN);
 			cursor_on();
 			while(1) {
-				datacount = uii_tcpsocketread(socketnr, 892);
+				datacount = uii_socketread(socketnr, 892);
 
 				if (datacount == 0) { // datacount == 0 means "disconnected"
 					break;
@@ -624,10 +624,10 @@ void main(void)
 					else if (c == 136) // KEY F7: close connection
 						break;
 					else
-						uii_tcpsocketwrite(socketnr, buff);
+						uii_socketwrite(socketnr, buff);
 				}
 			}
-			uii_tcpclose(socketnr);
+			uii_socketclose(socketnr);
 			cursor_off();
 			if (c != 136) { // NOT KEY F7
 				printf("\n%cconnection closed, hit any key", CG_COLOR_WHITE);
@@ -1074,7 +1074,7 @@ void download_xmodem(void) {
 	// Start Xmodem transfer
 	cursor_off();
 	uii_reset_uiidata();
-	uii_tcpsocketwritechar(socketnr, NAK);
+	uii_socketwritechar(socketnr, NAK);
 
 	firstread = 1;
 	do {
@@ -1123,7 +1123,7 @@ void download_xmodem(void) {
 			if (kbhit()) {
 				i = cgetc();
 				if (i == 3 || i == 95) {
-					uii_tcpsocketwritechar(socketnr, CAN);
+					uii_socketwritechar(socketnr, CAN);
 					printf("\nCanceling download...\n");
 					cbm_close(2);
 					uii_reset_uiidata();
@@ -1141,9 +1141,9 @@ void download_xmodem(void) {
 			}
 
 			if (errorfound != 0) {
-				uii_tcpsocketwritechar(socketnr, NAK);
+				uii_socketwritechar(socketnr, NAK);
 			} else {
-				uii_tcpsocketwritechar(socketnr, ACK);
+				uii_socketwritechar(socketnr, ACK);
 				++blocknumber;
 			}
 
@@ -1157,7 +1157,7 @@ void download_xmodem(void) {
 	cbm_read(15, pb_bytes, PB_SIZE);
 	cbm_close(15);
 
-	uii_tcpsocketwritechar(socketnr, ACK);
+	uii_socketwritechar(socketnr, ACK);
 
 	uii_reset_uiidata();
 
