@@ -158,5 +158,6 @@ void uii_disable_drive_b(void);
 void uii_get_drive_a_power(void);
 void uii_get_drive_b_power(void);
 void uii_get_time(void);
+void uii_set_time(char*);
 
 #endif
