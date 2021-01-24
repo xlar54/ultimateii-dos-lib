@@ -22,7 +22,7 @@ void main(void) {
     socket = uii_tcpconnect("cbbsoutpost.servebbs.com", 80);
 
     if (uii_success()) {
-        uii_tcpsocketwrite_ascii(socket, "GET /api/exportbbslist/service.php?f=csv HTTP/1.0\n\n");
+        uii_socketwrite_ascii(socket, "GET /api/exportbbslist/service.php?f=csv HTTP/1.0\n\n");
 
         // Skip HTTP header
         while (uii_tcp_nextline_ascii(socket, buff) && *buff);
@@ -47,7 +47,7 @@ void main(void) {
 
             printf("%d) %s:%s\n", ++count, host, port);
         }
-        uii_tcpclose(socket);
+        uii_socketclose(socket);
 
     } else {
         printf("ERRORE\n");

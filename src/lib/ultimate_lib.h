@@ -69,9 +69,10 @@ Patches and pull requests are welcome
 #define NET_CMD_GET_INTERFACE_COUNT	0x02
 #define NET_CMD_GET_IP_ADDRESS		0x05
 #define NET_CMD_TCP_SOCKET_CONNECT	0x07
-#define NET_CMD_TCP_SOCKET_CLOSE	0x09
-#define NET_CMD_TCP_SOCKET_READ		0x10
-#define NET_CMD_TCP_SOCKET_WRITE	0x11
+#define NET_CMD_UDP_SOCKET_CONNECT	0x08
+#define NET_CMD_SOCKET_CLOSE		0x09
+#define NET_CMD_SOCKET_READ			0x10
+#define NET_CMD_SOCKET_WRITE		0x11
 #define NET_CMD_TCP_LISTENER_START	0x12
 #define NET_CMD_TCP_LISTENER_STOP	0x13
 #define NET_CMD_GET_LISTENER_STATE	0x14
@@ -122,11 +123,12 @@ void uii_echo(void);
 void uii_getinterfacecount(void);
 void uii_getipaddress(void);
 unsigned char uii_tcpconnect(char* host, unsigned short port);
-void uii_tcpclose(unsigned char socketid);
-int uii_tcpsocketread(unsigned char socketid, unsigned short length);
-void uii_tcpsocketwrite(unsigned char socketid, char *data);
-void uii_tcpsocketwritechar(unsigned char socketid, char one_char);
-void uii_tcpsocketwrite_ascii(unsigned char socketid, char *data);
+unsigned char uii_udpconnect(char* host, unsigned short port);
+void uii_socketclose(unsigned char socketid);
+int uii_socketread(unsigned char socketid, unsigned short length);
+void uii_socketwrite(unsigned char socketid, char *data);
+void uii_socketwritechar(unsigned char socketid, char one_char);
+void uii_socketwrite_ascii(unsigned char socketid, char *data);
 
 int uii_tcplistenstart(unsigned short port);
 int uii_tcplistenstop(void);
@@ -155,5 +157,7 @@ void uii_enable_drive_b(void);
 void uii_disable_drive_b(void);
 void uii_get_drive_a_power(void);
 void uii_get_drive_b_power(void);
+void uii_get_time(void);
+void uii_set_time(char*);
 
 #endif
