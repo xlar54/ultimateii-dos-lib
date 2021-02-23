@@ -15,6 +15,7 @@ Demo program does not alter any data
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <cbm.h>
 #include <errno.h>
 #include <device.h>
@@ -46,6 +47,8 @@ void blank_vicII(void);
 #include "../lib/ultimate_lib.h"
 #include "screen_utility.h"
 
+// PETSCII Codes
+
 #define RVS_ON			0x12
 #define RVS_OFF			0x92
 
@@ -61,6 +64,7 @@ void blank_vicII(void);
 #define	CR				0x0D
 #define SHIFT_CR		0x8D
 #define LF				0x0A
+#define CTRL_L          0x0C
 
 #define CG_COLOR_YELLOW 	0x9e
 #define CG_COLOR_CYAN		0x9f
@@ -76,9 +80,22 @@ void blank_vicII(void);
 #define SOH  ((char)1)     /* Start Of Header */
 #define EOT  ((char)4)     /* End Of Transmission */
 #define ACK  ((char)6)     /* ACKnowlege */
-#define CAN  ((char)0x18)    /* CANcel */
+#define CAN  ((char)0x18)  /* CANcel */
 #define NAK  ((char)0x15)  /* Negative AcKnowlege */
 
+// ANSI Codes
+
+#define ANSI_ESCAPE          0x1b
+#define ANSI_SEPARATOR       0x3b // ;
+#define ANSI_BRACKET         0x5b // [
+#define ANSI_CURSOR_UP       0x41 // A
+#define ANSI_CURSOR_DOWN     0x42 // B
+#define ANSI_CURSOR_FORWARD  0x43 // C
+#define ANSI_CURSOR_BACKWARD 0x44 // D
+#define ANSI_CURSOR_HOME     0x48 // H
+#define ANSI_CLEAR_SCREEN    0x4A // J
+#define ANSI_CLEAR_LINE      0x4B // K
+#define ANSI_GRAPHICS_MODE   0x6D // m
 
 // Telnet Stuff
 
@@ -118,6 +135,7 @@ unsigned char term_bell(void);
 unsigned char term_getchars(char* def, char *buf, unsigned char lbound, unsigned char ubound);
 void term_displayheader(void);
 void putstring_ascii(char* str);
+void putstring_ansi(char* str);
 void term_hostselect(void);
 void term_getconfig(void);
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
@@ -136,7 +154,8 @@ void download_xmodem(void);
 void dos_commands(void);
 void showdir(char *);
 void send_dos(char *);
-unsigned char handle_telnet();
+unsigned char handle_telnet_iac();
+void send_char_ansi(unsigned char c);
 
 char *version = "2.5";
 char host[80];
@@ -147,8 +166,12 @@ char buff[2];
 
 unsigned int port = 0;
 unsigned char socketnr = 0;
-unsigned char asciimode = 0;
-unsigned char telnetmode = 0; 
+
+#define MODE_PETSCII 0
+#define MODE_ASCII   1
+#define MODE_ANSI    2
+
+unsigned char character_mode = MODE_PETSCII;
 unsigned char first_char = 0;
 unsigned char telnet_done = 0;
 unsigned char telnet_binary = 0;
@@ -425,7 +448,8 @@ void load_phonebook(void) {
 	strcpy(phonebook[0], "MANUAL ENTRY");
 	if (dev < 8 || bytesRead <= 0) { // No drive or no file
 		// Default phonebook
-		strcpy(phonebook[1], "bbs.retrocampus.com 6510");
+		//strcpy(phonebook[1], "bbs.retrocampus.com 6510");
+		strcpy(phonebook[1], "192.168.7.51 23");
 		strcpy(phonebook[2], "afterlife.dynu.com 6400");
 		strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
 		strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
@@ -621,6 +645,14 @@ void send_char(unsigned char c) {
 	//printf("Sent [%d]\n", c);
 }
 
+void send3chars(unsigned char c1, unsigned char c2, unsigned char c3) {
+	buff[0] = c1;
+	buff[1] = c2;
+	buff[2] = c3;
+	buff[3] = 0;
+	uii_socketwrite(socketnr, buff);
+}
+
 void main(void) 
 {
 	unsigned char c = 0;
@@ -652,16 +684,15 @@ void main(void)
 	// Main Program Loop
 	while(1) {
 		BORDER(0)
-		asciimode = 0;
-		telnetmode = 0;
+		character_mode = MODE_PETSCII;
 		first_char = 1;
 		telnet_binary = 0;
 		telnet_done = 0;
+
 		term_displayheader();
 		term_getconfig();
 		term_hostselect();
-		cursor_off();		
-
+		cursor_off();
 		term_displayheader();
 		gotoxy(0,2);
 		printf("%c\n[F7] to close the connection when done\n", CG_COLOR_YELLOW);
@@ -671,7 +702,6 @@ void main(void)
 		
 		if (uii_success()) {
 			printf("\n * Connected");
-			putchar(CG_COLOR_CYAN);
 			cursor_on();
 
 			// Main Terminal Loop
@@ -682,7 +712,7 @@ void main(void)
 				if (telnet_done) {					
 					datacount = uii_socketread(socketnr, 892);   
 			    } else {										
-					datacount = uii_socketread(socketnr, 1);	  // Special handling during telnet negotiation - don't read full buffer yet
+					datacount = uii_socketread(socketnr, 1);	  // Special handling during telnet negotiation - read single character at a time
 				}
 
 				if (datacount == 0) { // datacount == 0 means "disconnected"
@@ -695,9 +725,8 @@ void main(void)
 					if (first_char) {
 						if (c == NVT_IAC) {
 							BORDER(2)     // red
-							handle_telnet();
-							telnetmode = 1;
-							asciimode = 1;
+							handle_telnet_iac();
+							character_mode = MODE_ANSI;
 							first_char = 0;
 							BORDER(12)    // light gray
 							printf("%c (Telnet)%c\n\n", CG_COLOR_L_GREEN, CG_COLOR_L_GRAY);
@@ -705,7 +734,6 @@ void main(void)
 						}
 						else
 						{
-							telnetmode = 0;
 							first_char = 0;
 							telnet_done = 1;
 							printf("%c\n\n", CG_COLOR_CYAN);
@@ -713,18 +741,37 @@ void main(void)
 					}
 
 					// Connection already established, but may be more telnet control characters
-					if ((c == NVT_IAC) && telnetmode)
+					if ((c == NVT_IAC) && (character_mode == MODE_ANSI))
 					{
-						if (handle_telnet())  // Returns true if a second NVT_IAC (255) was received
+						if (handle_telnet_iac())  // Returns true if a second NVT_IAC (255) was received
 						{
 							c = NVT_IAC;  // TODO - fix - this character is not displayed
 						}
 					}
-					else   //  Finally regular data - just pass the data along.
+					else   //  Finally regular data - just display
 					{
 						telnet_done = 1;
 						cursor_off();						
-						if (asciimode) putstring_ascii(uii_data + 2); else uii_data_print();
+						
+						switch (character_mode)
+						{
+							case MODE_PETSCII:
+								uii_data_print();
+								break;
+
+							case MODE_ASCII:
+								putstring_ascii(uii_data + 2);								
+								break;
+
+							case MODE_ANSI:
+								putstring_ansi(uii_data + 2);
+								break;
+
+							default:
+								uii_data_print();
+								break;
+						}
+
 						cursor_on();
 					}					
 				} // datacount == -1 means "wait state"			
@@ -740,17 +787,40 @@ void main(void)
 						download_xmodem();
 					else if (c == 135) // KEY F5: send DOS commands to disk
 						dos_commands();
-					else if (c == 139)  // KEY F6: switch petscii/ascii
-						asciimode = !asciimode;
+					else if (c == 139) { // KEY F6: switch petscii/ascii  (not allowed in telnet/ansi mode)
+						if (character_mode != MODE_ANSI) {
+							character_mode = !character_mode;
+						}
+					}
 					else if (c == 136) // KEY F7: close connection
 						break;
 					else if (c == 140) { // KEY F8: Debugging
 						;
 					}
 					else
-						if (asciimode) send_char(petToAsc[c]); else send_char(c);							
+					{
+						switch (character_mode)
+						{
+							case MODE_PETSCII:
+								send_char(c);
+								break;
+
+							case MODE_ASCII:
+								send_char(petToAsc[c]);
+								break;
+
+							case MODE_ANSI:
+								send_char_ansi(c);
+								break;
+
+							default:
+								send_char(c);
+								break;
+						}
+					}
 				}
 			}
+
 			uii_socketclose(socketnr);
 			cursor_off();
 			if (c != 136) { // NOT KEY F7
@@ -1296,7 +1366,7 @@ void download_xmodem(void) {
 void SendTelnetDoWill(unsigned char verb, unsigned char opt)
 {
 	send_char(NVT_IAC);                               // send character 255 (start negotiation)
-	send_char(verb == NVT_DO ? NVT_DO : NVT_WILL); // send character 253  (do) if negotiation verb character was 253 (do) else send character 251 (will)
+	send_char(verb == NVT_DO ? NVT_DO : NVT_WILL);    // send character 253  (do) if negotiation verb character was 253 (do) else send character 251 (will)
 	send_char(opt);
 }
 
@@ -1318,7 +1388,7 @@ void SendTelnetParameters()
 	send_char(1);                                     // echo
 }
 
-unsigned char handle_telnet() {
+unsigned char handle_telnet_iac() {
 	
 	int datacount;
 	unsigned char verb;           // telnet parameters
@@ -1384,4 +1454,110 @@ unsigned char handle_telnet() {
 			break;
 	}
 	return 0;
+}
+
+
+void send_char_ansi(unsigned char c)
+{
+	switch (c)
+	{
+		case UP:  // Cursor up
+			send3chars(ANSI_ESCAPE, ANSI_BRACKET, ANSI_CURSOR_UP);
+			break;
+
+		case DOWN:  // Cursor down
+			send3chars(ANSI_ESCAPE, ANSI_BRACKET, ANSI_CURSOR_UP);
+			break;
+
+		case LEFT:  // Cursor left
+			send3chars(ANSI_ESCAPE, ANSI_BRACKET, ANSI_CURSOR_BACKWARD);
+			break;
+
+		case RIGHT:  // Cursor right
+			send3chars(ANSI_ESCAPE, ANSI_BRACKET, ANSI_CURSOR_FORWARD);
+			break;
+
+		case CTRL_L: // CTRL-L, used to clear screen
+			send_char(petToAsc[CLRSCR]);
+			break;
+
+		default:
+			send_char(petToAsc[c]);
+			break;
+	}
+}
+
+char* parse_ansi_escape(char* str) {
+
+	int value[10] = { 0 };
+	int v = 0;
+
+	str++; 
+	datacount--;	
+
+	if (*str != ANSI_BRACKET) {  // Invalid escape sequence, ignore and move to next char		
+		return str;  
+	}
+
+	while (1) {
+
+		str++;
+		datacount--;
+
+		if (isdigit(*str)) {
+			value[v++] = 0; // atoi(*str);
+			continue;
+		}
+
+		switch (*str)
+		{
+			case ANSI_CURSOR_HOME:
+				putchar(HOME);				
+				break;
+
+			case ANSI_CLEAR_SCREEN:
+				putchar(CLRSCR);				
+				break;
+
+			case ANSI_CLEAR_LINE:				
+				// Not handled yet
+				break;
+
+			case ANSI_SEPARATOR:
+				continue;
+
+			case ANSI_GRAPHICS_MODE:				
+				break;
+
+			default:
+				printf("Unknown ANSI code %d [%c]", *str, *str);
+				return str;
+				break;
+		}
+
+		return str;
+	}
+}
+
+void putstring_ansi(char* str) {
+	for (; datacount > 0; ++str, --datacount) 
+	{
+		switch (*str) 
+		{
+			case LF:     // Ignore linefeeds
+				break;
+
+			case BELL:   // Ding!
+				term_bell();
+				break;
+
+			case ANSI_ESCAPE:
+				str = parse_ansi_escape(str++);
+				break;
+
+			default:
+				putchar(ascToPet[*str]);
+				break;
+		}
+	}
 }
