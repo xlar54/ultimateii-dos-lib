@@ -66,9 +66,14 @@ void blank_vicII(void);
 #define LF				0x0A
 #define CTRL_L          0x0C
 
-#define CG_COLOR_YELLOW 	0x9e
-#define CG_COLOR_CYAN		0x9f
+#define CG_COLOR_BLACK      0x90
 #define CG_COLOR_WHITE 		0x05
+#define CG_COLOR_RED 		0x1c
+#define CG_COLOR_CYAN		0x9f
+#define CG_COLOR_PURPLE		0x9c
+#define CG_COLOR_GREEN		0x1e
+#define CG_COLOR_BLUE		0x1f
+#define CG_COLOR_YELLOW 	0x9e
 #define CG_COLOR_L_GREEN 	0x99
 #define CG_COLOR_L_BLUE  	0x9A
 #define CG_COLOR_L_RED  	0x96
@@ -96,6 +101,7 @@ void blank_vicII(void);
 #define ANSI_CLEAR_SCREEN    0x4A // J
 #define ANSI_CLEAR_LINE      0x4B // K
 #define ANSI_GRAPHICS_MODE   0x6D // m
+#define ANSI_VALUE_BUFFER_SIZE 10
 
 // Telnet Stuff
 
@@ -1487,10 +1493,85 @@ void send_char_ansi(unsigned char c)
 	}
 }
 
+void convert_ansi_color(int values[], int valuecount) {
+
+	int i = 0;
+	unsigned char bold = 0;
+
+	if (valuecount == 0) {
+		putchar(CG_COLOR_L_GRAY);   // Reset all attributes
+		putchar(RVS_OFF);
+		return;
+	}
+	else {  // Foreground colors
+		for (i = 0; i < valuecount; i++) {
+
+			switch (values[i]) {
+
+				case 0:
+					putchar(CG_COLOR_L_GRAY);   // Reset all attributes
+					putchar(RVS_OFF);
+					break;
+
+				case 1:
+					bold = 1;
+					break;
+
+				case 7:
+					putchar(RVS_ON);
+					break;
+
+				case 30:   // Black
+					putchar(CG_COLOR_BLACK);
+					break;
+
+				case 31:   // Red
+					putchar(bold ? CG_COLOR_L_RED : CG_COLOR_RED);
+					break;
+
+				case 32:   // Green
+					putchar(bold ? CG_COLOR_L_GREEN : CG_COLOR_GREEN);
+					break;
+
+				case 33:   // Yellow
+					putchar(CG_COLOR_YELLOW);
+					break;
+
+				case 34:   // Blue
+					putchar(bold ? CG_COLOR_L_BLUE : CG_COLOR_BLUE);
+					break;
+
+				case 35:   // Magenta
+					putchar(CG_COLOR_PURPLE);
+					break;
+
+				case 36:   // Cyan
+					putchar(CG_COLOR_CYAN);
+
+				case 37:   // White
+					putchar(bold ? CG_COLOR_L_GRAY : CG_COLOR_WHITE);
+					break;
+				
+				default: // Unhandled, ignore
+					break;
+			}
+		}
+	}
+}
+
+int parse_ansi_value(char* buf) {
+	int value = atoi(buf);
+	memset(buf, 0, ANSI_VALUE_BUFFER_SIZE); // Clear in case later strings are shorter
+	return value;
+}
+
 char* parse_ansi_escape(char* str) {
 
-	int value[10] = { 0 };
-	int v = 0;
+	unsigned char valbuffer[ANSI_VALUE_BUFFER_SIZE] = { 0 };
+	int vb = 0;
+
+	int values[2] = { 0 };
+	int vi = 0;
 
 	str++; 
 	datacount--;	
@@ -1504,8 +1585,9 @@ char* parse_ansi_escape(char* str) {
 		str++;
 		datacount--;
 
+		// Numeric values
 		if (isdigit(*str)) {
-			value[v++] = 0; // atoi(*str);
+			valbuffer[vb++] = *str;
 			continue;
 		}
 
@@ -1520,13 +1602,18 @@ char* parse_ansi_escape(char* str) {
 				break;
 
 			case ANSI_CLEAR_LINE:				
-				// Not handled yet
+				printf("!! ANSI CLEAR LINE"); // Not handled yet
 				break;
 
 			case ANSI_SEPARATOR:
+				values[vi++] = parse_ansi_value(valbuffer);
+				vb = 0;
 				continue;
 
-			case ANSI_GRAPHICS_MODE:				
+			case ANSI_GRAPHICS_MODE:
+				values[vi++] = parse_ansi_value(valbuffer);
+				vb = 0;
+				convert_ansi_color(values, vi);
 				break;
 
 			default:
