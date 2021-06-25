@@ -101,6 +101,13 @@ void blank_vicII(void);
 #define ANSI_CLEAR_SCREEN    0x4A // J
 #define ANSI_CLEAR_LINE      0x4B // K
 #define ANSI_GRAPHICS_MODE   0x6D // m
+#define ANSI_DECSTBM         0x72 // r
+#define ANSI_PRIVATE         0x3f // ?
+#define ANSI_DEC_h           0x68 // h
+#define ANSI_DEC_l           0x68 // h
+#define ANSI_HPA	         0x62 // b		 
+#define ANSI_VPA	         0x64 // d
+
 #define ANSI_VALUE_BUFFER_SIZE 10
 
 // Telnet Stuff
@@ -168,7 +175,7 @@ char host[80];
 char portbuff[10];
 char strbuff[520];
 char chr;
-char buff[2];
+char buff[50];
 
 unsigned int port = 0;
 unsigned char socketnr = 0;
@@ -1594,16 +1601,27 @@ char* parse_ansi_escape(char* str) {
 		switch (*str)
 		{
 			case ANSI_CURSOR_HOME:
-				//putchar(HOME);				
+				putchar(HOME);				
 				break;
 
 			case ANSI_CLEAR_SCREEN:
-				//putchar(CLRSCR);				
+				putchar(CLRSCR);				
 				break;
 
 			case ANSI_CLEAR_LINE:				
 				// Not handled yet
 				break;
+
+			case ANSI_DECSTBM:
+				// Not handled yet
+				break;
+
+			case ANSI_PRIVATE:  // Skip to next character
+				continue;
+
+			case ANSI_DEC_h: 
+				// Not handled yet
+				continue;
 
 			case ANSI_SEPARATOR:
 				values[vi++] = parse_ansi_value(valbuffer);
@@ -1632,8 +1650,20 @@ char* parse_ansi_escape(char* str) {
 				putchar(RIGHT);
 				break;
 
+			case ANSI_HPA:
+				values[vi++] = parse_ansi_value(valbuffer);
+				vb = 0;
+				gotox(values[0]);
+				break;
+
+			case ANSI_VPA:
+				values[vi++] = parse_ansi_value(valbuffer);
+				vb = 0;
+				gotoy(values[0]);
+				break;
+
 			default:
-				printf("Unknown ANSI code %d [%c]", *str, *str);
+				printf("Unknown ANSI escape %d [%c]", *str, ascToPet[*str]);
 				return str;
 				break;
 		}
