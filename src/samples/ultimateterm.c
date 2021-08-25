@@ -1,6 +1,6 @@
 /*****************************************************************
 Ultimate II+ UltimateTerm 64 and 128
-Scott Hutter, Francesco Sblendorio
+Scott Hutter, Francesco Sblendorio, Leif Bloomquist
 
 Based on ultimate_dos-1.2.docx and command interface.docx
 https://github.com/markusC64/1541ultimate2/tree/master/doc
@@ -15,6 +15,7 @@ Demo program does not alter any data
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <cbm.h>
 #include <errno.h>
 #include <device.h>
@@ -26,6 +27,7 @@ Demo program does not alter any data
 #define KEYBOARD_BUFFER 208
 #define QUOTE_MODE      244
 #define DISPLAY_HEADER	printf("%c%c%cUltimateTerm 128 v%s %c", 146, 14, CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#define BORDER(x)       //
 void blank_vicII(void);
 #endif
 
@@ -36,6 +38,7 @@ void blank_vicII(void);
 #define KEYBOARD_BUFFER 198
 #define QUOTE_MODE      212
 #define DISPLAY_HEADER	printf("%c%c%cUltimateTerm v%s %c", 146, 14, CG_COLOR_WHITE, version, CG_COLOR_CYAN);
+#define BORDER(x)	    POKE(0xD020,x);
 #endif
 
 #include <conio.h>
@@ -43,6 +46,8 @@ void blank_vicII(void);
 #include <unistd.h>
 #include "../lib/ultimate_lib.h"
 #include "screen_utility.h"
+
+// PETSCII Codes
 
 #define RVS_ON			0x12
 #define RVS_OFF			0x92
@@ -56,13 +61,19 @@ void blank_vicII(void);
 #define CLRSCR			0x93
 #define HOME			0x13
 #define BELL			0x07
-#define	CR				0x0D
-#define SHIFT_CR		0x8D
-#define LF				0x0A
+#define	CR				0x0d
+#define SHIFT_CR		0x8d
+#define LF				0x0a
+#define PIPE            0xdd
 
-#define CG_COLOR_YELLOW 	0x9e
-#define CG_COLOR_CYAN		0x9f
+#define CG_COLOR_BLACK      0x90
 #define CG_COLOR_WHITE 		0x05
+#define CG_COLOR_RED 		0x1c
+#define CG_COLOR_CYAN		0x9f
+#define CG_COLOR_PURPLE		0x9c
+#define CG_COLOR_GREEN		0x1e
+#define CG_COLOR_BLUE		0x1f
+#define CG_COLOR_YELLOW 	0x9e
 #define CG_COLOR_L_GREEN 	0x99
 #define CG_COLOR_L_BLUE  	0x9A
 #define CG_COLOR_L_RED  	0x96
@@ -74,14 +85,70 @@ void blank_vicII(void);
 #define SOH  ((char)1)     /* Start Of Header */
 #define EOT  ((char)4)     /* End Of Transmission */
 #define ACK  ((char)6)     /* ACKnowlege */
-#define CAN  ((char)0x18)    /* CANcel */
+#define CAN  ((char)0x18)  /* CANcel */
 #define NAK  ((char)0x15)  /* Negative AcKnowlege */
+
+// ANSI Codes
+
+#define ANSI_ESCAPE          0x1b
+#define ANSI_SEPARATOR       0x3b // ;
+#define ANSI_BRACKET         0x5b // [
+#define ANSI_CURSOR_UP       0x41 // A
+#define ANSI_CURSOR_DOWN     0x42 // B
+#define ANSI_CURSOR_FORWARD  0x43 // C
+#define ANSI_CURSOR_BACKWARD 0x44 // D
+#define ANSI_CURSOR_HOME     0x48 // H
+#define ANSI_CLEAR_SCREEN    0x4A // J
+#define ANSI_CLEAR_LINE      0x4B // K
+#define ANSI_GRAPHICS_MODE   0x6D // m
+#define ANSI_DECSTBM         0x72 // r
+#define ANSI_PRIVATE         0x3f // ?
+#define ANSI_DEC_h           0x68 // h
+#define ANSI_DEC_l           0x68 // h
+#define ANSI_HPA	         0x62 // b		 
+#define ANSI_VPA	         0x64 // d
+
+#define ANSI_VALUE_BUFFER_SIZE 10
+
+// Telnet Stuff
+
+#define NVT_SE 240
+#define NVT_NOP 241
+#define NVT_DATAMARK 242
+#define NVT_BRK 243
+#define NVT_IP 244
+#define NVT_AO 245
+#define NVT_AYT 246
+#define NVT_EC 247
+#define NVT_GA 249
+#define NVT_SB 250
+#define NVT_WILL 251
+#define NVT_WONT 252
+#define NVT_DO 253
+#define NVT_DONT 254
+#define NVT_IAC 255
+
+#define NVT_OPT_TRANSMIT_BINARY 0
+#define NVT_OPT_ECHO 1
+#define NVT_OPT_SUPPRESS_GO_AHEAD 3
+#define NVT_OPT_STATUS 5
+#define NVT_OPT_RCTE 7
+#define NVT_OPT_TIMING_MARK 6
+#define NVT_OPT_NAOCRD 10
+#define NVT_OPT_TERMINAL_TYPE 24
+#define NVT_OPT_NAWS 31
+#define NVT_OPT_TERMINAL_SPEED 32
+#define NVT_OPT_LINEMODE 34
+#define NVT_OPT_X_DISPLAY_LOCATION 35
+#define NVT_OPT_ENVIRON 36
+#define NVT_OPT_NEW_ENVIRON 39
 
 void uii_data_print(void);
 unsigned char term_bell(void);
 unsigned char term_getchars(char* def, char *buf, unsigned char lbound, unsigned char ubound);
 void term_displayheader(void);
 void putstring_ascii(char* str);
+void putstring_ansi(char* str);
 void term_hostselect(void);
 void term_getconfig(void);
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border);
@@ -100,15 +167,27 @@ void download_xmodem(void);
 void dos_commands(void);
 void showdir(char *);
 void send_dos(char *);
+unsigned char handle_telnet_iac();
+void send_char_ansi(unsigned char c);
 
-char *version = "2.4";
+char *version = "2.5";
 char host[80];
 char portbuff[10];
 char strbuff[520];
 char chr;
+char buff[50];
+
 unsigned int port = 0;
 unsigned char socketnr = 0;
-unsigned char asciimode;
+
+#define MODE_PETSCII 0
+#define MODE_ASCII   1
+#define MODE_ANSI    2
+
+unsigned char character_mode = MODE_PETSCII;
+unsigned char first_char = 0;
+unsigned char telnet_done = 0;
+unsigned char telnet_binary = 0;
 unsigned char pb_loaded = 0;
 unsigned char phonebookctr = 0;
 unsigned char phonebook[21][80];
@@ -121,6 +200,7 @@ unsigned file_index;
 unsigned char y = 0;
 unsigned char px = 0;
 unsigned char py = 0;
+unsigned char debug = 0;
 int intbuff = 0;
 int datacount;
 
@@ -135,15 +215,34 @@ unsigned char ascToPet[] = {
 0x40,0xc1,0xc2,0xc3,0xc4,0xc5,0xc6,0xc7,0xc8,0xc9,0xca,0xcb,0xcc,0xcd,0xce,0xcf,
 0xd0,0xd1,0xd2,0xd3,0xd4,0xd5,0xd6,0xd7,0xd8,0xd9,0xda,0x5b,0x5c,0x5d,0x5e,0x5f,
 0xc0,0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0x49,0x4a,0x4b,0x4c,0x4d,0x4e,0x4f,
-0x50,0x51,0x52,0x53,0x54,0x55,0x56,0x57,0x58,0x59,0x5a,0xdb,0xdc,0xdd,0xde,0xdf,
+0x50,0x51,0x52,0x53,0x54,0x55,0x56,0x57,0x58,0x59,0x5a,0xdb,0xdd,0xdc,0xde,0xdf,
 0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,0x88,0x89,0x8a,0x8b,0x8c,0x8d,0x8e,0x8f,
 0x90,0x91,0x92,0x0c,0x94,0x95,0x96,0x97,0x98,0x99,0x9a,0x9b,0x9c,0x9d,0x9e,0x9f,
 0xa0,0xa1,0xa2,0xa3,0xa4,0xa5,0xa6,0xa7,0xa8,0xa9,0xaa,0xab,0xac,0xad,0xae,0xaf,
 0xb0,0xb1,0xb2,0xb3,0xb4,0xb5,0xb6,0xb7,0xb8,0xb9,0xba,0xbb,0xbc,0xbd,0xbe,0xbf,
 0x60,0x61,0x62,0x63,0x64,0x65,0x66,0x67,0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e,0x6f,
-0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,0x78,0x79,0x7a,0x7b,0x7c,0x7d,0x7e,0x7f,
+0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,0x78,0x79,0x7a,0x7b,0x7d,0x7c,0x7e,0x7f,
 0xe0,0xe1,0xe2,0xe3,0xe4,0xe5,0xe6,0xe7,0xe8,0xe9,0xea,0xeb,0xec,0xed,0xee,0xef,
 0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff
+};
+
+unsigned char petToAsc[] = {
+0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f,
+0x10,0x11,0x12,0x13,0x08,0x15,0x16,0x17,0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f, 
+0x20,0x21,0x22,0x23,0x24,0x25,0x26,0x27,0x28,0x29,0x2a,0x2b,0x2c,0x2d,0x2e,0x2f,
+0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x3a,0x3b,0x3c,0x3d,0x3e,0x3f,
+0x40,0x61,0x62,0x63,0x64,0x65,0x66,0x67,0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e,0x6f,
+0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,0x78,0x79,0x7a,0x5b,0x5c,0x5d,0x5e,0x5f,
+0xc0,0xc1,0xc2,0xc3,0xc4,0xc5,0xc6,0xc7,0xc8,0xc9,0xca,0xcb,0xcc,0xcd,0xce,0xcf,
+0xd0,0xd1,0xd2,0xd3,0xd4,0xd5,0xd6,0xd7,0xd8,0xd9,0xda,0xdb,0xdc,0xdd,0xde,0xdf,
+0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,0x88,0x89,0x8a,0x8b,0x8c,0x8d,0x8e,0x8f,
+0x90,0x91,0x92,0x0c,0x14,0x95,0x96,0x97,0x98,0x99,0x9a,0x9b,0x9c,0x9d,0x9e,0x9f,
+0xa0,0xa1,0xa2,0xa3,0xa4,0xa5,0xa6,0xa7,0xa8,0xa9,0xaa,0xab,0xac,0xad,0xae,0xaf,
+0xb0,0xb1,0xb2,0xb3,0xb4,0xb5,0xb6,0xb7,0xb8,0xb9,0xba,0xbb,0xbc,0xbd,0xbe,0xbf,
+0x60,0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0x49,0x4a,0x4b,0x4c,0x4d,0x4e,0x4f,
+0x50,0x51,0x52,0x53,0x54,0x55,0x56,0x57,0x58,0x59,0x5a,0x7b,0x7d,0x7c,0x7e,0x7f,
+0xa0,0xa1,0xa2,0xa3,0xa4,0xa5,0xa6,0xa7,0xa8,0xa9,0xaa,0xab,0xac,0xad,0xae,0xaf,
+0xb0,0xb1,0xb2,0xb3,0xb4,0xb5,0xb6,0xb7,0xb8,0xb9,0xba,0xbb,0xbc,0xbd,0xbe,0xbf
 };
 
 unsigned char term_bell(void) {
@@ -363,7 +462,8 @@ void load_phonebook(void) {
 	strcpy(phonebook[0], "MANUAL ENTRY");
 	if (dev < 8 || bytesRead <= 0) { // No drive or no file
 		// Default phonebook
-		strcpy(phonebook[1], "bbs.retrocampus.com 6510");
+		//strcpy(phonebook[1], "bbs.retrocampus.com 6510");
+		strcpy(phonebook[1], "192.168.7.51 23");
 		strcpy(phonebook[2], "afterlife.dynu.com 6400");
 		strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
 		strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
@@ -552,10 +652,24 @@ void term_getconfig(void) {
 	gotoxy(0,2);
 }
 
+void send_char(unsigned char c) {	
+	buff[0] = c;
+	buff[1] = 0;
+	uii_socketwrite(socketnr, buff);	
+	//printf("Sent [%d]\n", c);
+}
+
+void send3chars(unsigned char c1, unsigned char c2, unsigned char c3) {
+	buff[0] = c1;
+	buff[1] = c2;
+	buff[2] = c3;
+	buff[3] = 0;
+	uii_socketwrite(socketnr, buff);
+}
+
 void main(void) 
 {
 	unsigned char c = 0;
-	char buff[2];
 	int x = 0;
 
 	detect_uci();
@@ -580,57 +694,151 @@ void main(void)
 
 	uii_settarget(TARGET_NETWORK);
 	cursor_off();
+
+	// Main Program Loop
 	while(1) {
-		asciimode = 0;
+		BORDER(0)
+		character_mode = MODE_PETSCII;
+		first_char = 1;
+		telnet_binary = 0;
+		telnet_done = 0;
+
 		term_displayheader();
 		term_getconfig();
 		term_hostselect();
 		cursor_off();
-
 		term_displayheader();
 		gotoxy(0,2);
 		printf("%c\n[F7] to close the connection when done\n", CG_COLOR_YELLOW);
-		printf("\n * Connecting to\n   %s:%u\n\n", host, port);
+		printf("\n * Connecting to\n   %s:%u\n", host, port);
 		
 		socketnr = uii_tcpconnect(host, port);
 		
 		if (uii_success()) {
-			putchar(CG_COLOR_CYAN);
+			printf("\n * Connected");
 			cursor_on();
-			while(1) {
-				datacount = uii_socketread(socketnr, 892);
+
+			// Main Terminal Loop
+			while (1) {
+
+				// Read from remote
+
+				if (telnet_done) {					
+					datacount = uii_socketread(socketnr, 892);   
+			    } else {										
+					datacount = uii_socketread(socketnr, 1);	  // Special handling during telnet negotiation - read single character at a time
+				}
 
 				if (datacount == 0) { // datacount == 0 means "disconnected"
 					break;
 				} else if (datacount > 0) {
-					cursor_off();
-					if (asciimode) putstring_ascii(uii_data+2); else uii_data_print();
-					cursor_on();
-				} // datacount == -1 means "wait state"
+
+					c = uii_data[2];
+
+					// Special handling for first char.   If first character back from remote side is NVT_IAC, we have a telnet connection.
+					if (first_char) {
+						if (c == NVT_IAC) {
+							BORDER(2)     // red
+							handle_telnet_iac();
+							character_mode = MODE_ANSI;
+							first_char = 0;
+							BORDER(12)    // light gray
+							printf("%c (Telnet)%c\n\n", CG_COLOR_L_GREEN, CG_COLOR_L_GRAY);
+							continue;     // Top of terminal loop
+						}
+						else
+						{
+							first_char = 0;
+							telnet_done = 1;
+							printf("%c\n\n", CG_COLOR_CYAN);
+						}
+					}
+
+					// Connection already established, but may be more telnet control characters
+					if ((c == NVT_IAC) && (character_mode == MODE_ANSI))
+					{
+						if (handle_telnet_iac())  // Returns true if a second NVT_IAC (255) was received
+						{
+							c = NVT_IAC;  // TODO - fix - this character is not displayed
+						}
+					}
+					else   //  Finally regular data - just display
+					{
+						telnet_done = 1;
+						cursor_off();						
+						
+						switch (character_mode)
+						{
+							case MODE_PETSCII:
+								uii_data_print();
+								break;
+
+							case MODE_ASCII:
+								putstring_ascii(uii_data + 2);								
+								break;
+
+							case MODE_ANSI:
+								putstring_ansi(uii_data + 2);
+								break;
+
+							default:
+								uii_data_print();
+								break;
+						}
+
+						cursor_on();
+					}					
+				} // datacount == -1 means "wait state"			
+
+				// Handle keyboard
 
 				c = kbhit();
 				if (c != 0) {
 					c = cgetc();
-					buff[0] = c;
-					buff[1] = 0;
 					if (c == 133) // KEY F1: HELP
 						help_screen();
 					else if (c == 134) // KEY F3: download (xmodem protocol)
 						download_xmodem();
 					else if (c == 135) // KEY F5: send DOS commands to disk
 						dos_commands();
-					else if (c == 139)  // KEY F6: switch petscii/ascii
-						asciimode = !asciimode;
+					else if (c == 139) { // KEY F6: switch petscii/ascii  (not allowed in telnet/ansi mode)
+						if (character_mode != MODE_ANSI) {
+							character_mode = !character_mode;
+						}
+					}
 					else if (c == 136) // KEY F7: close connection
 						break;
+					else if (c == 140) { // KEY F8: Debugging
+						debug = !debug;
+					}
 					else
-						uii_socketwrite(socketnr, buff);
+					{
+						switch (character_mode)
+						{
+							case MODE_PETSCII:
+								send_char(c);
+								break;
+
+							case MODE_ASCII:
+								send_char(petToAsc[c]);
+								break;
+
+							case MODE_ANSI:
+								send_char_ansi(c);
+								break;
+
+							default:
+								send_char(c);
+								break;
+						}
+					}
 				}
 			}
+
 			uii_socketclose(socketnr);
 			cursor_off();
 			if (c != 136) { // NOT KEY F7
-				printf("\n%cconnection closed, hit any key", CG_COLOR_WHITE);
+				printf("\n%cConnection closed, hit any key", CG_COLOR_WHITE);
 				c = 0; while(c==0) c=kbhit();
 			}
 			putchar(14);
@@ -805,7 +1013,7 @@ void help_screen(void) {
 	gotoxy(LINE3,7);  printf("\022 F3 \222  Download with Xmodem");
 	gotoxy(LINE3,9);  printf("\022 F5 \222  DOS commands to disk");
 	gotoxy(LINE3,11); printf("\022 F6 \222  Switch PETSCII/ASCII");
-	gotoxy(LINE3,13); printf("\022 F7 \222  Exit BBS");
+	gotoxy(LINE3,13); printf("\022 F7 \222  Disconnect");
 	gotoxy(LINE4,21); printf("%cPlease report issues:", CG_COLOR_L_GRAY);
 	gotoxy(LINE4,22); printf("%chttps://git.io/fjyUe", CG_COLOR_L_GRAY);
 	gotoxy(LINE4,23); printf("%c\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243\243", CG_COLOR_WHITE);
@@ -1167,4 +1375,328 @@ void download_xmodem(void) {
 	POKE(KEYBOARD_BUFFER,0);
 	restore_screen();
 	cursor_on();
+}
+
+void SendTelnetDoWill(unsigned char verb, unsigned char opt)
+{
+	send_char(NVT_IAC);                               // send character 255 (start negotiation)
+	send_char(verb == NVT_DO ? NVT_DO : NVT_WILL);    // send character 253  (do) if negotiation verb character was 253 (do) else send character 251 (will)
+	send_char(opt);
+}
+
+void SendTelnetDontWont(unsigned char verb, unsigned char opt)
+{
+	send_char(NVT_IAC);                               // send character 255   (start negotiation)
+	send_char(verb == NVT_DO ? NVT_WONT : NVT_DONT);  // send character 252   (wont) if negotiation verb character was 253 (do) else send character 254 (dont)
+	send_char(opt);
+}
+
+void SendTelnetParameters()
+{
+	send_char(NVT_IAC);                               // send character 255 (start negotiation) 
+	send_char(NVT_DONT);                              // send character 254 (dont)
+	send_char(34);                                    // linemode
+
+	send_char(NVT_IAC);                               // send character 255 (start negotiation)
+	send_char(NVT_DONT);                              // send character 253 (do)
+	send_char(1);                                     // echo
+}
+
+unsigned char handle_telnet_iac() {
+	
+	int datacount;
+	unsigned char verb;           // telnet parameters
+	unsigned char opt;
+
+	// First time through
+	if (first_char)
+	{
+		SendTelnetParameters();                         // Start off with negotiating preferred parameters
+	}
+
+	datacount = uii_socketread(socketnr, 1);   // TODO check for closed connection
+	verb = uii_data[2];                                // receive negotiation verb character
+
+	if ((verb == NVT_IAC) && telnet_binary)
+	{
+		return 1;                                  // Received two NVT_IACs in a row so treat as single 255 data in calling function
+	}
+
+	datacount = uii_socketread(socketnr, 1);   // TODO check for closed connection
+	opt = uii_data[2];                               // receive negotiation option character
+
+	switch (verb) {                                  // evaluate negotiation verb character
+		case NVT_WILL:                                      // if negotiation verb character is 251 (will)or
+		case NVT_DO:                                        // if negotiation verb character is 253 (do) or
+
+			switch (opt) {
+
+				case NVT_OPT_SUPPRESS_GO_AHEAD:                 // if negotiation option character is 3 (suppress - go - ahead)
+					SendTelnetDoWill(verb, opt);
+					break;
+
+				case NVT_OPT_TRANSMIT_BINARY:                   // if negotiation option character is 0 (binary data)
+					SendTelnetDoWill(verb, opt);
+					telnet_binary = 1;
+					break;
+
+				default:                                        // if negotiation option character is none of the above(all others), just say no
+					SendTelnetDontWont(verb, opt);
+					break;                                      //  break the routine
+			}
+			break;
+
+		case NVT_WONT:                                      // if negotiation verb character is 252 (wont)or
+		case NVT_DONT:                                      // if negotiation verb character is 254 (dont)
+
+			switch (opt) {
+
+				case NVT_OPT_TRANSMIT_BINARY:                   // if negotiation option character is 0 (binary data)
+					SendTelnetDontWont(verb, opt);
+					telnet_binary = 0;
+					break;
+
+				default:                                        // if negotiation option character is none of the above(all others)
+					SendTelnetDontWont(verb, opt);
+					break;                                      //  break the routine
+				}
+				break;
+
+		case NVT_IAC:                                       // Ignore second IAC/255 if we are in BINARY mode
+		default:
+			printf(">> Unknown IAC Verb  %d\n", opt);
+			break;
+	}
+	return 0;
+}
+
+void send_char_ansi(unsigned char c)
+{
+	switch (c)
+	{
+		case UP:  // Cursor up
+			send3chars(ANSI_ESCAPE, ANSI_BRACKET, ANSI_CURSOR_UP);
+			break;
+
+		case DOWN:  // Cursor down
+			send3chars(ANSI_ESCAPE, ANSI_BRACKET, ANSI_CURSOR_DOWN);
+			break;
+
+		case LEFT:  // Cursor left
+			send3chars(ANSI_ESCAPE, ANSI_BRACKET, ANSI_CURSOR_BACKWARD);
+			break;
+
+		case RIGHT:  // Cursor right
+			send3chars(ANSI_ESCAPE, ANSI_BRACKET, ANSI_CURSOR_FORWARD);
+			break;
+
+		case HOME:  // Intercept this, since it is seen as CTRL-S (XOFF) and there is no way to send CTRL-Q (XON) since that is also cursor down on the C64 keyboard...
+			send_char(0x01);  // Send CTRL-A instead (Home, beginning of line)
+			break;
+
+		default:
+			send_char(petToAsc[c]);
+			break;
+	}
+}
+
+void convert_ansi_color(int values[], int valuecount) {
+
+	int i = 0;
+	unsigned char bold = 0;
+
+	if (valuecount == 0) {
+		putchar(CG_COLOR_L_GRAY);   // Reset all attributes
+		putchar(RVS_OFF);
+		return;
+	}
+	else {  // Foreground colors
+		for (i = 0; i < valuecount; i++) {
+
+			switch (values[i]) {
+
+				case 0:
+					putchar(CG_COLOR_L_GRAY);   // Reset all attributes
+					putchar(RVS_OFF);
+					break;
+
+				case 1:
+					bold = 1;
+					break;
+
+				case 7:
+					putchar(RVS_ON);
+					break;
+
+				case 30:   // Black
+					putchar(CG_COLOR_BLACK);
+					break;
+
+				case 31:   // Red
+					putchar(bold ? CG_COLOR_L_RED : CG_COLOR_RED);
+					break;
+
+				case 32:   // Green
+					putchar(bold ? CG_COLOR_L_GREEN : CG_COLOR_GREEN);
+					break;
+
+				case 33:   // Yellow
+					putchar(CG_COLOR_YELLOW);
+					break;
+
+				case 34:   // Blue
+					putchar(bold ? CG_COLOR_L_BLUE : CG_COLOR_BLUE);
+					break;
+
+				case 35:   // Magenta
+					putchar(CG_COLOR_PURPLE);
+					break;
+
+				case 36:   // Cyan
+					putchar(CG_COLOR_CYAN);
+
+				case 37:   // White
+					putchar(bold ? CG_COLOR_L_GRAY : CG_COLOR_WHITE);
+					break;
+				
+				default: // Unhandled, ignore
+					break;
+			}
+		}
+	}
+}
+
+int parse_ansi_value(char* buf) {
+	int value = atoi(buf);
+	memset(buf, 0, ANSI_VALUE_BUFFER_SIZE); // Clear in case later strings are shorter
+	return value;
+}
+
+char* parse_ansi_escape(char* str) {
+
+	unsigned char valbuffer[ANSI_VALUE_BUFFER_SIZE] = { 0 };
+	int vb = 0;
+
+	int values[2] = { 0 };
+	int vi = 0;
+
+	str++; 
+	datacount--;	
+
+	if (*str != ANSI_BRACKET) {  // Invalid escape sequence, ignore and move to next char		
+		return str;  
+	}
+
+	while (1) {
+
+		str++;
+		datacount--;
+
+		// Numeric values
+		if (isdigit(*str)) {
+			valbuffer[vb++] = *str;
+			continue;
+		}
+
+		switch (*str)
+		{
+			case ANSI_CURSOR_HOME:
+				putchar(HOME);				
+				break;
+
+			case ANSI_CLEAR_SCREEN:
+				putchar(CLRSCR);				
+				break;
+
+			case ANSI_CLEAR_LINE:				
+				// Not handled yet
+				break;
+
+			case ANSI_DECSTBM:
+				// Not handled yet
+				break;
+
+			case ANSI_PRIVATE:  // Skip to next character
+				continue;
+
+			case ANSI_DEC_h: 
+				// Not handled yet
+				continue;
+
+			case ANSI_SEPARATOR:
+				values[vi++] = parse_ansi_value(valbuffer);
+				vb = 0;
+				continue;
+
+			case ANSI_GRAPHICS_MODE:
+				values[vi++] = parse_ansi_value(valbuffer);
+				vb = 0;
+				convert_ansi_color(values, vi);
+				break;
+
+			case ANSI_CURSOR_UP:
+				putchar(UP);
+				break;
+
+			case ANSI_CURSOR_DOWN:
+				putchar(DOWN);
+				break;
+
+			case ANSI_CURSOR_BACKWARD:
+				putchar(LEFT);
+				break;
+
+			case ANSI_CURSOR_FORWARD:
+				putchar(RIGHT);
+				break;
+
+			case ANSI_HPA:
+				values[vi++] = parse_ansi_value(valbuffer);
+				vb = 0;
+				gotox(values[0]);
+				break;
+
+			case ANSI_VPA:
+				values[vi++] = parse_ansi_value(valbuffer);
+				vb = 0;
+				gotoy(values[0]);
+				break;
+
+			default:
+				printf("Unknown ANSI escape %d [%c]", *str, ascToPet[*str]);
+				return str;
+				break;
+		}
+
+		return str;
+	}
+}
+
+void putstring_ansi(char* str) {
+	for (; datacount > 0; ++str, --datacount) 
+	{
+		switch (*str) 
+		{
+			case LF:     // Ignore linefeeds
+				break;
+
+			case BELL:   // Ding!
+				term_bell();
+				break;
+
+			case ANSI_ESCAPE:
+				str = parse_ansi_escape(str++);
+				break;
+
+			default:
+				if (debug) {
+					printf("\nRECV ASC:[%d=%c]\n", *str, *str);
+					printf("RECV PET:[%d=%c]\n", ascToPet[*str], ascToPet[*str]);
+				}
+				else {
+					putchar(ascToPet[*str]);
+				}				
+				break;
+		}
+	}
 }
