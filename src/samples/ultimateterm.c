@@ -20,6 +20,8 @@ Demo program does not alter any data
 #include <errno.h>
 #include <device.h>
 
+// #define DEBUG_MODE
+
 #ifdef __C128__
 #include <c128.h>
 #define RESET_MACHINE	asm("jmp $FF3D");
@@ -105,7 +107,7 @@ void blank_vicII(void);
 #define ANSI_PRIVATE         0x3f // ?
 #define ANSI_DEC_h           0x68 // h
 #define ANSI_DEC_l           0x68 // h
-#define ANSI_HPA	         0x62 // b		 
+#define ANSI_HPA	         0x62 // b
 #define ANSI_VPA	         0x64 // d
 
 #define ANSI_VALUE_BUFFER_SIZE 10
@@ -190,17 +192,19 @@ unsigned char telnet_done = 0;
 unsigned char telnet_binary = 0;
 unsigned char pb_loaded = 0;
 unsigned char phonebookctr = 0;
-unsigned char phonebook[21][80];
+char phonebook[21][80];
 unsigned char dev = 0;
 unsigned char pbtopidx = 0;
 unsigned char pbselectedidx = 0;
-unsigned char pb_bytes[PB_SIZE+1];
-unsigned char hst[80];
+char pb_bytes[PB_SIZE+1];
+char hst[80];
 unsigned file_index;
 unsigned char y = 0;
 unsigned char px = 0;
 unsigned char py = 0;
+#ifdef DEBUG_MODE
 unsigned char debug = 0;
+#endif
 int intbuff = 0;
 int datacount;
 
@@ -352,7 +356,7 @@ void delete_phonebook_entry(void) {
 		ch = (ctr == pbselectedidx) ? '>' : ' ';
 		printf(ctr<=phonebookctr ? "%c %-36s" : SPACE38,ch,phonebook[ctr]);
 	}
-	cputcxy(1,y,'>');
+	cputcxy(1,y,(char) '>');
 }
 
 void add_phonebook_entry(void) {
@@ -444,7 +448,7 @@ void quit(void) {
 }
 
 void load_phonebook(void) {
-	unsigned char *file = "0:u-term,s";
+	char *file = "0:u-term,s";
 	unsigned char c, ctr;
 	int bytesRead = 0;
 	pbtopidx = 0;
@@ -462,8 +466,7 @@ void load_phonebook(void) {
 	strcpy(phonebook[0], "MANUAL ENTRY");
 	if (dev < 8 || bytesRead <= 0) { // No drive or no file
 		// Default phonebook
-		//strcpy(phonebook[1], "bbs.retrocampus.com 6510");
-		strcpy(phonebook[1], "192.168.7.51 23");
+		strcpy(phonebook[1], "bbs.retrocampus.com 6510");
 		strcpy(phonebook[2], "afterlife.dynu.com 6400");
 		strcpy(phonebook[3], "borderlinebbs.dyndns.org 6400");
 		strcpy(phonebook[4], "commodore4everbbs.dynu.net 6400");
@@ -656,7 +659,6 @@ void send_char(unsigned char c) {
 	buff[0] = c;
 	buff[1] = 0;
 	uii_socketwrite(socketnr, buff);	
-	//printf("Sent [%d]\n", c);
 }
 
 void send3chars(unsigned char c1, unsigned char c2, unsigned char c3) {
@@ -723,9 +725,9 @@ void main(void)
 
 				// Read from remote
 
-				if (telnet_done) {					
-					datacount = uii_socketread(socketnr, 892);   
-			    } else {										
+				if (telnet_done) {
+					datacount = uii_socketread(socketnr, 892);
+			    } else {
 					datacount = uii_socketread(socketnr, 1);	  // Special handling during telnet negotiation - read single character at a time
 				}
 
@@ -742,15 +744,19 @@ void main(void)
 							handle_telnet_iac();
 							character_mode = MODE_ANSI;
 							first_char = 0;
-							BORDER(12)    // light gray
+							BORDER(12)    // light
+							cursor_off();
 							printf("%c (Telnet)%c\n\n", CG_COLOR_L_GREEN, CG_COLOR_L_GRAY);
+							cursor_on();
 							continue;     // Top of terminal loop
 						}
 						else
 						{
 							first_char = 0;
 							telnet_done = 1;
+							cursor_off();
 							printf("%c\n\n", CG_COLOR_CYAN);
+							cursor_on();
 						}
 					}
 
@@ -765,8 +771,8 @@ void main(void)
 					else   //  Finally regular data - just display
 					{
 						telnet_done = 1;
-						cursor_off();						
-						
+						cursor_off();
+
 						switch (character_mode)
 						{
 							case MODE_PETSCII:
@@ -774,7 +780,7 @@ void main(void)
 								break;
 
 							case MODE_ASCII:
-								putstring_ascii(uii_data + 2);								
+								putstring_ascii(uii_data + 2);
 								break;
 
 							case MODE_ANSI:
@@ -787,8 +793,8 @@ void main(void)
 						}
 
 						cursor_on();
-					}					
-				} // datacount == -1 means "wait state"			
+					}
+				} // datacount == -1 means "wait state"
 
 				// Handle keyboard
 
@@ -808,9 +814,11 @@ void main(void)
 					}
 					else if (c == 136) // KEY F7: close connection
 						break;
+				#ifdef DEBUG_MODE
 					else if (c == 140) { // KEY F8: Debugging
 						debug = !debug;
 					}
+				#endif
 					else
 					{
 						switch (character_mode)
@@ -1574,17 +1582,17 @@ int parse_ansi_value(char* buf) {
 
 char* parse_ansi_escape(char* str) {
 
-	unsigned char valbuffer[ANSI_VALUE_BUFFER_SIZE] = { 0 };
+	char valbuffer[ANSI_VALUE_BUFFER_SIZE] = { 0 };
 	int vb = 0;
 
 	int values[2] = { 0 };
 	int vi = 0;
 
-	str++; 
-	datacount--;	
+	str++;
+	datacount--;
 
-	if (*str != ANSI_BRACKET) {  // Invalid escape sequence, ignore and move to next char		
-		return str;  
+	if (*str != ANSI_BRACKET) {  // Invalid escape sequence, ignore and move to next char
+		return str;
 	}
 
 	while (1) {
@@ -1601,14 +1609,14 @@ char* parse_ansi_escape(char* str) {
 		switch (*str)
 		{
 			case ANSI_CURSOR_HOME:
-				putchar(HOME);				
+				putchar(HOME);
 				break;
 
 			case ANSI_CLEAR_SCREEN:
-				putchar(CLRSCR);				
+				putchar(CLRSCR);
 				break;
 
-			case ANSI_CLEAR_LINE:				
+			case ANSI_CLEAR_LINE:
 				// Not handled yet
 				break;
 
@@ -1689,13 +1697,14 @@ void putstring_ansi(char* str) {
 				break;
 
 			default:
+				#ifdef DEBUG_MODE
 				if (debug) {
 					printf("\nRECV ASC:[%d=%c]\n", *str, *str);
 					printf("RECV PET:[%d=%c]\n", ascToPet[*str], ascToPet[*str]);
 				}
-				else {
+				else
+				#endif
 					putchar(ascToPet[*str]);
-				}				
 				break;
 		}
 	}

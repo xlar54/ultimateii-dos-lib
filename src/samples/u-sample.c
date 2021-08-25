@@ -67,7 +67,7 @@ void main(void)
 	printf("\n\nIdentify: %s\nStatus: %s", uii_data, uii_status);
 	
 	uii_getinterfacecount();
-	printf("\n\nInterface count: %d\nStatus: %s", atoi(uii_data), uii_status);
+	printf("\n\nInterface count: %d\nStatus: %us", atoi(uii_data), uii_status);
 	
 	uii_getipaddress();
 	printf("\n\nIP Address: %d.%d.%d.%d", uii_data[0], uii_data[1], uii_data[2], uii_data[3]);

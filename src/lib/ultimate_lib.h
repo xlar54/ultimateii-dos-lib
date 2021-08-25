@@ -89,8 +89,8 @@ Patches and pull requests are welcome
 
 #define uii_success() (uii_status[0] == '0' && uii_status[1] == '0')
 
-extern unsigned char uii_status[STATUS_QUEUE_SZ];
-extern unsigned char uii_data[DATA_QUEUE_SZ*2];
+extern char uii_status[STATUS_QUEUE_SZ];
+extern char uii_data[DATA_QUEUE_SZ*2];
 
 struct DirectoryEntry {
 	unsigned char attributes;

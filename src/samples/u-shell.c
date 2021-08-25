@@ -8,9 +8,9 @@
 #define MAXINPUT 	160
 #define MAXPARAM_SZ	20
 
-unsigned char buf[MAXINPUT];
+char buf[MAXINPUT];
 
-unsigned char params[4][MAXPARAM_SZ];
+char params[4][MAXPARAM_SZ];
 unsigned char paramcount = 0;
 unsigned char running = 1;
 

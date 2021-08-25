@@ -42,8 +42,8 @@ unsigned char cx,cy;
 unsigned char socketnr = 0;
 int datacount = 0;
 char buff[2] = {0,0};
-unsigned char fontbuff40[1000];
-unsigned char fontbuff80[600];
+char fontbuff40[1000];
+char fontbuff80[600];
 char host[80];
 char portbuf[9];
 unsigned short port;
@@ -78,7 +78,7 @@ void loadFonts()
 
 void clearTerminal(unsigned char fontsize)
 {	
-	unsigned char *s = "  GeoUTerm  ";
+	char *s = "  GeoUTerm  ";
 	unsigned short hdrY = 0;
 
 	if ((osType & GEOS64) == GEOS64) // c64
@@ -218,8 +218,8 @@ void handle_io(void)
 	unsigned char ch = 0;
 	unsigned char x = 0;
 	unsigned char t = 0;
-	unsigned char *dat;
-	unsigned char buf[3];
+	char *dat;
+	char buf[3];
 
 	#ifdef TESTING
 	return;
@@ -400,7 +400,7 @@ void switch4080(void)
 	SetNewMode();
 	
 	set40col();
-	DoMenu(&mainMenu);
+	DoMenu((struct menu *)&mainMenu);
 }
 
 void main(void)
@@ -418,20 +418,20 @@ void main(void)
 		{
 			DlgBoxOk ("GeoUTerm v1.0", "Commodore 128 40 column mode");
 			set40col();
-			DoMenu(&mainMenu);
+			DoMenu((struct menu *)&mainMenu);
 		}
 		else
 		{
 			DlgBoxOk ("GeoUTerm v1.0", "Commodore 128 80 column mode");
 			set40col();
-			DoMenu(&mainMenu);
+			DoMenu((struct menu *)&mainMenu);
 		}	
 	}
 	else
 	{
 		DlgBoxOk ("GeoUTerm v1.0", "For the Commodore 64");
 		set40col();	
-		DoMenu(&mainMenu);
+		DoMenu((struct menu *)&mainMenu);
 	}
 
 #ifndef TESTING	

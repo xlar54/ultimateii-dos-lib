@@ -61,7 +61,7 @@ void irc_updateheader(char *chan);
 void irc_login(void);
 void irc_refreshscreen(void);
 void irc_print(char *buf, int newlineflg);
-void irc_pong(unsigned char *buf);
+void irc_pong(char *buf);
 void irc_help(void);
 void irc_handleinput(char *buf);
 void getconfig(void);
@@ -193,7 +193,7 @@ void irc_login(void) // Handle IRC login procedures
     char USER_STRING[128];
 	char *chan;
 
-	chan = (unsigned char*) malloc(50 * sizeof(unsigned char));
+	chan = (char*) malloc(50 * sizeof(unsigned char));
     
 	sprintf(NICK_STRING, "nick %s\r\n", nick); // NICK user
     sprintf(USER_STRING, "user %s * 0 :%s\r\n", nick, strlen(realname) == 0 ? nick : realname); // USER user * 0 :Real name
@@ -347,7 +347,7 @@ void irc_print(char *buf, int newlineflg)
 	
 }
 
-void irc_pong(unsigned char *buf)
+void irc_pong(char *buf)
 {
     buf[0] = 'p';
 	buf[1] = 'o';
@@ -537,8 +537,8 @@ void main(void)
 	unsigned char newline = 0;
 	unsigned char connected = 0;
 	char *msgptr;
-	unsigned char* sender;
-	unsigned char* tmpPtr;
+	char* sender;
+	char* tmpPtr;
 	//unsigned char* tmpPtr2;
 
 	POKEW(0xD020,0);
@@ -593,7 +593,7 @@ void main(void)
 						{
 							if (strstr(inbuf, " privmsg ") != 0)
 							{
-								sender = (unsigned char*) malloc(40 * sizeof(unsigned char));
+								sender = (char*) malloc(40 * sizeof(char));
 							
 								i = 1;
 								while(inbuf[i] != '!')
@@ -606,7 +606,7 @@ void main(void)
 								
 								if (strstr(inbuf, "action ") != 0)
 								{
-									tmpPtr = (unsigned char*) malloc(80 * sizeof(unsigned char));
+									tmpPtr = (char*) malloc(80 * sizeof(char));
 									strcpy(tmpPtr," * ");
 									strcat(tmpPtr,sender);
 									strcat(tmpPtr," ");
@@ -648,7 +648,7 @@ void main(void)
 							}
 							else if (strstr(inbuf, " join ") != 0)
 							{
-								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
+								sender = (char*) malloc(80 * sizeof(char));
 								i = 1;
 								while(inbuf[i] != '!')
 								{
@@ -669,7 +669,7 @@ void main(void)
 							} 
 							else if (strstr(inbuf, " part ") != 0)
 							{
-								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
+								sender = (char*) malloc(80 * sizeof(char));
 								i = 1;
 								while(inbuf[i] != '!')
 								{
@@ -690,7 +690,7 @@ void main(void)
 							}
 							else if (strstr(inbuf, " quit ") != 0)
 							{
-								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
+								sender = (char*) malloc(80 * sizeof(char));
 								i = 1;
 								while(inbuf[i] != '!')
 								{
@@ -711,7 +711,7 @@ void main(void)
 							}
 							else if (strstr(inbuf, " nick ") != 0)
 							{
-								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
+								sender = (char*) malloc(80 * sizeof(char));
 								i = 1;
 								while(inbuf[i] != '!')
 								{
@@ -737,7 +737,7 @@ void main(void)
 							}
 							else if (strstr(inbuf, " quit ") != 0)
 							{
-								sender = (unsigned char*) malloc(80 * sizeof(unsigned char));
+								sender = (char*) malloc(80 * sizeof(char));
 								i = 1;
 								while(inbuf[i] != '!')
 								{
