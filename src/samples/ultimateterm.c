@@ -948,6 +948,14 @@ loop:
 	asm("jmp %g", nextch);
 skipbell:
 	asm("jsr $ffd2");
+	asm("ldx #$00");
+#ifdef __C128__
+	asm("stx $f4");
+	asm("stx $f5");
+#else
+	asm("stx $d4");
+	asm("stx $d8");
+#endif
 #ifdef __C128__
 skipline:
 #endif
