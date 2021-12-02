@@ -746,6 +746,8 @@ void main(void)
 							first_char = 0;
 							BORDER(12)    // light
 							cursor_off();
+							putchar(14); // lowercase
+							putchar(8);  // lock lowercase
 							printf("%c (Telnet)%c\n\n", CG_COLOR_L_GREEN, CG_COLOR_L_GRAY);
 							cursor_on();
 							continue;     // Top of terminal loop
@@ -1712,7 +1714,17 @@ void putstring_ansi(char* str) {
 				}
 				else
 				#endif
+				{
 					putchar(ascToPet[*str]);
+					asm("ldx #$00");
+					#ifdef __C128__
+						asm("stx $f4");
+						asm("stx $f5");
+					#else
+						asm("stx $d4");
+						asm("stx $d8");
+					#endif
+				}
 				break;
 		}
 	}
