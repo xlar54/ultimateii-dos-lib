@@ -317,8 +317,17 @@ void term_displayheader(void) {
 }
 
 void putstring_ascii(char *str) {
-	for (; datacount > 0; ++str, --datacount)
+	for (; datacount > 0; ++str, --datacount) {
 		if (*str != LF) *str==BELL ? term_bell() : putchar(ascToPet[*str]);
+		asm("ldx #$00");
+		#ifdef __C128__
+			asm("stx $f4");
+			asm("stx $f5");
+		#else
+			asm("stx $d4");
+			asm("stx $d8");
+		#endif
+	}
 }
 
 void term_window(unsigned char x, unsigned char y, unsigned char width, unsigned char height, int border) {
