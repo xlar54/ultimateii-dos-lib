@@ -857,7 +857,7 @@ void main(void)
 			uii_socketclose(socketnr);
 			cursor_off();
 			if (c != 136) { // NOT KEY F7
-				printf("\n%cConnection closed, hit any key", CG_COLOR_WHITE);
+				printf("\n%cconnection closed, hit any key", CG_COLOR_WHITE);
 				c = 0; while(c==0) c=kbhit();
 			}
 			putchar(14);
