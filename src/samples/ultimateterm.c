@@ -1087,6 +1087,8 @@ void dos_commands(void) {
 			if (intbuff >= 8 && intbuff <= 15) dev = intbuff;
 		} else if (strbuff[0] == '$') {
 			showdir(strbuff);
+		} else if (strbuff[0] == '@' && strbuff[1] == '$') {
+			showdir(strbuff+1);
 		} else if (strbuff[0] == '@') {
 			send_dos(strbuff+1);
 		} else {
