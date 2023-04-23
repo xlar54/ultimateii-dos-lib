@@ -684,6 +684,7 @@ void main(void)
 	int x = 0;
 
 	detect_uci();
+	uii_abort();
 	dev = getcurrentdevice();
 	dev = (dev < 8 ? 8 : dev);
 
