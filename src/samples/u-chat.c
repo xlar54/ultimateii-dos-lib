@@ -64,7 +64,8 @@ void irc_print(char *buf, int newlineflg);
 void irc_pong(char *buf);
 void irc_help(void);
 void irc_handleinput(char *buf);
-void getconfig(void);
+unsigned char getconfig(void);
+unsigned char wait_for_network_address(void);
 
 #ifdef __C128__
 void vdc_write_reg(void);
@@ -88,6 +89,23 @@ unsigned char outy = 23;
 unsigned char tempx = 0;
 unsigned char tempy = 0;
 unsigned char rvs_vid = 0;
+
+unsigned char wait_for_network_address(void)
+{
+	unsigned char retries = 0;
+
+	for(retries = 0; retries < 10; ++retries)
+	{
+		uii_getipaddress();
+
+		if(uii_data[0] != 0 || uii_data[1] != 0 || uii_data[2] != 0 || uii_data[3] != 0)
+			return 1;
+
+		sleep(1);
+	}
+
+	return 0;
+}
 
 
 unsigned char convertchar(unsigned char c)
@@ -478,12 +496,16 @@ void irc_handleinput(char *buf)
     return;
 }
 
-void getconfig(void)
+unsigned char getconfig(void)
 {
 	uii_identify();
 	printf("\n\nNetwork Interface Status : %s", uii_status);
 
-	uii_getipaddress();
+	if(!wait_for_network_address())
+	{
+		uii_getipaddress();
+	}
+
 	printf("\n\nIP Address: %d.%d.%d.%d", uii_data[0], uii_data[1], uii_data[2], uii_data[3]);
 	printf("\n   Netmask: %d.%d.%d.%d", uii_data[4], uii_data[5], uii_data[6], uii_data[7]);
 	printf("\n   Gateway: %d.%d.%d.%d", uii_data[8], uii_data[9], uii_data[10], uii_data[11]);
@@ -494,9 +516,10 @@ void getconfig(void)
 		printf("\nPlease ensure the following:");
 		printf("\n - Command Interface is enabled");
 		printf("\n - Network link is in 'Link Up' state");
+		printf("\n - WiFi/DHCP has finished acquiring an address");
 		printf("\n - Disable any cartridges like");
 		printf("\n	 the Action Replay or FC III");
-		return;
+		return 0;
 	}
 	
 	do
@@ -508,7 +531,7 @@ void getconfig(void)
 		printf("\n                                      ");
 		
 		gotoxy(0,9);
-		printf("  Server: "); getstring("chat.freenode.net", host);
+		printf("  Server: "); getstring("irc.libera.chat", host);
 		printf("\n    Port: "); getstring("6667", portbuff);
 		printf("\n Channel: ");	getstring("#c64friends", channel);
 		printf("\nNickname: ");	getstring("", nick);
@@ -519,7 +542,8 @@ void getconfig(void)
 		if(nick[0] == 0) printf("\n\n* You must provide a nickname!");
 	
 	}while(host[0] == 0 || portbuff[0] == 0 || channel[0] == 0 || nick[0] == 0);
-	
+
+	return 1;
 }
 
 void main(void) 
@@ -549,7 +573,8 @@ void main(void)
 		
 	uii_settarget(TARGET_NETWORK);
 	
-	getconfig();
+	if(!getconfig())
+		return;
 	
 	inbufptr = 0;
 	port = atoi(portbuff);
