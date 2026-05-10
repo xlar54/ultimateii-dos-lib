@@ -54,9 +54,13 @@ Demo program does not alter any data
 #endif
 
 #define VDC_REG	0xd600
+#define NETWORK_WAIT_SECONDS	5
+#define MAX_NETWORK_INTERFACES	4
+#define CONFIG_PROMPT_Y		9
 
 unsigned char convertchar(unsigned char c);
 int getstring(char* def, char *buf);
+void clear_screen_line(unsigned char y);
 void irc_updateheader(char *chan);
 void irc_login(void);
 void irc_refreshscreen(void);
@@ -66,6 +70,8 @@ void irc_help(void);
 void irc_handleinput(char *buf);
 unsigned char getconfig(void);
 unsigned char wait_for_network_address(void);
+unsigned char has_network_address(void);
+void print_network_address(void);
 
 #ifdef __C128__
 void vdc_write_reg(void);
@@ -84,6 +90,7 @@ char outbuf[MAX_OUTBUFFER];
 unsigned char outbufptr = 0;
 unsigned char inbufptr = 0;
 unsigned char socketnr = 0;
+unsigned char network_interface = 0;
 unsigned char outx = 0;
 unsigned char outy = 23;
 unsigned char tempx = 0;
@@ -93,18 +100,55 @@ unsigned char rvs_vid = 0;
 unsigned char wait_for_network_address(void)
 {
 	unsigned char retries = 0;
+	unsigned char interface_id = 0;
 
-	for(retries = 0; retries < 10; ++retries)
+	printf("\nChecking IP report");
+
+	for(retries = 0; retries < NETWORK_WAIT_SECONDS; ++retries)
 	{
-		uii_getipaddress();
+		for(interface_id = 0; interface_id < MAX_NETWORK_INTERFACES; ++interface_id)
+		{
+			uii_getipaddress_interface(interface_id);
 
-		if(uii_data[0] != 0 || uii_data[1] != 0 || uii_data[2] != 0 || uii_data[3] != 0)
-			return 1;
+			if(has_network_address())
+			{
+				network_interface = interface_id;
+				return 1;
+			}
+		}
+
+		printf(".");
 
 		sleep(1);
 	}
 
 	return 0;
+}
+
+unsigned char has_network_address(void)
+{
+	return uii_data[0] != 0 || uii_data[1] != 0 || uii_data[2] != 0 || uii_data[3] != 0;
+}
+
+void print_network_address(void)
+{
+	if(has_network_address())
+	{
+		printf("\n\nIP Address: %d.%d.%d.%d", uii_data[0], uii_data[1], uii_data[2], uii_data[3]);
+		printf("\n   Netmask: %d.%d.%d.%d", uii_data[4], uii_data[5], uii_data[6], uii_data[7]);
+		printf("\n   Gateway: %d.%d.%d.%d", uii_data[8], uii_data[9], uii_data[10], uii_data[11]);
+		printf("\n Interface: %d", network_interface);
+	}
+	else
+	{
+		printf("\n\n IP Report: unavailable");
+		printf("\nNetwork TCP may still work on WiFi.");
+	}
+}
+
+void clear_screen_line(unsigned char y)
+{
+	cclearxy(0, y, SCREEN_WIDTH);
 }
 
 
@@ -503,34 +547,20 @@ unsigned char getconfig(void)
 
 	if(!wait_for_network_address())
 	{
-		uii_getipaddress();
+		uii_getipaddress_interface(network_interface);
 	}
 
-	printf("\n\nIP Address: %d.%d.%d.%d", uii_data[0], uii_data[1], uii_data[2], uii_data[3]);
-	printf("\n   Netmask: %d.%d.%d.%d", uii_data[4], uii_data[5], uii_data[6], uii_data[7]);
-	printf("\n   Gateway: %d.%d.%d.%d", uii_data[8], uii_data[9], uii_data[10], uii_data[11]);
-	
-	if(uii_data[0] == 0)
-	{
-		printf("\n\nUnable to access network interface.");
-		printf("\nPlease ensure the following:");
-		printf("\n - Command Interface is enabled");
-		printf("\n - Network link is in 'Link Up' state");
-		printf("\n - WiFi/DHCP has finished acquiring an address");
-		printf("\n - Disable any cartridges like");
-		printf("\n	 the Action Replay or FC III");
-		return 0;
-	}
+	print_network_address();
 	
 	do
 	{
-		gotoxy(0,9);
-		printf("                                      ");
-		printf("\n                                      ");
-		printf("\n                                      ");
-		printf("\n                                      ");
+		clear_screen_line(CONFIG_PROMPT_Y);
+		clear_screen_line(CONFIG_PROMPT_Y + 1);
+		clear_screen_line(CONFIG_PROMPT_Y + 2);
+		clear_screen_line(CONFIG_PROMPT_Y + 3);
+		clear_screen_line(CONFIG_PROMPT_Y + 4);
 		
-		gotoxy(0,9);
+		gotoxy(0,CONFIG_PROMPT_Y);
 		printf("  Server: "); getstring("irc.libera.chat", host);
 		printf("\n    Port: "); getstring("6667", portbuff);
 		printf("\n Channel: ");	getstring("#c64friends", channel);

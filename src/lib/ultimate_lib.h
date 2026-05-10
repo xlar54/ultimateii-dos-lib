@@ -122,6 +122,7 @@ void uii_echo(void);
 
 void uii_getinterfacecount(void);
 void uii_getipaddress(void);
+void uii_getipaddress_interface(unsigned char interface_id);
 unsigned char uii_tcpconnect(char* host, unsigned short port);
 unsigned char uii_udpconnect(char* host, unsigned short port);
 void uii_socketclose(unsigned char socketid);

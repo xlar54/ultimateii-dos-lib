@@ -595,8 +595,15 @@ void uii_getinterfacecount(void)
 
 void uii_getipaddress(void)
 {
+	uii_getipaddress_interface(0);
+}
+
+void uii_getipaddress_interface(unsigned char interface_id)
+{
 	unsigned char tempTarget = uii_target;
-	unsigned char cmd[] = {0x00,NET_CMD_GET_IP_ADDRESS, 0x00}; // interface 0 (theres only one)
+	unsigned char cmd[] = {0x00,NET_CMD_GET_IP_ADDRESS, 0x00};
+
+	cmd[2] = interface_id;
 	
 	uii_settarget(TARGET_NETWORK);
 	uii_sendcommand(cmd, 0x03);
