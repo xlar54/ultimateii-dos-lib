@@ -46,6 +46,7 @@ void blank_vicII(void);
 #include <conio.h>
 #include <peekpoke.h>
 #include <unistd.h>
+#include <time.h>
 #include "../lib/ultimate_lib.h"
 #include "screen_utility.h"
 
@@ -169,7 +170,10 @@ void download_xmodem(void);
 void dos_commands(void);
 void showdir(char *);
 void send_dos(char *);
-unsigned char handle_telnet_iac();
+unsigned char handle_telnet_iac(int extra);
+int telnet_nextbyte(void);
+int iac_left;                      // command bytes already in uii_data after the IAC
+unsigned char iac_pos;
 void send_char_ansi(unsigned char c);
 
 char *version = "2.7";
@@ -751,7 +755,7 @@ void main(void)
 					if (first_char) {
 						if (c == NVT_IAC) {
 							BORDER(2)     // red
-							handle_telnet_iac();
+							handle_telnet_iac(0);
 							character_mode = MODE_ANSI;
 							first_char = 0;
 							BORDER(12)    // light
@@ -773,11 +777,20 @@ void main(void)
 					}
 
 					// Connection already established, but may be more telnet control characters
+					again:
 					if ((c == NVT_IAC) && (character_mode == MODE_ANSI))
 					{
-						if (handle_telnet_iac())  // Returns true if a second NVT_IAC (255) was received
+						if (handle_telnet_iac(datacount - 1))  // Returns true if a second NVT_IAC (255) was received
 						{
 							c = NVT_IAC;  // TODO - fix - this character is not displayed
+						}
+						if (iac_left > 0)                      // the rest of the READ: more text, or another command
+						{
+							memmove(uii_data + 2, uii_data + iac_pos, iac_left);
+							uii_data[2 + iac_left] = 0;
+							datacount = iac_left;
+							c = uii_data[2];
+							goto again;
 						}
 					}
 					else   //  Finally regular data - just display
@@ -1432,9 +1445,31 @@ void SendTelnetParameters()
 	send_char(1);                                     // echo
 }
 
-unsigned char handle_telnet_iac() {
+// One byte of a telnet command. Bytes that came in the same READ as the IAC
+// are taken from uii_data first (iac_left of them, from iac_pos). For the
+// rest, the command can still be on the wire and a READ then returns no data
+// (-1), so poll until the byte comes, the connection closes (0) or 2 seconds
+// pass. -1 = no byte.
+int telnet_nextbyte(void) {
+	clock_t until = clock() + 2 * CLOCKS_PER_SEC;
+	int count;
+
+	if (iac_left > 0) {
+		iac_left--;
+		return uii_data[iac_pos++];
+	}
+
+	do {
+		count = uii_socketread(socketnr, 1);
+		if (count > 0) return uii_data[2];
+		if (count == 0) return -1;                     // closed: the main loop sees it on its next READ
+	} while (clock() < until);
+	return -1;
+}
+
+unsigned char handle_telnet_iac(int extra) {
 	
-	int datacount;
+	int b;
 	unsigned char verb;           // telnet parameters
 	unsigned char opt;
 
@@ -1444,16 +1479,18 @@ unsigned char handle_telnet_iac() {
 		SendTelnetParameters();                         // Start off with negotiating preferred parameters
 	}
 
-	datacount = uii_socketread(socketnr, 1);   // TODO check for closed connection
-	verb = uii_data[2];                                // receive negotiation verb character
+	iac_left = extra;                                  // verb and option may already be in uii_data[3..]
+	iac_pos = 3;
+	if ((b = telnet_nextbyte()) < 0) return 0;
+	verb = b;                                          // receive negotiation verb character
 
 	if ((verb == NVT_IAC) && telnet_binary)
 	{
 		return 1;                                  // Received two NVT_IACs in a row so treat as single 255 data in calling function
 	}
 
-	datacount = uii_socketread(socketnr, 1);   // TODO check for closed connection
-	opt = uii_data[2];                               // receive negotiation option character
+	if ((b = telnet_nextbyte()) < 0) return 0;
+	opt = b;                                         // receive negotiation option character
 
 	switch (verb) {                                  // evaluate negotiation verb character
 		case NVT_WILL:                                      // if negotiation verb character is 251 (will)or
