@@ -191,12 +191,19 @@ void irc_login(void) // Handle IRC login procedures
 {
     char NICK_STRING[64]; 
     char USER_STRING[128];
+	char name[40];
 	char *chan;
+	unsigned char x;
 
 	chan = (char*) malloc(sizeof(channel) + 8); // "join " + channel + CR LF
+
+	// the real name as ASCII, like the nick and the messages (cc65 compiles strings to PETSCII)
+	for(x=0;x<strlen(realname) && x<sizeof(name)-1;x++)
+		name[x] = convertchar(realname[x]);
+	name[x] = 0;
     
 	sprintf(NICK_STRING, "nick %s%s", nick, crlf); // NICK user
-    sprintf(USER_STRING, "user %s * 0 :%s%s", nick, strlen(realname) == 0 ? nick : realname, crlf); // USER user * 0 :Real name
+    sprintf(USER_STRING, "user %s * 0 :%s%s", nick, strlen(name) == 0 ? nick : name, crlf); // USER user * 0 :Real name
 	sprintf(chan, "join %s%s", channel, crlf);
 	
 	uii_socketwrite(socketnr, NICK_STRING);
