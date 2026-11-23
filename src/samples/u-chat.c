@@ -74,6 +74,8 @@ char *version = "1.4";
 char host[25];
 char portbuff[10];
 char *realname = "Bob Anonymous";
+// IRC lines end in CR LF. Bytes, not "\r\n": cc65 swaps CR and LF in strings for the CBM targets.
+char crlf[] = {13, 10, 0};
 char *nochan = "No Channel";
 char channel[50];
 char nick[255];
@@ -191,11 +193,11 @@ void irc_login(void) // Handle IRC login procedures
     char USER_STRING[128];
 	char *chan;
 
-	chan = (char*) malloc(50 * sizeof(unsigned char));
+	chan = (char*) malloc(sizeof(channel) + 8); // "join " + channel + CR LF
     
-	sprintf(NICK_STRING, "nick %s\r\n", nick); // NICK user
-    sprintf(USER_STRING, "user %s * 0 :%s\r\n", nick, strlen(realname) == 0 ? nick : realname); // USER user * 0 :Real name
-	sprintf(chan, "join %s\n", channel);
+	sprintf(NICK_STRING, "nick %s%s", nick, crlf); // NICK user
+    sprintf(USER_STRING, "user %s * 0 :%s%s", nick, strlen(realname) == 0 ? nick : realname, crlf); // USER user * 0 :Real name
+	sprintf(chan, "join %s%s", channel, crlf);
 	
 	uii_socketwrite(socketnr, NICK_STRING);
 	uii_socketwrite(socketnr, USER_STRING);
@@ -353,7 +355,7 @@ void irc_pong(char *buf)
 	buf[3] = 'g';
 
 	uii_socketwrite(socketnr, buf);
-	uii_socketwrite(socketnr, "\r\n");
+	uii_socketwrite(socketnr, crlf);
 }
 
 void irc_help()
@@ -393,7 +395,7 @@ void irc_handleinput(char *buf)
 		strcpy(channel, &buf[5]);
 		irc_updateheader(channel);
 		
-		sprintf(full_message, "join %s\n", channel);
+		sprintf(full_message, "join %s%s", channel, crlf);
 		uii_socketwrite(socketnr, full_message);
 	}
 	else if(strstr(buf,"/part") == buf)
@@ -406,7 +408,7 @@ void irc_handleinput(char *buf)
 		
 		irc_updateheader(nochan);
 		
-		sprintf(full_message, "part %s\n", channel); // Leave current channel
+		sprintf(full_message, "part %s%s", channel, crlf); // Leave current channel
 		uii_socketwrite(socketnr, full_message);
 		channel[0] = 0;
 	}
@@ -426,7 +428,7 @@ void irc_handleinput(char *buf)
 		
 		strcpy(nick, &buf[6]);
 		
-		sprintf(full_message, "nick %s\n", nick);
+		sprintf(full_message, "nick %s%s", nick, crlf);
 		uii_socketwrite(socketnr, full_message);
 	}
 	else
@@ -444,7 +446,7 @@ void irc_handleinput(char *buf)
 			for(x=0;x<strlen(buf);x++)
 				buf[x] = convertchar(buf[x]);
 
-			sprintf(full_message, "privmsg %s :%caction %s%c\n", channel, 0x01, buf, 0x01);
+			sprintf(full_message, "privmsg %s :%caction %s%c%s", channel, 0x01, buf, 0x01, crlf);
 			uii_socketwrite(socketnr, full_message);
 			
 			printf("%c", CG_COLOR_YELLOW);
@@ -459,7 +461,7 @@ void irc_handleinput(char *buf)
 			for(x=0;x<strlen(buf);x++)
 				buf[x] = convertchar(buf[x]);
 
-			sprintf(full_message, "privmsg %s :%s\n", channel, buf); // PRIVMSG <channel> :Message text
+			sprintf(full_message, "privmsg %s :%s%s", channel, buf, crlf); // PRIVMSG <channel> :Message text
 			uii_socketwrite(socketnr, full_message);
 			
 			printf("%c", CG_COLOR_CYAN);
