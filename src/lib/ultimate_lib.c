@@ -474,8 +474,13 @@ void uii_sendcommand(unsigned char *bytes, int count)
 			uii_logstatusreg();
 		};
 		
+		// clear an ERROR left from before, so that it is not taken for this push's
+		if ((*statusreg & 8) == 8)
+			*controlreg = 0x08;
+		
 		// Write byte by byte to data register
 		uii_logtext("\nwriting command...");
+		x = 0;
 		while(x<count)
 			*cmddatareg = bytes[x++];
 		
@@ -486,7 +491,7 @@ void uii_sendcommand(unsigned char *bytes, int count)
 		uii_logstatusreg();
 		
 		// check ERROR bit.  If set, clear it via ctrl reg, and try again
-		if ((*statusreg & 4) == 4)
+		if ((*statusreg & 8) == 8)
 		{
 			uii_logtext("\nerror was set. trying again");
 			*controlreg = 0x08;
