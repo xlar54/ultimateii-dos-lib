@@ -481,7 +481,7 @@ void uii_sendcommand(unsigned char *bytes, int count)
 		
 		// Send PUSH_CMD
 		uii_logtext("\npushing command...");
-		*controlreg |= 0x01;
+		*controlreg = 0x01;
 		
 		uii_logstatusreg();
 		
@@ -489,7 +489,7 @@ void uii_sendcommand(unsigned char *bytes, int count)
 		if ((*statusreg & 4) == 4)
 		{
 			uii_logtext("\nerror was set. trying again");
-			*controlreg |= 0x08;
+			*controlreg = 0x08;
 		}
 		else
 		{
@@ -514,7 +514,7 @@ void uii_accept(void)
 	// Acknowledge the data
 	uii_logstatusreg();
 	uii_logtext("\nsending ack");
-	*controlreg |= 0x02;
+	*controlreg = 0x02;
 	while ( !(*statusreg & 2) == 0 )  {
 		uii_logtext("\nwaiting for ack...");
 		uii_logstatusreg();
@@ -542,7 +542,7 @@ void uii_abort(void)
 	// abort the command
 	uii_logstatusreg();
 	uii_logtext("\nsending abort");
-	*controlreg |= 0x04;
+	*controlreg = 0x04;
 }
 
 int uii_readdata(void) 
