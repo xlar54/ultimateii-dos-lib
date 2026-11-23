@@ -790,8 +790,6 @@ void uii_socketwrite_convert_parameter(unsigned char socketid, char *data, int a
 		fullcmd[x+3] = c;
 	}
 	
-	fullcmd[3+strlen(data)+1] = 0;
-	
 	uii_settarget(TARGET_NETWORK);
 	uii_sendcommand(fullcmd, 3+strlen(data));
 
