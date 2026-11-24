@@ -55,7 +55,7 @@ Demo program does not alter any data
 
 #define VDC_REG	0xd600
 unsigned char convertchar(unsigned char c);
-int getstring(char* def, char *buf);
+int getstring(char* def, char *buf, unsigned char size);
 void irc_updateheader(char *chan);
 void irc_login(void);
 void irc_refreshscreen(void);
@@ -107,13 +107,14 @@ unsigned char convertchar(unsigned char c)
 	return c;
 }
 
-int getstring(char* def, char *buf)
+int getstring(char* def, char *buf, unsigned char size)
 {
 	unsigned char c = 0;
 	unsigned char x = 0;
 	
-	for(x=0;x<strlen(def);x++)
+	for(x=0;x<strlen(def) && x<size-1;x++)
 		buf[x] = def[x];
+	buf[x] = 0;
 		
 	printf("%s%c", buf, CURSOR);
 	
@@ -149,6 +150,8 @@ int getstring(char* def, char *buf)
 				}
 				default:
 				{
+					if(x >= size-1)		// keep room for the 0 at the end
+						break;
 					buf[x++] = c;
 					printf("%c %c%c%c",LEFT,LEFT,c,CURSOR);
 					break;
@@ -526,10 +529,10 @@ unsigned char getconfig(void)
 		printf("\n                                      ");
 		
 		gotoxy(0,9);
-		printf("  Server: "); getstring("irc.libera.chat", host);
-		printf("\n    Port: "); getstring("6667", portbuff);
-		printf("\n Channel: ");	getstring("#c64friends", channel);
-		printf("\nNickname: ");	getstring("", nick);
+		printf("  Server: "); getstring("irc.libera.chat", host, sizeof(host));
+		printf("\n    Port: "); getstring("6667", portbuff, sizeof(portbuff));
+		printf("\n Channel: ");	getstring("#c64friends", channel, sizeof(channel));
+		printf("\nNickname: ");	getstring("", nick, sizeof(nick));
 	
 		if(host[0] == 0) printf("\n\n* You must provide a server!");
 		if(portbuff[0] == 0) printf("\n\n* You must provide a port!");
