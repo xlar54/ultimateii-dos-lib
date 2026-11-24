@@ -172,7 +172,7 @@ void send_dos(char *);
 unsigned char handle_telnet_iac();
 void send_char_ansi(unsigned char c);
 
-char *version = "2.7";
+char *version = "2.8";
 char host[80];
 char portbuff[10];
 char strbuff[520];

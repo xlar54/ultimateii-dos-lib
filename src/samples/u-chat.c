@@ -70,7 +70,7 @@ void vdc_write_reg(void);
 void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo);
 #endif
 
-char *version = "1.4";
+char *version = "1.5";
 char host[25];
 char portbuff[10];
 char *realname = "Bob Anonymous";
