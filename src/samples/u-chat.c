@@ -399,7 +399,15 @@ void irc_handleinput(char *buf)
 			return;
 		}
 		
-		strcpy(channel, &buf[5]);
+		// skip the spaces after "/join" and convert to ASCII, like the channel given at login
+		s = 5;
+		while(buf[s] == ' ')
+			s++;
+		if(buf[s] == 0)
+			return;
+		for(x=0; buf[s] != 0 && x < sizeof(channel)-1; x++, s++)
+			channel[x] = convertchar(buf[s]);
+		channel[x] = 0;
 		irc_updateheader(channel);
 		
 		sprintf(full_message, "join %s%s", channel, crlf);
