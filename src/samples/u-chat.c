@@ -55,7 +55,7 @@ Demo program does not alter any data
 
 #define VDC_REG	0xd600
 unsigned char convertchar(unsigned char c);
-int getstring(char* def, char *buf);
+int getstring(char* def, char *buf, unsigned char size);
 void irc_updateheader(char *chan);
 void irc_login(void);
 void irc_refreshscreen(void);
@@ -70,10 +70,12 @@ void vdc_write_reg(void);
 void vdc_copyline(unsigned char srchi, unsigned char srclo, unsigned char desthi, unsigned char destlo);
 #endif
 
-char *version = "1.4";
+char *version = "1.5";
 char host[25];
 char portbuff[10];
 char *realname = "Bob Anonymous";
+// IRC lines end in CR LF. Bytes, not "\r\n": cc65 swaps CR and LF in strings for the CBM targets.
+char crlf[] = {13, 10, 0};
 char *nochan = "No Channel";
 char channel[50];
 char nick[255];
@@ -105,13 +107,14 @@ unsigned char convertchar(unsigned char c)
 	return c;
 }
 
-int getstring(char* def, char *buf)
+int getstring(char* def, char *buf, unsigned char size)
 {
 	unsigned char c = 0;
 	unsigned char x = 0;
 	
-	for(x=0;x<strlen(def);x++)
+	for(x=0;x<strlen(def) && x<size-1;x++)
 		buf[x] = def[x];
+	buf[x] = 0;
 		
 	printf("%s%c", buf, CURSOR);
 	
@@ -147,6 +150,8 @@ int getstring(char* def, char *buf)
 				}
 				default:
 				{
+					if(x >= size-1)		// keep room for the 0 at the end
+						break;
 					buf[x++] = c;
 					printf("%c %c%c%c",LEFT,LEFT,c,CURSOR);
 					break;
@@ -189,13 +194,20 @@ void irc_login(void) // Handle IRC login procedures
 {
     char NICK_STRING[64]; 
     char USER_STRING[128];
+	char name[40];
 	char *chan;
+	unsigned char x;
 
-	chan = (char*) malloc(50 * sizeof(unsigned char));
+	chan = (char*) malloc(sizeof(channel) + 8); // "join " + channel + CR LF
+
+	// the real name as ASCII, like the nick and the messages (cc65 compiles strings to PETSCII)
+	for(x=0;x<strlen(realname) && x<sizeof(name)-1;x++)
+		name[x] = convertchar(realname[x]);
+	name[x] = 0;
     
-	sprintf(NICK_STRING, "nick %s\r\n", nick); // NICK user
-    sprintf(USER_STRING, "user %s * 0 :%s\r\n", nick, strlen(realname) == 0 ? nick : realname); // USER user * 0 :Real name
-	sprintf(chan, "join %s\n", channel);
+	sprintf(NICK_STRING, "nick %s%s", nick, crlf); // NICK user
+    sprintf(USER_STRING, "user %s * 0 :%s%s", nick, strlen(name) == 0 ? nick : name, crlf); // USER user * 0 :Real name
+	sprintf(chan, "join %s%s", channel, crlf);
 	
 	uii_socketwrite(socketnr, NICK_STRING);
 	uii_socketwrite(socketnr, USER_STRING);
@@ -353,7 +365,7 @@ void irc_pong(char *buf)
 	buf[3] = 'g';
 
 	uii_socketwrite(socketnr, buf);
-	uii_socketwrite(socketnr, "\r\n");
+	uii_socketwrite(socketnr, crlf);
 }
 
 void irc_help()
@@ -390,10 +402,18 @@ void irc_handleinput(char *buf)
 			return;
 		}
 		
-		strcpy(channel, &buf[5]);
+		// skip the spaces after "/join" and convert to ASCII, like the channel given at login
+		s = 5;
+		while(buf[s] == ' ')
+			s++;
+		if(buf[s] == 0)
+			return;
+		for(x=0; buf[s] != 0 && x < sizeof(channel)-1; x++, s++)
+			channel[x] = convertchar(buf[s]);
+		channel[x] = 0;
 		irc_updateheader(channel);
 		
-		sprintf(full_message, "join %s\n", channel);
+		sprintf(full_message, "join %s%s", channel, crlf);
 		uii_socketwrite(socketnr, full_message);
 	}
 	else if(strstr(buf,"/part") == buf)
@@ -406,7 +426,7 @@ void irc_handleinput(char *buf)
 		
 		irc_updateheader(nochan);
 		
-		sprintf(full_message, "part %s\n", channel); // Leave current channel
+		sprintf(full_message, "part %s%s", channel, crlf); // Leave current channel
 		uii_socketwrite(socketnr, full_message);
 		channel[0] = 0;
 	}
@@ -426,7 +446,7 @@ void irc_handleinput(char *buf)
 		
 		strcpy(nick, &buf[6]);
 		
-		sprintf(full_message, "nick %s\n", nick);
+		sprintf(full_message, "nick %s%s", nick, crlf);
 		uii_socketwrite(socketnr, full_message);
 	}
 	else
@@ -444,7 +464,7 @@ void irc_handleinput(char *buf)
 			for(x=0;x<strlen(buf);x++)
 				buf[x] = convertchar(buf[x]);
 
-			sprintf(full_message, "privmsg %s :%caction %s%c\n", channel, 0x01, buf, 0x01);
+			sprintf(full_message, "privmsg %s :%caction %s%c%s", channel, 0x01, buf, 0x01, crlf);
 			uii_socketwrite(socketnr, full_message);
 			
 			printf("%c", CG_COLOR_YELLOW);
@@ -459,7 +479,7 @@ void irc_handleinput(char *buf)
 			for(x=0;x<strlen(buf);x++)
 				buf[x] = convertchar(buf[x]);
 
-			sprintf(full_message, "privmsg %s :%s\n", channel, buf); // PRIVMSG <channel> :Message text
+			sprintf(full_message, "privmsg %s :%s%s", channel, buf, crlf); // PRIVMSG <channel> :Message text
 			uii_socketwrite(socketnr, full_message);
 			
 			printf("%c", CG_COLOR_CYAN);
@@ -509,10 +529,10 @@ unsigned char getconfig(void)
 		printf("\n                                      ");
 		
 		gotoxy(0,9);
-		printf("  Server: "); getstring("irc.libera.chat", host);
-		printf("\n    Port: "); getstring("6667", portbuff);
-		printf("\n Channel: ");	getstring("#c64friends", channel);
-		printf("\nNickname: ");	getstring("", nick);
+		printf("  Server: "); getstring("irc.libera.chat", host, sizeof(host));
+		printf("\n    Port: "); getstring("6667", portbuff, sizeof(portbuff));
+		printf("\n Channel: ");	getstring("#c64friends", channel, sizeof(channel));
+		printf("\nNickname: ");	getstring("", nick, sizeof(nick));
 	
 		if(host[0] == 0) printf("\n\n* You must provide a server!");
 		if(portbuff[0] == 0) printf("\n\n* You must provide a port!");

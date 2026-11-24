@@ -474,22 +474,27 @@ void uii_sendcommand(unsigned char *bytes, int count)
 			uii_logstatusreg();
 		};
 		
+		// clear an ERROR left from before, so that it is not taken for this push's
+		if ((*statusreg & 8) == 8)
+			*controlreg = 0x08;
+		
 		// Write byte by byte to data register
 		uii_logtext("\nwriting command...");
+		x = 0;
 		while(x<count)
 			*cmddatareg = bytes[x++];
 		
 		// Send PUSH_CMD
 		uii_logtext("\npushing command...");
-		*controlreg |= 0x01;
+		*controlreg = 0x01;
 		
 		uii_logstatusreg();
 		
 		// check ERROR bit.  If set, clear it via ctrl reg, and try again
-		if ((*statusreg & 4) == 4)
+		if ((*statusreg & 8) == 8)
 		{
 			uii_logtext("\nerror was set. trying again");
-			*controlreg |= 0x08;
+			*controlreg = 0x08;
 		}
 		else
 		{
@@ -514,7 +519,7 @@ void uii_accept(void)
 	// Acknowledge the data
 	uii_logstatusreg();
 	uii_logtext("\nsending ack");
-	*controlreg |= 0x02;
+	*controlreg = 0x02;
 	while ( !(*statusreg & 2) == 0 )  {
 		uii_logtext("\nwaiting for ack...");
 		uii_logstatusreg();
@@ -542,7 +547,7 @@ void uii_abort(void)
 	// abort the command
 	uii_logstatusreg();
 	uii_logtext("\nsending abort");
-	*controlreg |= 0x04;
+	*controlreg = 0x04;
 }
 
 int uii_readdata(void) 
@@ -789,8 +794,6 @@ void uii_socketwrite_convert_parameter(unsigned char socketid, char *data, int a
 		}
 		fullcmd[x+3] = c;
 	}
-	
-	fullcmd[3+strlen(data)+1] = 0;
 	
 	uii_settarget(TARGET_NETWORK);
 	uii_sendcommand(fullcmd, 3+strlen(data));
